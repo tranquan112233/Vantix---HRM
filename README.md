@@ -3,4 +3,4 @@
 - Frontend: Vue.js + Bootstrap 5
 - Backend: Java Spring Boot
 - Database: SQL Server
-- Framework: Inteliji IDEA
+- Framework: IntelliJ IDEA 
