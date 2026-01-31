@@ -74,6 +74,7 @@ CREATE TABLE Attendance (
     WorkHours DECIMAL(5,2),                      -- Tổng giờ làm
     LateMinutes INT DEFAULT 0,                   -- Phút trễ
     EarlyLeaveMinutes INT DEFAULT 0,             -- Phút về sớm
+    Status ENUM('Draft', 'Pending', 'Approved', 'Rejected'),-- Trạng thái phiếu
     
     FOREIGN KEY (UserID) REFERENCES Users(UserID),
     FOREIGN KEY (ShiftID) REFERENCES Shifts(ShiftID)
