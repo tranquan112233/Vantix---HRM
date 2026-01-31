@@ -29,7 +29,7 @@ public class Users{
     private String fullName;
 
     @Enumerated(EnumType.STRING)
-    private Gender gender;
+    private Gender gender = Gender.Other;
 
     @Column(unique = true, length = 100)
     private String email;
