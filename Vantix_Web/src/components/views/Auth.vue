@@ -1,80 +1,97 @@
 <template>
-  <div class="login-bg d-flex justify-content-center align-items-center">
-    <div class="card auth-card border-0">
-      <div class="card-body">
-        <!-- Title -->
-        <h3 class="text-center title mb-1">
+  <div class="login-bg">
+    <img
+        :src="logo"
+        alt="Vantix HR"
+        class="app-logo"
+    />
+
+
+    <div class="auth-card">
+
+      <!-- LEFT -->
+      <div class="auth-left">
+        <h3 class="title">
           {{ isLogin ? 'Chào mừng trở lại 👋' : 'Tạo tài khoản mới ✨' }}
         </h3>
 
-        <p class="text-center subtitle mb-4">
+        <p class="subtitle">
           {{ isLogin
             ? 'Rất vui khi được gặp lại bạn'
             : 'Chỉ mất một phút để bắt đầu' }}
         </p>
 
-        <!-- Form -->
         <form @submit.prevent>
           <div class="form-floating mb-3">
             <input
                 type="email"
                 class="form-control"
-                id="email"
                 placeholder="Email"
                 v-model="form.email"
-                autofocus
+                required
             />
-            <label for="email">Email</label>
+            <label>Email</label>
           </div>
 
           <div class="form-floating mb-3">
             <input
                 type="password"
                 class="form-control"
-                id="password"
                 placeholder="Password"
                 v-model="form.password"
+                required
             />
-            <label for="password">Mật khẩu</label>
+            <label>Mật khẩu</label>
           </div>
 
           <div class="form-floating mb-3" v-if="!isLogin">
             <input
                 type="password"
                 class="form-control"
-                id="confirm"
                 placeholder="Confirm"
                 v-model="form.confirm"
+                required
             />
-            <label for="confirm">Nhập lại mật khẩu</label>
+            <label>Nhập lại mật khẩu</label>
           </div>
 
-          <button class="btn btn-primary w-100 py-2">
+          <button class="btn-login">
             {{ isLogin ? 'Đăng nhập' : 'Tạo tài khoản' }}
           </button>
         </form>
 
-        <!-- Trust text -->
-        <p class="text-center trust-text mt-3">
+        <p class="trust-text">
           🔒 Thông tin của bạn luôn được bảo mật
         </p>
 
-        <!-- Switch -->
-        <div class="text-center mt-3">
-          <small class="text-muted">
-            {{ isLogin ? 'Chưa có tài khoản?' : 'Đã có tài khoản?' }}
-            <a href="#" @click.prevent="toggle" class="link-primary">
-              {{ isLogin ? 'Đăng ký' : 'Đăng nhập' }}
-            </a>
-          </small>
-        </div>
+        <p class="switch">
+          {{ isLogin ? 'Chưa có tài khoản?' : 'Đã có tài khoản?' }}
+          <a href="#" @click.prevent="toggle">
+            {{ isLogin ? 'Đăng ký' : 'Đăng nhập' }}
+          </a>
+        </p>
       </div>
+
+      <!-- RIGHT -->
+      <div class="auth-right" v-if="isLogin">
+        <img
+            src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=login"
+            alt="QR"
+        />
+        <h4>Đăng nhập bằng mã QR</h4>
+        <p>
+          Quét bằng ứng dụng di động để đăng nhập nhanh chóng
+        </p>
+      </div>
+
     </div>
   </div>
 </template>
 
 <script setup>
 import { reactive, ref } from 'vue'
+import logo from '../../assets/img/removeBackgroundLogo.png'
+
 
 const isLogin = ref(true)
 
@@ -90,98 +107,171 @@ const toggle = () => {
 </script>
 
 <style scoped>
-.auth-bg {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* CARD */
-.auth-card {
-  width: 420px;
-  border-radius: 14px;
-  background: #ffffff;
-  box-shadow:
-      0 18px 40px rgba(13, 110, 253, 0.18),
-      0 4px 10px rgba(0, 0, 0, 0.05);
-}
-
-/* CONTENT */
-.card-body {
-  padding: 36px;
-}
-
-/* TITLE */
-.title {
-  color: #0d6efd;
-  font-weight: 600;
-  font-size: 22px;
-}
-
-.subtitle {
-  color: #6c757d;
-  font-size: 14px;
-}
-
-/* INPUT */
-.form-control {
-  background: #f8f9fa;
-  border: 1px solid #ced4da;
-  color: #212529;
-  border-radius: 10px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.form-control:focus {
-  border-color: #0d6efd;
-  background: #ffffff;
-  box-shadow: 0 0 0 0.15rem rgba(13, 110, 253, 0.15);
-}
-
-/* LABEL */
-.form-floating label {
-  color: #6c757d;
-}
-
-/* BUTTON */
-.btn-primary {
-  background: #0d6efd;
-  border: none;
-  border-radius: 10px;
-  font-weight: 600;
-  transition: background 0.2s ease, transform 0.1s ease;
-}
-
-.btn-primary:hover {
-  background: #0b5ed7;
-  transform: translateY(-1px);
-}
-
-/* TRUST TEXT */
-.trust-text {
-  font-size: 13px;
-  color: #6c757d;
-}
-
-/* LINK */
-.link-primary {
-  color: #0d6efd;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.link-primary:hover {
-  text-decoration: underline;
-}
-
 .login-bg {
   min-height: 100vh;
   background-image: url("https://i.pinimg.com/1200x/76/a1/d5/76a1d5df2961390d07e44e640108addc.jpg");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
+.app-logo {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 120px;
+  height: auto;
+
+  z-index: 999;
+}
+
+.login-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 12, 36, 0.65);
+}
+
+/* CARD (Discord style) */
+.auth-card {
+  position: relative;
+  z-index: 1;
+  width: 960px;
+  max-width: 96%;
+  display: flex;
+  border-radius: 22px;
+  overflow: hidden;
+  background: rgba(16, 24, 52, 0.97);
+  backdrop-filter: blur(14px);
+  box-shadow:
+      0 35px 80px rgba(0, 0, 0, 0.8),
+      0 0 0 1px rgba(30, 136, 229, 0.18);
+  color: #e3f2fd;
+}
+
+/* LEFT */
+.auth-left {
+  flex: 1;
+  padding: 56px 64px;
+}
+
+.title {
+  color: #1e88e5;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 8px 0 32px;
+  color: #b6ccff;
+  font-size: 15px;
+}
+
+/* INPUT */
+.form-floating .form-control {
+  height: 56px;
+  background: #0b132b;
+  border: 1px solid #243b80;
+  border-radius: 12px;
+  color: #e3f2fd;
+}
+
+.form-floating .form-control:focus {
+  background: #0b132b;
+  border-color: #1e88e5;
+  box-shadow: 0 0 0 0.18rem rgba(30, 136, 229, 0.35);
+}
+
+.form-floating label {
+  color: #90caf9;
+}
+
+/* BUTTON */
+.btn-login {
+  width: 100%;
+  height: 52px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #1e88e5, #1565c0);
+}
+
+.btn-login:hover {
+  background: linear-gradient(135deg, #1565c0, #0d47a1);
+}
+
+/* TEXT */
+.trust-text {
+  margin-top: 18px;
+  font-size: 13px;
+  color: #90caf9;
+}
+
+.switch {
+  margin-top: 16px;
+  font-size: 14px;
+  color: #9bbcff;
+}
+
+.switch a {
+  color: #1e88e5;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.switch a:hover {
+  text-decoration: underline;
+}
+
+/* RIGHT (QR) */
+.auth-right {
+  width: 340px;
+  padding: 56px 40px;
+  text-align: center;
+  background: linear-gradient(
+      180deg,
+      rgba(6, 12, 36, 0.95),
+      rgba(2, 6, 23, 0.95)
+  );
+  border-left: 1px solid rgba(30, 136, 229, 0.25);
+}
+
+.auth-right img {
+  width: 180px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  background: #fff;
+  padding: 10px;
+}
+
+.auth-right h4 {
+  color: #e3f2fd;
+  margin-bottom: 8px;
+}
+
+.auth-right p {
+  font-size: 14px;
+  color: #b6ccff;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .auth-card {
+    flex-direction: column;
+  }
+
+  .auth-right {
+    display: none;
+  }
+
+  .auth-left {
+    padding: 40px 28px;
+  }
+}
 </style>
