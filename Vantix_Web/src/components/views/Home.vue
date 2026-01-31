@@ -1,5 +1,5 @@
 <template>
-  <AppHeader />
+<!--  <AppHeader />-->
   <div class="home">
     <div class="card-grid">
       <div

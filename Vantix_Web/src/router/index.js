@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import Auth from "../components/views/Auth.vue";
 import Home from "../components/views/Home.vue"
+import Attendance from "../components/views/Attendance.vue";
 
 const routes = [
     {
@@ -17,7 +18,13 @@ const routes = [
         path: '/home',
         name: 'Home',
         component: Home,
-        meta: { requiresAuth: true } // cần đăng nhập
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/attendance',
+        name: 'Attendance',
+        component: Attendance,
+        meta: { requiresAuth: true }
     }
 ]
 
