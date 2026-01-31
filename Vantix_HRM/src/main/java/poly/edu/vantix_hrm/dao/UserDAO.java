@@ -1,7 +1,7 @@
 package poly.edu.vantix_hrm.dao;
 
-import org.apache.catalina.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import poly.edu.vantix_hrm.entity.Users;
 
-public interface UserDAO extends JpaRepository<User,Integer>{
+public interface UserDAO extends JpaRepository<Users,Integer>{
 }
