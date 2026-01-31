@@ -2,8 +2,8 @@ package poly.edu.vantix_hrm.dao;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import poly.edu.vantix_hrm.entity.Users;
+import poly.edu.vantix_hrm.entity.Shifts;
 
 @Repository
-public interface UserDAO extends JpaRepository<Users,Integer>{
+public interface ShiftsDAO extends JpaRepository<Shifts, Integer> {
 }
