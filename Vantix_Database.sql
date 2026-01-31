@@ -32,7 +32,7 @@ CREATE TABLE Users (
     -- THÔNG TIN CÁ NHÂN
     EmployeeCode VARCHAR(50) NOT NULL UNIQUE,    -- Mã nhân viên
     Fullname VARCHAR(100) NOT NULL,              -- Họ và tên
-    Gender BOOLEAN,                         	 -- Giới tính (1: Nam, 0: Nữ)
+    Gender ENUM('Male', 'Female', 'Other')DEFAULT 'Other',-- Giới tính
     Address VARCHAR(255),                        -- Địa chỉ
     Email VARCHAR(100),                          -- Email
     Phone VARCHAR(20),                           -- Số điện thoại
