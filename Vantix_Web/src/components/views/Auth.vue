@@ -1,5 +1,5 @@
 <template>
-  <div class="auth-bg d-flex justify-content-center align-items-center">
+  <div class="login-bg d-flex justify-content-center align-items-center">
     <div class="card auth-card border-0">
       <div class="card-body">
         <!-- Title -->
@@ -174,6 +174,14 @@ const toggle = () => {
 
 .link-primary:hover {
   text-decoration: underline;
+}
+
+.login-bg {
+  min-height: 100vh;
+  background-image: url("https://i.pinimg.com/1200x/76/a1/d5/76a1d5df2961390d07e44e640108addc.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 </style>

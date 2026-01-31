@@ -1,9 +1,7 @@
-  <template>
-    <Auth />
-    <AppHeader />
+<script setup>
+</script>
+<template>
+    <router-view />
   </template>
 
-  <script setup>
-  import Auth from './components/views/Auth.vue'
-  import AppHeader from "./components/AppHeader.vue";
-  </script>
+
