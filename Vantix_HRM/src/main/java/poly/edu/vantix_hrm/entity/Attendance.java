@@ -44,4 +44,12 @@ public class Attendance {
 
     @Column(name = "EarlyLeaveMinutes")
     private Integer earlyLeaveMinutes = 0;
+
+    @Column(name = "Status")
+    @Enumerated(EnumType.STRING)
+    private Status status = Status.Draft;
+
+    public enum Status {
+        Draft, Pending, Approved, Rejected
+    }
 }
