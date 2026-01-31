@@ -1,71 +1,70 @@
 package poly.edu.vantix_hrm.entity;
 
-
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import java.time.LocalDateTime;
 
 @Table(name = "Users")
 @Entity
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Users{
+public class Users {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "UserID")
     private Integer userID;
 
-
-    // Thông tin đăng nhập
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(name = "Username", nullable = false, unique = true, length = 100)
     private String username;
 
-    @Column(nullable = false, length = 255)
-    private String passwordHash;
+    @Column(name = "Password", nullable = false, length = 200)
+    private String password;
 
+    @Column(name = "EmployeeCode", nullable = false, unique = true, length = 50)
+    private String employeeCode;
 
-    // Thông tin cá nhân
-    @Column(nullable = false, length = 100)
+    @Column(name = "Fullname", nullable = false, length = 100)
     private String fullName;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "Gender")
     private Gender gender = Gender.Other;
 
-    @Column(unique = true, length = 100)
+    @Column(name = "Email", unique = true, length = 100)
     private String email;
 
-    @Column(unique = true, length = 20)
+    @Column(name = "Phone", unique = true, length = 20)
     private String phone;
 
+    @Column(name = "Address", length = 255)
     private String address;
+
+    @Column(name = "AvatarURL", length = 255)
     private String avatarUrl;
 
-    // Trạng thái làm việc
     @Enumerated(EnumType.STRING)
+    @Column(name = "Status")
     private UserStatus status = UserStatus.Working;
 
-    // Quan hệ khóa ngoại
     @ManyToOne
-    @JoinColumn(name = "RoleID", nullable = false)
+    @JoinColumn(name = "RoleID")
     private Roles role;
 
     @ManyToOne
-    @JoinColumn(name = "DepartmentID", nullable = false)
+    @JoinColumn(name = "DepartmentID")
     private Departments department;
 
-    // ENUM: Gender
-    enum Gender {
-        Male,
-        Female,
-        Other
+    @CreationTimestamp
+    @Column(name = "CreatedAt", updatable = false)
+    private LocalDateTime createdAt;
+
+    public enum Gender {
+        Male, Female, Other
     }
-    // ENUM: UserStatus
-    enum UserStatus {
-        Working,
-        OnLeave,
-        Resigned
+
+    public enum UserStatus {
+        Working, Resigned, OnLeave
     }
 }
-
-
-
