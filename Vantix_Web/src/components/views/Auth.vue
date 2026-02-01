@@ -11,7 +11,7 @@
 
       <div class="auth-left">
         <h3 class="title">
-          {{ isLogin ? 'Chào mừng trở lại 👋' : 'Tạo tài khoản mới ✨' }}
+          {{ isLogin ? 'Chào mừng trở lại 👋' : '' }}
         </h3>
 
         <p class="subtitle">
@@ -23,13 +23,13 @@
         <form @submit.prevent>
           <div class="form-floating mb-3">
             <input
-                type="email"
+                type="username"
                 class="form-control"
-                placeholder="Email"
-                v-model="form.email"
+                placeholder="Username"
+                v-model="form.username"
                 required
             />
-            <label>Email</label>
+            <label>Tên tài khoản</label>
           </div>
 
           <div class="form-floating mb-3">
@@ -43,19 +43,9 @@
             <label>Mật khẩu</label>
           </div>
 
-          <div class="form-floating mb-3" v-if="!isLogin">
-            <input
-                type="password"
-                class="form-control"
-                placeholder="Confirm"
-                v-model="form.confirm"
-                required
-            />
-            <label>Nhập lại mật khẩu</label>
-          </div>
 
           <button class="btn-login">
-            {{ isLogin ? 'Đăng nhập' : 'Tạo tài khoản' }}
+            {{ isLogin ? 'Đăng nhập' : '' }}
           </button>
         </form>
 
@@ -63,23 +53,17 @@
           🔒 Thông tin của bạn luôn được bảo mật
         </p>
 
-        <p class="switch">
-          {{ isLogin ? 'Chưa có tài khoản?' : 'Đã có tài khoản?' }}
-          <a href="#" @click.prevent="toggle">
-            {{ isLogin ? 'Đăng ký' : 'Đăng nhập' }}
-          </a>
-        </p>
       </div>
 
       <!-- RIGHT -->
       <div class="auth-right" v-if="isLogin">
         <img
-            src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=login"
+            :src="logo"
             alt="QR"
         />
-        <h4>Đăng nhập bằng mã QR</h4>
+        <h4>Chào mừng bạn đến VANTIX</h4>
         <p>
-          Quét bằng ứng dụng di động để đăng nhập nhanh chóng
+          Nền tảng quản lý nhân sự hiện đại
         </p>
       </div>
 
@@ -95,9 +79,8 @@ import logo from '../../assets/img/removeBackgroundLogo.png'
 const isLogin = ref(true)
 
 const form = reactive({
-  email: '',
-  password: '',
-  confirm: ''
+  username: '',
+  password: ''
 })
 
 const toggle = () => {
