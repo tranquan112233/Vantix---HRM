@@ -6,7 +6,7 @@ const menus = [
     to: '/admin'
   },
   {
-    label: 'Quản lý người dùng',
+    label: 'Quản lý nhân viên',
     icon: 'bi bi-people',
     to: '/admin/users'
   },

@@ -6,7 +6,7 @@ import { ref } from 'vue'
 const notifications = ref([
   {
     id: 1,
-    title: 'Điều chỉnh giá dịch vụ tên miền .NET',
+    title: 'Điều chỉnh giá dịch vụ',
     content: 'Áp dụng từ ngày 17/01/2026',
     time: '09:31 AM | 16/01/2026',
     read: false
@@ -16,7 +16,7 @@ const notifications = ref([
     title: 'Cập nhật chính sách bảo mật',
     content: 'Áp dụng theo Nghị định 13/2023/NĐ-CP',
     time: '04:23 AM | 31/12/2025',
-    read: true
+    read: false
   }
 ])
 
