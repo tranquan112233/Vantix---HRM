@@ -6,12 +6,11 @@ import poly.edu.vantix_hrm.dao.AttendanceDAO;
 import poly.edu.vantix_hrm.dao.ShiftsDAO;
 import poly.edu.vantix_hrm.dao.UserDAO;
 import poly.edu.vantix_hrm.entity.Attendance;
-import poly.edu.vantix_hrm.entity.Shifts;
 import poly.edu.vantix_hrm.entity.Users;
 import poly.edu.vantix_hrm.service.AttendanceService;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
+import java.util.List;
 
 @Service
 public class AttendanceServiceImpl implements AttendanceService {
@@ -26,18 +25,24 @@ public class AttendanceServiceImpl implements AttendanceService {
     private AttendanceDAO attendanceDAO;
 
     @Override
-    public Attendance checkIn(Integer UserID) {
-        Users user = userDAO.findById(UserID)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên có ID: " + UserID));
+    public Attendance postCheckIn(Integer users) {
+        return null;
+    }
 
-        Shifts shifts = shiftsDAO.findById(1)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy ca có ID: " + 1));
+    @Override
+    public Attendance putCheckOut(){
+        return null;
+    }
 
-        Attendance att = new Attendance();
-        att.setUser(user);
-        att.setShift(shifts);
-        att.setWorkDate(LocalDate.now());
-        att.setCheckIn(LocalTime.now());
-        return attendanceDAO.save(att);
+    @Override
+    public Attendance confirmCheckOut(){
+        return null;
+    }
+
+    @Override
+    public List<Attendance> getEmployeeMonthlyAttendance(Integer UserID, LocalDate MonthAndYear) {
+        int month = MonthAndYear.getMonthValue();
+        int year = MonthAndYear.getYear();
+        return attendanceDAO.findAttendanceByMonth(UserID, month, year);
     }
 }
