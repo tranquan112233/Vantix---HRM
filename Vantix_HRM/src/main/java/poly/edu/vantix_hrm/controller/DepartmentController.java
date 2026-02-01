@@ -3,7 +3,6 @@ package poly.edu.vantix_hrm.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import poly.edu.vantix_hrm.dao.DepartmentDAO;
-import poly.edu.vantix_hrm.entity.Departments;
 
 import java.util.List;
 

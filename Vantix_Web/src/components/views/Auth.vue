@@ -9,7 +9,6 @@
 
     <div class="auth-card">
 
-      <!-- LEFT -->
       <div class="auth-left">
         <h3 class="title">
           {{ isLogin ? 'Chào mừng trở lại 👋' : 'Tạo tài khoản mới ✨' }}
