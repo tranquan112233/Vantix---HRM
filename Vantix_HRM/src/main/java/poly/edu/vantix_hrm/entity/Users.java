@@ -41,9 +41,6 @@ public class Users{
     @Column(name = "Address")
     private String address;
 
-    @Column(name = "AvatarUrl")
-    private String avatarUrl;
-
     // Trạng thái làm việc
     @Column(name = "Status")
     @Enumerated(EnumType.STRING)

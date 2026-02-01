@@ -45,8 +45,8 @@ const logout = () => {
 <template>
   <nav class="navbar navbar-expand bg-white shadow-sm px-4">
     <!-- Logo -->
-    <router-link to="/home" class="navbar-brand fw-semibold text-primary">
-      VANTIX HRM
+    <router-link to="/home" class="navbar-brand fw-semibold text-decoration-none">
+      VANTIX <span class="fw-light">Co.</span>
     </router-link>
 
     <div class="ms-auto d-flex align-items-center gap-3">

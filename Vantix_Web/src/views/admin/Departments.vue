@@ -1,21 +1,9 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import DepartmentService from "../../assets/services/department.service.js";
 
-/* ================= MOCK DATA ================= */
-const departments = ref([
-  {
-    departmentID: 1,
-    departmentName: 'Phòng Nhân Sự',
-    description: 'Quản lý nhân sự'
-  },
-  {
-    departmentID: 2,
-    departmentName: 'Phòng Kế Toán',
-    description: 'Quản lý tài chính'
-  }
-])
-
-/* ================= FORM ================= */
+/* ================= DATA ================= */
+const departments = ref([])
 const form = ref({
   departmentID: null,
   departmentName: '',
@@ -24,11 +12,23 @@ const form = ref({
 
 const isEdit = ref(false)
 
-/* ================= VIEW EMPLOYEES ================= */
+/* ===== VIEW EMPLOYEES (XEM NHANH) ===== */
 const selectedDepartment = ref(null)
-const employees = ref([])
+const employees = ref([]) // sau này gọi API employee
 
-/* ================= METHODS ================= */
+/* ================= LOAD DATA ================= */
+const loadDepartments = async () => {
+  try {
+    const res = await DepartmentService.getAll()
+    departments.value = res.data
+  } catch (e) {
+    alert('Không tải được danh sách phòng ban')
+  }
+}
+
+onMounted(loadDepartments)
+
+/* ================= FORM ================= */
 const openAdd = () => {
   isEdit.value = false
   form.value = {
@@ -43,52 +43,48 @@ const openEdit = (item) => {
   form.value = { ...item }
 }
 
-const save = () => {
+/* ================= SAVE ================= */
+const save = async () => {
   if (!form.value.departmentName) {
     alert('Tên phòng ban không được để trống')
     return
   }
 
-  if (isEdit.value) {
-    const index = departments.value.findIndex(
-        d => d.departmentID === form.value.departmentID
-    )
-    departments.value[index] = { ...form.value }
-  } else {
-    departments.value.push({
-      ...form.value,
-      departmentID: Date.now()
-    })
-  }
+  try {
+    if (isEdit.value) {
+      await DepartmentService.update(
+          form.value.departmentID,
+          form.value
+      )
+    } else {
+      await DepartmentService.create(form.value)
+    }
 
-  document.getElementById('closeDepartmentModal').click()
-}
-
-const remove = (id) => {
-  if (confirm('Xóa phòng ban này?')) {
-    departments.value = departments.value.filter(d => d.departmentID !== id)
+    document.getElementById('closeDepartmentModal').click()
+    await loadDepartments()
+  } catch (e) {
+    alert('Lưu phòng ban thất bại')
   }
 }
 
-/* ===== XEM NHANH NHÂN VIÊN ===== */
+/* ================= DELETE ================= */
+const remove = async (id) => {
+  if (!confirm('Xóa phòng ban này?')) return
+
+  try {
+    await DepartmentService.delete(id)
+    await loadDepartments()
+  } catch (e) {
+    alert(e.response?.data || 'Không thể xóa phòng ban')
+  }
+}
+
+/* ================= XEM NHANH NHÂN VIÊN ================= */
 const openEmployees = (department) => {
   selectedDepartment.value = department
 
-  // MOCK – sau thay bằng axios
-  employees.value = [
-    {
-      userID: 1,
-      fullName: 'Nguyễn Văn A',
-      role: 'HR',
-      status: 'Working'
-    },
-    {
-      userID: 2,
-      fullName: 'Trần Thị B',
-      role: 'Staff',
-      status: 'OnLeave'
-    }
-  ]
+  // TODO: gọi API /employees?departmentId=
+  employees.value = []
 }
 </script>
 
