@@ -1,32 +1,78 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import axios from 'axios';
 
-// --- Giả định: ID này sẽ được lấy từ Store (Pinia/Vuex) hoặc LocalStorage sau khi Login ---
+// --- GIẢ LẬP DỮ LIỆU USER ---
 const currentUserID = ref(1);
 
+// Hàm format giờ
+const formatTime = (timeStr) => {
+  if (!timeStr) return '--:--';
+  return timeStr.slice(0, 5);
+};
+
+// Hàm hiển thị tên Ca làm việc
+const getShiftLabel = (shiftObj) => {
+  if (!shiftObj) return 'Khác';
+  if (shiftObj.shiftID === 1) return 'Sáng';
+  if (shiftObj.shiftID === 2) return 'Chiều';
+  return shiftObj.shiftName || 'Khác';
+};
+
+// --- STATE ---
 const message = ref('');
 const isError = ref(false);
 const loading = ref(false);
 const attendanceList = ref([]);
 
-// --- Logic Chấm Công (Check-In) ---
+// State cho bộ lọc
+const selectedMonth = ref(new Date().getMonth() +1);
+const selectedYear = ref(new Date().getFullYear());
+
+// --- LOGIC GỌI API LẤY DỮ LIỆU ---
+const fetchAttendanceData = async () => {
+  try {
+    const response = await axios.get('http://localhost:8080/api/attendance/getAttendance', {
+      params: {
+        UserID: currentUserID.value,
+        Month: selectedMonth.value,
+        Year: selectedYear.value
+      }
+    });
+
+    // SẮP XẾP DỮ LIỆU: Mới nhất lên đầu
+    attendanceList.value = response.data.sort((a, b) => {
+      const dateA = new Date(a.workDate);
+      const dateB = new Date(b.workDate);
+
+      // So sánh ngày trước (Ngày lớn hơn nằm trên)
+      if (dateB - dateA !== 0) return dateB - dateA;
+
+      // Nếu cùng ngày, thì ca nào ID lớn hơn (Chiều) nằm trên
+      return (b.shift?.shiftID || 0) - (a.shift?.shiftID || 0);
+    });
+
+  } catch (error) {
+    console.error("Lỗi tải dữ liệu:", error);
+    attendanceList.value = [];
+  }
+};
+
+// --- LOGIC CHẤM CÔNG (Check-In) ---
 const handleCheckIn = async () => {
   loading.value = true;
   message.value = '';
 
   try {
-    // Sử dụng currentUserID đã có sẵn từ hệ thống login
     const response = await axios.post(
         `http://localhost:8080/api/attendance/create`,
-        currentUserID.value, // Gửi trực tiếp ID nhân viên
+        currentUserID.value,
         { headers: { 'Content-Type': 'application/json' } }
     );
 
     message.value = `Chấm công thành công! Giờ vào: ${response.data.checkIn}`;
     isError.value = false;
 
-    // Refresh lại bảng dữ liệu
     fetchAttendanceData();
   } catch (error) {
     isError.value = true;
@@ -41,15 +87,10 @@ const handleCheckOut = () => {
   isError.value = true;
 };
 
-// --- Lấy dữ liệu danh sách ---
-const fetchAttendanceData = async () => {
-  try {
-    const response = await axios.get('http://localhost:8080/api/attendance/list');
-    attendanceList.value = response.data;
-  } catch (error) {
-    console.error("Lỗi tải dữ liệu:", error);
-  }
-};
+// Tự cập nhật lại bảng khi thay đổi tháng & năm
+watch([selectedMonth, selectedYear], () => {
+  fetchAttendanceData();
+});
 
 onMounted(() => {
   fetchAttendanceData();
@@ -87,38 +128,61 @@ onMounted(() => {
 
       <div class="table-container">
         <div class="table-header">
-          <h3>Lịch sử chấm công của bạn</h3>
+          <h3>Lịch sử chấm công</h3>
+
+          <div class="header-controls">
+            <select v-model="selectedMonth" class="custom-select">
+              <option v-for="m in 12" :key="m" :value="m">Tháng {{ m }}</option>
+            </select>
+
+            <select v-model="selectedYear" class="custom-select">
+              <option v-for="y in 5" :key="y" :value="2024 + y">{{ 2024 + y }}</option>
+            </select>
+          </div>
         </div>
+
         <table>
           <thead>
           <tr>
-            <th>Ca làm</th>
             <th>Ngày</th>
-            <th>Vào</th>
+            <th>Ca làm</th> <th>Vào</th>
             <th>Ra</th>
             <th>Giờ làm</th>
-            <th>Trễ (m)</th>
-            <th>Sớm (m)</th>
+            <th>Trễ (p)</th>
+            <th>Sớm (p)</th>
             <th>Trạng thái</th>
           </tr>
           </thead>
           <tbody>
+          <tr v-if="attendanceList.length === 0">
+            <td colspan="8" class="empty-cell">Không có dữ liệu trong tháng {{ selectedMonth }}/{{ selectedYear }}.</td>
+          </tr>
           <tr v-for="att in attendanceList" :key="att.attendanceID">
-            <td>{{ att.shift?.shiftName || 'Ca 1' }}</td>
             <td>{{ att.workDate }}</td>
-            <td>{{ att.checkIn }}</td>
-            <td>{{ att.checkOut || '--:--' }}</td>
-            <td>{{ att.workHours || 0 }}</td>
-            <td :class="{ 'warning': att.lateMinutes > 0 }">{{ att.lateMinutes }}</td>
-            <td :class="{ 'warning': att.earlyLeaveMinutes > 0 }">{{ att.earlyLeaveMinutes }}</td>
+
+            <td>
+              <span :class="['shift-badge', att.shift?.shiftID === 1 ? 'morning' : 'afternoon']">
+                 {{ getShiftLabel(att.shift) }}
+              </span>
+            </td>
+
+            <td>{{ formatTime(att.checkIn) }}</td>
+            <td>{{ formatTime(att.checkOut) }}</td>
+            <td>{{ att.workHours ? att.workHours + 'h' : '--' }}</td>
+
+            <td :class="{ 'warning-text': att.lateMinutes > 0 }">
+              {{ att.lateMinutes > 0 ? att.lateMinutes : '-' }}
+            </td>
+
+            <td :class="{ 'warning-text': att.earlyLeaveMinutes > 0 }">
+              {{ att.earlyLeaveMinutes > 0 ? att.earlyLeaveMinutes : '-' }}
+            </td>
+
             <td>
                 <span :class="['status-badge', att.status]">
                   {{ att.status || 'Draft' }}
                 </span>
             </td>
-          </tr>
-          <tr v-if="attendanceList.length === 0">
-            <td colspan="8" class="empty-cell">Bạn chưa có dữ liệu chấm công nào.</td>
           </tr>
           </tbody>
         </table>
@@ -128,6 +192,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* --- GIỮ NGUYÊN STYLE CŨ --- */
 .attendance-page {
   min-height: 100vh;
   padding: 60px 0;
@@ -148,7 +213,6 @@ onMounted(() => {
   font-weight: 700;
 }
 
-/* Card Grid */
 .card-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -179,7 +243,6 @@ onMounted(() => {
 h3 { color: #0d47a1; margin-bottom: 10px; }
 p { color: #78909c; font-size: 15px; }
 
-/* Table Section */
 .table-container {
   background: white;
   padding: 25px;
@@ -187,23 +250,72 @@ p { color: #78909c; font-size: 15px; }
   box-shadow: 0 5px 20px rgba(0,0,0,0.03);
 }
 
-.table-header { margin-bottom: 20px; border-left: 4px solid #2196f3; padding-left: 15px; }
+.table-header {
+  margin-bottom: 20px;
+  border-left: 4px solid #2196f3;
+  padding-left: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.custom-select {
+  padding: 8px 12px;
+  border: 1px solid #e3f2fd;
+  border-radius: 8px;
+  background-color: #f8fbff;
+  color: #0d47a1;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.custom-select:hover {
+  border-color: #2196f3;
+}
 
 table { width: 100%; border-collapse: collapse; }
 th { background: #f8fbff; color: #546e7a; text-align: left; padding: 15px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
 td { padding: 15px; border-bottom: 1px solid #f1f1f1; color: #37474f; font-size: 14px; }
 
-/* Badge & Status */
+.empty-cell { text-align: center; padding: 30px; color: #90a4ae; font-style: italic; }
+
+/* Status Badge */
 .status-badge {
   padding: 5px 12px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
+  text-transform: capitalize;
 }
 .Draft { background: #eceff1; color: #607d8b; }
 .Approved { background: #e8f5e9; color: #2e7d32; }
+.Pending { background: #fff8e1; color: #ffa000; }
+.Rejected { background: #ffebee; color: #c62828; }
 
-.warning { color: #d32f2f; font-weight: 600; }
+/* Shift Badge (Mới thêm) */
+.shift-badge {
+  font-weight: 700;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 15px;
+}
+.shift-badge.morning {
+  color: #0277bd;
+  background-color: #e1f5fe; /* Màu xanh da trời nhạt */
+}
+.shift-badge.afternoon {
+  color: #ef6c00;
+  background-color: #fff3e0; /* Màu cam nhạt */
+}
+
+.warning-text { color: #d32f2f; font-weight: 700; }
 
 .alert {
   padding: 15px;
@@ -215,7 +327,6 @@ td { padding: 15px; border-bottom: 1px solid #f1f1f1; color: #37474f; font-size:
 .success { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
 .error { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
 
-/* Animation */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.5s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

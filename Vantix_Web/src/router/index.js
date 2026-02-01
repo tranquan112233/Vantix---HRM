@@ -7,7 +7,7 @@ import Attendance from "../components/views/Attendance.vue";
 const routes = [
     {
         path: '/',
-        redirect: '/auth'
+        redirect: '/home'
     },
     {
         path: '/auth',
