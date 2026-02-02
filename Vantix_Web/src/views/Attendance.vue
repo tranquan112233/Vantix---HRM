@@ -2,16 +2,13 @@
 import { ref, onMounted, watch } from 'vue';
 import axios from 'axios';
 
-// --- GIẢ LẬP DỮ LIỆU USER ---
-const currentUserID = ref(1);
+// --- CẤU HÌNH ---
+const API_BASE_URL = 'http://localhost:8080/api/attendance';
+const currentUserID = ref(1); // Giả lập ID nhân viên
 
-// Hàm format giờ
-const formatTime = (timeStr) => {
-  if (!timeStr) return '--:--';
-  return timeStr.slice(0, 5);
-};
+// --- FORMATTER ---
+const formatTime = (timeStr) => timeStr ? timeStr.slice(0, 5) : '--:--';
 
-// Hàm hiển thị tên Ca làm việc
 const getShiftLabel = (shiftObj) => {
   if (!shiftObj) return 'Khác';
   if (shiftObj.shiftID === 1) return 'Sáng';
@@ -25,14 +22,15 @@ const isError = ref(false);
 const loading = ref(false);
 const attendanceList = ref([]);
 
-// State cho bộ lọc
-const selectedMonth = ref(new Date().getMonth() +1);
-const selectedYear = ref(new Date().getFullYear());
+// Filter: Tháng/Năm hiện tại
+const today = new Date();
+const selectedMonth = ref(today.getMonth() + 1);
+const selectedYear = ref(today.getFullYear());
 
-// --- LOGIC GỌI API LẤY DỮ LIỆU ---
+// --- 1. API LẤY DANH SÁCH ---
 const fetchAttendanceData = async () => {
   try {
-    const response = await axios.get('http://localhost:8080/api/attendance/getAttendance', {
+    const response = await axios.get(`${API_BASE_URL}/getAttendance`, {
       params: {
         UserID: currentUserID.value,
         Month: selectedMonth.value,
@@ -40,15 +38,11 @@ const fetchAttendanceData = async () => {
       }
     });
 
-    // SẮP XẾP DỮ LIỆU: Mới nhất lên đầu
+    // Sắp xếp: Mới nhất lên đầu
     attendanceList.value = response.data.sort((a, b) => {
       const dateA = new Date(a.workDate);
       const dateB = new Date(b.workDate);
-
-      // So sánh ngày trước (Ngày lớn hơn nằm trên)
       if (dateB - dateA !== 0) return dateB - dateA;
-
-      // Nếu cùng ngày, thì ca nào ID lớn hơn (Chiều) nằm trên
       return (b.shift?.shiftID || 0) - (a.shift?.shiftID || 0);
     });
 
@@ -58,39 +52,51 @@ const fetchAttendanceData = async () => {
   }
 };
 
-// --- LOGIC CHẤM CÔNG (Check-In) ---
+// --- 2. API CHẤM CÔNG (QUAN TRỌNG) ---
 const handleCheckIn = async () => {
+  // Chặn click nếu đang loading
+  if (loading.value) return;
+
   loading.value = true;
   message.value = '';
 
   try {
+    // Gọi API POST /create
     const response = await axios.post(
-        `http://localhost:8080/api/attendance/create`,
-        currentUserID.value,
+        `${API_BASE_URL}/create`,
+        currentUserID.value, // Gửi thẳng số nguyên (VD: 1)
         { headers: { 'Content-Type': 'application/json' } }
     );
 
-    message.value = `Chấm công thành công! Giờ vào: ${response.data.checkIn}`;
+    // Thành công: Backend trả về 200 OK + Object Attendance
+    message.value = `✅ Chấm công thành công! Giờ vào: ${formatTime(response.data.checkIn)}`;
     isError.value = false;
 
-    fetchAttendanceData();
+    // Load lại bảng ngay lập tức
+    await fetchAttendanceData();
+
   } catch (error) {
+    // Thất bại: Backend trả về 400 Bad Request + String thông báo lỗi
     isError.value = true;
-    message.value = error.response?.data || "Có lỗi xảy ra khi chấm công.";
+
+    // Lấy message lỗi từ Backend hiển thị lên
+    if (error.response && error.response.data) {
+      message.value = `❌ ${error.response.data}`;
+    } else {
+      message.value = "❌ Có lỗi kết nối đến máy chủ.";
+    }
   } finally {
     loading.value = false;
   }
 };
 
 const handleCheckOut = () => {
-  message.value = "Chức năng Chấm Out đang được kết nối Backend...";
+  message.value = "⚠️ Chức năng đang phát triển...";
   isError.value = true;
 };
 
-// Tự cập nhật lại bảng khi thay đổi tháng & năm
-watch([selectedMonth, selectedYear], () => {
-  fetchAttendanceData();
-});
+// --- LIFECYCLE ---
+watch([selectedMonth, selectedYear], fetchAttendanceData);
 
 onMounted(() => {
   fetchAttendanceData();
