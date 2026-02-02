@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import {ref, onMounted, watch} from 'vue';
 import axios from 'axios';
 
 // --- CẤU HÌNH ---
@@ -65,7 +65,7 @@ const handleCheckIn = async () => {
     const response = await axios.post(
         `${API_BASE_URL}/create`,
         currentUserID.value, // Gửi thẳng số nguyên (VD: 1)
-        { headers: { 'Content-Type': 'application/json' } }
+        {headers: {'Content-Type': 'application/json'}}
     );
 
     // Thành công: Backend trả về 200 OK + Object Attendance
@@ -81,7 +81,7 @@ const handleCheckIn = async () => {
 
     // Lấy message lỗi từ Backend hiển thị lên
     if (error.response && error.response.data) {
-      message.value = `❌ ${error.response.data}`;
+      message.value = `${error.response.data}`;
     } else {
       message.value = "❌ Có lỗi kết nối đến máy chủ.";
     }
@@ -95,7 +95,6 @@ const handleCheckOut = () => {
   isError.value = true;
 };
 
-// --- LIFECYCLE ---
 watch([selectedMonth, selectedYear], fetchAttendanceData);
 
 onMounted(() => {
@@ -151,7 +150,8 @@ onMounted(() => {
           <thead>
           <tr>
             <th>Ngày</th>
-            <th>Ca làm</th> <th>Vào</th>
+            <th>Ca làm</th>
+            <th>Vào</th>
             <th>Ra</th>
             <th>Giờ làm</th>
             <th>Trễ (p)</th>
@@ -243,17 +243,31 @@ onMounted(() => {
   border-color: #2196f3;
 }
 
-.loading-state { opacity: 0.6; cursor: not-allowed; }
+.loading-state {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
-.icon { font-size: 50px; margin-bottom: 15px; }
-h3 { color: #0d47a1; margin-bottom: 10px; }
-p { color: #78909c; font-size: 15px; }
+.icon {
+  font-size: 50px;
+  margin-bottom: 15px;
+}
+
+h3 {
+  color: #0d47a1;
+  margin-bottom: 10px;
+}
+
+p {
+  color: #78909c;
+  font-size: 15px;
+}
 
 .table-container {
   background: white;
   padding: 25px;
   border-radius: 20px;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.03);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.03);
 }
 
 .table-header {
@@ -286,11 +300,34 @@ p { color: #78909c; font-size: 15px; }
   border-color: #2196f3;
 }
 
-table { width: 100%; border-collapse: collapse; }
-th { background: #f8fbff; color: #546e7a; text-align: left; padding: 15px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
-td { padding: 15px; border-bottom: 1px solid #f1f1f1; color: #37474f; font-size: 14px; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
 
-.empty-cell { text-align: center; padding: 30px; color: #90a4ae; font-style: italic; }
+th {
+  background: #f8fbff;
+  color: #546e7a;
+  text-align: left;
+  padding: 15px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+td {
+  padding: 15px;
+  border-bottom: 1px solid #f1f1f1;
+  color: #37474f;
+  font-size: 14px;
+}
+
+.empty-cell {
+  text-align: center;
+  padding: 30px;
+  color: #90a4ae;
+  font-style: italic;
+}
 
 /* Status Badge */
 .status-badge {
@@ -300,10 +337,26 @@ td { padding: 15px; border-bottom: 1px solid #f1f1f1; color: #37474f; font-size:
   font-weight: 600;
   text-transform: capitalize;
 }
-.Draft { background: #eceff1; color: #607d8b; }
-.Approved { background: #e8f5e9; color: #2e7d32; }
-.Pending { background: #fff8e1; color: #ffa000; }
-.Rejected { background: #ffebee; color: #c62828; }
+
+.Draft {
+  background: #eceff1;
+  color: #607d8b;
+}
+
+.Approved {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.Pending {
+  background: #fff8e1;
+  color: #ffa000;
+}
+
+.Rejected {
+  background: #ffebee;
+  color: #c62828;
+}
 
 /* Shift Badge (Mới thêm) */
 .shift-badge {
@@ -312,16 +365,21 @@ td { padding: 15px; border-bottom: 1px solid #f1f1f1; color: #37474f; font-size:
   padding: 4px 10px;
   border-radius: 15px;
 }
+
 .shift-badge.morning {
   color: #0277bd;
   background-color: #e1f5fe; /* Màu xanh da trời nhạt */
 }
+
 .shift-badge.afternoon {
   color: #ef6c00;
   background-color: #fff3e0; /* Màu cam nhạt */
 }
 
-.warning-text { color: #d32f2f; font-weight: 700; }
+.warning-text {
+  color: #d32f2f;
+  font-weight: 700;
+}
 
 .alert {
   padding: 15px;
@@ -330,9 +388,24 @@ td { padding: 15px; border-bottom: 1px solid #f1f1f1; color: #37474f; font-size:
   text-align: center;
   font-weight: 500;
 }
-.success { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
-.error { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
 
-.fade-enter-active, .fade-leave-active { transition: opacity 0.5s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.success {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.error {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.5s;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
 </style>
