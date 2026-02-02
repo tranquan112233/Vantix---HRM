@@ -16,21 +16,21 @@ public class Users{
     private Integer userID;
 
 
+    // Thông tin đăng nhập
     @Column(name = "Username", nullable = false, unique = true, length = 100)
     private String username;
 
-    @Column(name = "Password", nullable = false, length = 200)
-    private String password;
+    @Column(name = "PasswordHash", nullable = false, length = 255)
+    private String passwordHash;
 
-    @Column(name = "EmployeeCode", nullable = false, unique = true, length = 50)
-    private String employeeCode;
 
+    // Thông tin cá nhân
     @Column(name = "Fullname", nullable = false, length = 100)
     private String fullName;
 
     @Column(name = "Gender")
     @Enumerated(EnumType.STRING)
-    private Gender gender = Gender.Other;
+    private Gender gender;
 
     @Column(name = "Email", unique = true, length = 100)
     private String email;
@@ -38,14 +38,15 @@ public class Users{
     @Column(name = "Phone", unique = true, length = 20)
     private String phone;
 
-    @Column(name = "Address", length = 255)
+    @Column(name = "Address")
     private String address;
 
-    @Column(name = "AvatarURL", length = 255)
+    @Column(name = "AvatarUrl")
     private String avatarUrl;
 
-    @Enumerated(EnumType.STRING)
+    // Trạng thái làm việc
     @Column(name = "Status")
+    @Enumerated(EnumType.STRING)
     private UserStatus status = UserStatus.Working;
 
     // Quan hệ khóa ngoại
@@ -57,11 +58,19 @@ public class Users{
     @JoinColumn(name = "DepartmentID", nullable = false)
     private Departments department;
 
+    // ENUM: Gender
     enum Gender {
-        Male, Female, Other
+        Male,
+        Female,
+        Other
     }
-
+    // ENUM: UserStatus
     enum UserStatus {
-        Working, OnLeave, Resigned
+        Working,
+        OnLeave,
+        Resigned
     }
 }
+
+
+
