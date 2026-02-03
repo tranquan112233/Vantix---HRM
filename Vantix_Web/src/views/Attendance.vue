@@ -1,10 +1,9 @@
 <script setup>
-import {ref, onMounted, watch} from 'vue';
-import axios from 'axios';
+import { ref, onMounted, watch } from 'vue';
+import attendanceService from "../assets/service/attendance.service.js";
 
 // --- CẤU HÌNH ---
-const API_BASE_URL = 'http://localhost:8080/api/attendance';
-const currentUserID = ref(1); // Giả lập ID nhân viên
+const currentUserID = ref(1);
 
 // --- FORMATTER ---
 const formatTime = (timeStr) => timeStr ? timeStr.slice(0, 5) : '--:--';
@@ -27,18 +26,16 @@ const today = new Date();
 const selectedMonth = ref(today.getMonth() + 1);
 const selectedYear = ref(today.getFullYear());
 
-// --- 1. API LẤY DANH SÁCH ---
+// --- 1. HÀM LẤY DỮ LIỆU  ---
 const fetchAttendanceData = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/getAttendance`, {
-      params: {
-        UserID: currentUserID.value,
-        Month: selectedMonth.value,
-        Year: selectedYear.value
-      }
-    });
+    const response = await attendanceService.getMonthlyAttendance(
+        currentUserID.value,
+        selectedMonth.value,
+        selectedYear.value
+    );
 
-    // Sắp xếp: Mới nhất lên đầu
+    // Xử lý dữ liệu trả về
     attendanceList.value = response.data.sort((a, b) => {
       const dateA = new Date(a.workDate);
       const dateB = new Date(b.workDate);
@@ -52,36 +49,30 @@ const fetchAttendanceData = async () => {
   }
 };
 
-// --- 2. API CHẤM CÔNG (QUAN TRỌNG) ---
+// --- 2. HÀM CHẤM CÔNG (ĐÃ REFACTOR) ---
 const handleCheckIn = async () => {
-  // Chặn click nếu đang loading
   if (loading.value) return;
 
   loading.value = true;
   message.value = '';
 
   try {
-    // Gọi API POST /create
-    const response = await axios.post(
-        `${API_BASE_URL}/create`,
-        currentUserID.value, // Gửi thẳng số nguyên (VD: 1)
-        {headers: {'Content-Type': 'application/json'}}
-    );
+    // Gọi qua Service
+    const response = await attendanceService.checkIn(currentUserID.value);
 
-    // Thành công: Backend trả về 200 OK + Object Attendance
-    message.value = `✅ Chấm công thành công! Giờ vào: ${formatTime(response.data.checkIn)}`;
+    // Backend trả về message String: "✅ Chấm công thành công..."
+    // (Dựa theo logic Controller bạn đã sửa lúc nãy)
+    message.value = response.data;
     isError.value = false;
 
-    // Load lại bảng ngay lập tức
     await fetchAttendanceData();
 
   } catch (error) {
-    // Thất bại: Backend trả về 400 Bad Request + String thông báo lỗi
     isError.value = true;
 
-    // Lấy message lỗi từ Backend hiển thị lên
+    // Axios bọc lỗi trong error.response
     if (error.response && error.response.data) {
-      message.value = `${error.response.data}`;
+      message.value = error.response.data;
     } else {
       message.value = "❌ Có lỗi kết nối đến máy chủ.";
     }
@@ -95,6 +86,7 @@ const handleCheckOut = () => {
   isError.value = true;
 };
 
+// --- LIFECYCLE ---
 watch([selectedMonth, selectedYear], fetchAttendanceData);
 
 onMounted(() => {
