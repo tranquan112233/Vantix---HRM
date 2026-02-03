@@ -18,5 +18,9 @@ export default {
     checkIn(userId) {
         // Gửi thẳng userId (số nguyên) vì Backend nhận @RequestBody Integer
         return api.post(`${ENDPOINT}/create`, userId);
+    },
+
+    checkOut(userId) {
+        return api.put(`${ENDPOINT}/checkout`, userId);
     }
 }

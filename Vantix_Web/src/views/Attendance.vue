@@ -1,9 +1,10 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import {ref, onMounted, watch} from 'vue';
+// Đảm bảo đường dẫn này đúng với cấu trúc thư mục của bạn
 import attendanceService from "../assets/service/attendance.service.js";
 
 // --- CẤU HÌNH ---
-const currentUserID = ref(1);
+const currentUserID = ref(1); // Giả lập ID nhân viên
 
 // --- FORMATTER ---
 const formatTime = (timeStr) => timeStr ? timeStr.slice(0, 5) : '--:--';
@@ -26,7 +27,7 @@ const today = new Date();
 const selectedMonth = ref(today.getMonth() + 1);
 const selectedYear = ref(today.getFullYear());
 
-// --- 1. HÀM LẤY DỮ LIỆU  ---
+// --- 1. HÀM LẤY DỮ LIỆU ---
 const fetchAttendanceData = async () => {
   try {
     const response = await attendanceService.getMonthlyAttendance(
@@ -35,7 +36,7 @@ const fetchAttendanceData = async () => {
         selectedYear.value
     );
 
-    // Xử lý dữ liệu trả về
+    // Sắp xếp: Ngày mới nhất lên đầu, nếu cùng ngày thì Ca chiều lên trên
     attendanceList.value = response.data.sort((a, b) => {
       const dateA = new Date(a.workDate);
       const dateB = new Date(b.workDate);
@@ -49,7 +50,7 @@ const fetchAttendanceData = async () => {
   }
 };
 
-// --- 2. HÀM CHẤM CÔNG (ĐÃ REFACTOR) ---
+// --- 2. HÀM CHẤM CÔNG (CHECK-IN) ---
 const handleCheckIn = async () => {
   if (loading.value) return;
 
@@ -57,20 +58,16 @@ const handleCheckIn = async () => {
   message.value = '';
 
   try {
-    // Gọi qua Service
     const response = await attendanceService.checkIn(currentUserID.value);
 
-    // Backend trả về message String: "✅ Chấm công thành công..."
-    // (Dựa theo logic Controller bạn đã sửa lúc nãy)
-    message.value = response.data;
+    // Thành công: Backend trả về message string
+    message.value = `✅ Chấm công thành công! Giờ vào: ${formatTime(response.data.checkIn)}`;
     isError.value = false;
 
     await fetchAttendanceData();
 
   } catch (error) {
     isError.value = true;
-
-    // Axios bọc lỗi trong error.response
     if (error.response && error.response.data) {
       message.value = error.response.data;
     } else {
@@ -81,9 +78,32 @@ const handleCheckIn = async () => {
   }
 };
 
-const handleCheckOut = () => {
-  message.value = "⚠️ Chức năng đang phát triển...";
-  isError.value = true;
+// --- 3. HÀM CHẤM OUT (CHECK-OUT) ---
+const handleCheckOut = async () => {
+  if (loading.value) return;
+
+  loading.value = true;
+  message.value = '';
+
+  try {
+    const response = await attendanceService.checkOut(currentUserID.value);
+
+    // Thành công: Backend trả về message string (vd: Check-out lúc 17:00...)
+    message.value = response.data;
+    isError.value = false;
+
+    await fetchAttendanceData();
+
+  } catch (error) {
+    isError.value = true;
+    if (error.response && error.response.data) {
+      message.value = error.response.data;
+    } else {
+      message.value = "❌ Có lỗi kết nối đến máy chủ.";
+    }
+  } finally {
+    loading.value = false;
+  }
 };
 
 // --- LIFECYCLE ---
@@ -110,7 +130,11 @@ onMounted(() => {
           <p>Nhấn để bắt đầu ca làm việc</p>
         </div>
 
-        <div class="card" @click="handleCheckOut">
+        <div
+            class="card"
+            @click="!loading && handleCheckOut()"
+            :class="{ 'loading-state': loading }"
+        >
           <div class="icon">🚪</div>
           <h3>Chấm Out</h3>
           <p>Nhấn để kết thúc ca làm</p>
@@ -350,7 +374,7 @@ td {
   color: #c62828;
 }
 
-/* Shift Badge (Mới thêm) */
+/* Shift Badge */
 .shift-badge {
   font-weight: 700;
   font-size: 13px;
@@ -360,12 +384,12 @@ td {
 
 .shift-badge.morning {
   color: #0277bd;
-  background-color: #e1f5fe; /* Màu xanh da trời nhạt */
+  background-color: #e1f5fe;
 }
 
 .shift-badge.afternoon {
   color: #ef6c00;
-  background-color: #fff3e0; /* Màu cam nhạt */
+  background-color: #fff3e0;
 }
 
 .warning-text {
