@@ -8,6 +8,7 @@ import poly.edu.vantix_hrm.entity.Attendance;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface AttendanceDAO extends JpaRepository<Attendance, Integer> {
@@ -16,4 +17,6 @@ public interface AttendanceDAO extends JpaRepository<Attendance, Integer> {
     List<Attendance> findAttendanceByMonth(@Param("userId") Integer userId, @Param("month") int month, @Param("year") int year);
 
     boolean existsByUser_UserIDAndShift_ShiftIDAndWorkDate(Integer userId, Integer shiftId, LocalDate workDate);
+
+    Optional<Attendance> findByUser_UserIDAndWorkDateAndCheckOutIsNull(Integer userId, LocalDate workDate);
 }

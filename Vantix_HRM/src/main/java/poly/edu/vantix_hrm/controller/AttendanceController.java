@@ -48,4 +48,21 @@ public class AttendanceController {
         return ResponseEntity.ok(result);
     }
 
+    @PutMapping("/checkout")
+    public ResponseEntity<?> checkOut(@RequestBody Integer userId) {
+        try {
+            Attendance updatedAtt = attendanceService.putCheckOut(userId);
+
+            // Format giờ ra để trả về thông báo đẹp
+            String timeStr = updatedAtt.getCheckOut()
+                    .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+
+            return ResponseEntity.ok("👋 Check-out thành công lúc " + timeStr +
+                    "! Bạn làm được " + updatedAtt.getWorkHours() + " giờ.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("🔥 Lỗi hệ thống: " + e.getMessage());
+        }
+    }
 }

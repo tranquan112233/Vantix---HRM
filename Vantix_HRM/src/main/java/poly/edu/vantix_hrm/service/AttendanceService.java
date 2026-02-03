@@ -11,7 +11,7 @@ public interface AttendanceService {
     Users checkUser(Integer userID);
     Shifts checkShift();
     Attendance postCheckIn(Shifts shifts, Users users, Integer lateMinutes);
-    Attendance putCheckOut();
+    Attendance putCheckOut(Integer userId);
     Attendance confirmCheckOut();
     List<Attendance> getEmployeeMonthlyAttendance(Integer users, LocalDate MonthAndYear);
 }
