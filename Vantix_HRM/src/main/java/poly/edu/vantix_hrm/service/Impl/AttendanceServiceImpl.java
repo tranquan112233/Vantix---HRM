@@ -51,10 +51,19 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     public Attendance postCheckIn(Shifts shifts, Users users, Integer lateMinutes) {
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        boolean isExist = attendanceDAO.existsByUser_UserIDAndShift_ShiftIDAndWorkDate(
+                users.getUserID(),
+                shifts.getShiftID(),
+                today
+        );
+        if (isExist) {
+            throw new RuntimeException("⛔ Bạn đã chấm công cho ca " + shifts.getShiftName() + " hôm nay rồi!");
+        }
         Attendance att = new Attendance();
         att.setUser(users);
         att.setShift(shifts);
-        att.setWorkDate(LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh")));
+        att.setWorkDate(today);
         att.setCheckIn(LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
         att.setCheckOut(null);
         att.setWorkHours(null);
