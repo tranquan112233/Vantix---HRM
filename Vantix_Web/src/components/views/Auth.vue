@@ -45,7 +45,7 @@
           </div>
 
 
-          <button class="btn-login">
+          <button class="btn-login" @click="login">
             {{ isLogin ? 'Đăng nhập' : '' }}
           </button>
         </form>
@@ -75,6 +75,7 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import logo from '../../assets/img/removeBackgroundLogo.png'
+import router from "../../router/index.js";
 
 
 const isLogin = ref(true)
@@ -86,6 +87,18 @@ const form = reactive({
 
 const toggle = () => {
   isLogin.value = !isLogin.value
+}
+
+const login = () => {
+  // demo tạm – sau này thay bằng API
+  if (form.username === 'admin' && form.password === '123') {
+    // lưu trạng thái đăng nhập
+
+    // chuyển sang Home.vue
+    router.push('/Home')
+  } else {
+    alert('Sai tài khoản hoặc mật khẩu')
+  }
 }
 </script>
 

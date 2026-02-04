@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 import Auth from "../components/views/Auth.vue";
-import Home from "../components/views/Home.vue"
+import Home from "../components/views/Home.vue";
+import Profile from "../components/views/Profile.vue";
 
 const routes = [
     {
@@ -18,6 +19,12 @@ const routes = [
         name: 'Home',
         component: Home,
         meta: { requiresAuth: true } // cần đăng nhập
+    },
+    {
+        path: '/profile',
+        name: 'Profile',
+        component: Profile,
+
     }
 ]
 
