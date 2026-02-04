@@ -1,16 +1,21 @@
-<script setup>
-import AppHeader from "../components/AppHeader.vue";
-import AppFooter from "../components/AppFooter.vue";
-</script>
-
 <template>
-  <div class="d-flex flex-column min-vh-100">
-    <AppHeader />
+  <div class="layout d-flex flex-column min-vh-100">
 
-    <main class="container py-4 flex-fill">
+    <!-- HEADER -->
+    <UserHeader />
+
+    <!-- MAIN CONTENT -->
+    <main class="container flex-fill py-4">
       <router-view />
     </main>
 
-    <AppFooter />
+    <!-- FOOTER -->
+    <UserFooter />
+
   </div>
 </template>
+
+<script setup>
+import UserHeader from '@/components/UserHeader.vue'
+import UserFooter from '@/components/UserFooter.vue'
+</script>

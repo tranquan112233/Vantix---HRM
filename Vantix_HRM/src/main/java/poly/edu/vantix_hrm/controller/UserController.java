@@ -1,48 +1,52 @@
 package poly.edu.vantix_hrm.controller;
-;
-import org.springframework.beans.factory.annotation.Autowired;
+
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
-import poly.edu.vantix_hrm.dao.UserDAO;
-import poly.edu.vantix_hrm.entity.Users;
+import poly.edu.vantix_hrm.entity.User;
+import poly.edu.vantix_hrm.service.UserService;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin("*")
 public class UserController {
 
-    @Autowired
-    UserDAO userDAO;
+    private final UserService userService;
 
-    // Lấy tất cả user
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
     @GetMapping
-    public List<Users> getAll() {
-        return userDAO.findAll();
+    public List<User> getAll() {
+        return userService.findAll();
     }
 
-    // Lấy user theo id
     @GetMapping("/{id}")
-    public Users getById(@PathVariable Integer id) {
-        return userDAO.findById(id).orElse(null);
+    public User getById(@PathVariable Integer id) {
+        return userService.findById(id);
     }
 
-    // Thêm mới user
     @PostMapping
-    public Users save(@RequestBody Users user) {
-        return userDAO.save(user);
+    public User create(@Valid @RequestBody User user) {
+        return userService.create(user);
     }
 
-    // Cập nhật user
     @PutMapping("/{id}")
-    public Users update(@PathVariable Integer id, @RequestBody Users user) {
-        user.setUserID(id);
-        return userDAO.save(user);
+    public User update(
+            @PathVariable Integer id,
+            @Valid @RequestBody User user
+    ) {
+        return userService.update(id, user);
     }
 
-    // Xóa user
+    @PutMapping("/{id}/lock")
+    public void lock(@PathVariable Integer id) {
+        userService.lock(id);
+    }
+
     @DeleteMapping("/{id}")
-    public void deleteById(@PathVariable Integer id) {
-        userDAO.deleteById(id);
+    public void delete(@PathVariable Integer id) {
+        userService.delete(id);
     }
 }
