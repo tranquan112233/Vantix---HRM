@@ -1,44 +1,47 @@
 package poly.edu.vantix_hrm.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "Contracts")
+@Table(name = "Contracts") // Công dụng: Lưu lịch sử hợp đồng lao động
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 public class Contracts {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "ContractID")
-    private Integer contractID;
+    @Column(name = "contract_id")
+    private Integer contractId; // ID hợp đồng
 
     @ManyToOne
-    @JoinColumn(name = "UserID", nullable = false)
-    private Users user;
+    @JoinColumn(name = "employee_id", nullable = false)
+    private Employees employee; // Nhân viên ký hợp đồng
 
-    @Column(name = "ContractCode", length = 50)
-    private String contractCode;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "contract_type")
+    private Type type; // Loại hợp đồng
 
-    @Column(name = "ContractType", length = 50)
-    private String contractType;
+    @Column(name = "start_date", nullable = false)
+    private LocalDate startDate; // Ngày bắt đầu
 
-    @Column(name = "Positions", length = 100)
-    private String positions;
+    @Column(name = "end_date", nullable = false)
+    private LocalDate endDate; // Ngày kết thúc
 
-    @Column(name = "Salary", precision = 18, scale = 2)
-    private BigDecimal salary;
+    @Column(name = "position")
+    private String position; // Chức vụ tại thời điểm ký
 
-    @Column(name = "StartDate")
-    private LocalDate startDate;
+    @Column(name = "base_salary")
+    private BigDecimal baseSalary; // Lương cơ bản theo hợp đồng
 
-    @Column(name = "EndDate")
-    private LocalDate endDate;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private ContractStatus status; // Trạng thái hợp đồng
 
-    @Column(name = "Status", length = 20)
-    private String status = "ACTIVE";
+    public enum Type {YEAR_1, YEAR_3, INDEFINITE}
+    public enum ContractStatus { ACTIVE, EXPIRED }
 }

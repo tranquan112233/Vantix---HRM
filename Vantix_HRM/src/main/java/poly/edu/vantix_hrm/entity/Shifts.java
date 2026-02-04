@@ -7,23 +7,22 @@ import lombok.NoArgsConstructor;
 import java.time.LocalTime;
 
 @Entity
-@Table(name = "Shifts")
+@Table(name = "Shifts") // Công dụng: Ca làm việc
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Shifts {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "ShiftID")
-    private Integer shiftID;
+    @Column(name = "shift_id")
+    private Integer shiftId; // ID ca làm
 
-    @Column(name = "ShiftName")
-    private String shiftName;
+    @Column(name = "shift_name", length = 50)
+    private String shiftName; // Tên ca
 
-    @Column(name = "StartTime")
-    private LocalTime startTime;
+    @Column(name = "start_time")
+    private LocalTime startTime; // Giờ bắt đầu
 
-    @Column(name = "EndTime")
-    private LocalTime endTime;
+    @Column(name = "end_time")
+    private LocalTime endTime; // Giờ kết thúc
 }

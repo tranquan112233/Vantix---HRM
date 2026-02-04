@@ -1,41 +1,39 @@
 package poly.edu.vantix_hrm.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "ContractAnnexes")
+@Table(name = "ContractAnnexes") // Công dụng: Bảng phụ lục hợp đồng
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ContractAnnexes {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "AnnexID")
-    private Integer annexID;
+    @Column(name = "annex_id")
+    private Integer annexId; // Mã phụ lục
 
     @ManyToOne
-    @JoinColumn(name = "ContractID", nullable = false)
-    private Contracts contract;
+    @JoinColumn(name = "contract_id", nullable = false)
+    private Contracts contract; // Hợp đồng gốc
 
-    @Column(name = "AnnexCode", length = 50)
-    private String annexCode;
+    @Column(name = "effective_date")
+    private LocalDate effectiveDate; // Ngày hiệu lực
 
-    @Column(name = "EffectiveDate", nullable = false)
-    private LocalDate effectiveDate;
+    @Column(name = "new_salary", precision = 18, scale = 2)
+    private BigDecimal newSalary; // Lương mới
 
-    @Column(name = "NewSalary", precision = 18, scale = 2)
-    private BigDecimal newSalary;
+    @Column(name = "new_positions", length = 100)
+    private String newPositions; // Chức vụ mới
 
-    @Column(name = "NewPositions", length = 100)
-    private String newPositions;
+    @Column(name = "content")
+    private String content; // Nội dung
 
-    @Column(name = "Content", columnDefinition = "TEXT")
-    private String content;
-
-    @Column(name = "IsActive")
-    private Boolean isActive;
+    @Column(name = "is_active")
+    private boolean isActive; // Kích hoạt
 }

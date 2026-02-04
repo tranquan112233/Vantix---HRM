@@ -1,55 +1,48 @@
 package poly.edu.vantix_hrm.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
-
-import java.math.BigDecimal;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Entity
-@Table(name = "Attendance")
+@Table(name = "Attendance") // Công dụng: Chấm công hàng ngày
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Attendance {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "AttendanceID")
-    private Integer attendanceID;
+    @Column(name = "attendance_id")
+    private Integer attendanceId; // ID chấm công
 
     @ManyToOne
-    @JoinColumn(name = "UserID", nullable = false)
-    private Users user;
+    @JoinColumn(name = "employee_id", nullable = false)
+    private Employees employee; // Nhân viên
+
+    @Column(name = "work_date", nullable = false)
+    private LocalDate workDate; // Ngày làm việc
 
     @ManyToOne
-    @JoinColumn(name = "ShiftID", nullable = false)
-    private Shifts shift;
+    @JoinColumn(name = "shift_id", nullable = false)
+    private Shifts shift; // Ca làm
 
-    @Column(name = "WorkDate", nullable = false)
-    private LocalDate workDate;
+    @Column(name = "check_in")
+    private LocalTime checkIn; // Giờ vào
 
-    @Column(name = "CheckIn")
-    private LocalTime checkIn;
+    @Column(name = "check_out")
+    private LocalTime checkOut; // Giờ ra
 
-    @Column(name = "CheckOut")
-    private LocalTime checkOut;
+    @Column(name = "late_minutes")
+    private Integer lateMinutes; // Phút trễ
 
-    @Column(name = "WorkHours", precision = 5, scale = 2)
-    private BigDecimal workHours;
+    @Column(name = "early_leave_minutes")
+    private Integer earlyLeaveMinutes; // Phút về sớm
 
-    @Column(name = "LateMinutes")
-    private Integer lateMinutes = 0;
+    @Column(name = "status")
+    private AttendanceStatus status = AttendanceStatus.DRAFT; // Trạng thái phiếu chấm công
 
-    @Column(name = "EarlyLeaveMinutes")
-    private Integer earlyLeaveMinutes = 0;
-
-    @Column(name = "Status")
-    @Enumerated(EnumType.STRING)
-    private Status status = Status.Draft;
-
-    public enum Status {
-        Draft, Pending, Approved, Rejected
-    }
+    public enum AttendanceStatus {DRAFT, PENDING, APPROVED, REJECTED}
 }

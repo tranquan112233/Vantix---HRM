@@ -1,65 +1,52 @@
 package poly.edu.vantix_hrm.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-
-import java.math.BigDecimal;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "LeaveRequests")
+@Table(name = "Leave_Requests") // Công dụng: Đơn xin nghỉ phép
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class LeaveRequests {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "LeaveID")
-    private Integer leaveID;
+    @Column(name = "leave_id")
+    private Integer leaveId; // ID đơn nghỉ
 
     @ManyToOne
-    @JoinColumn(name = "UserID", nullable = false)
-    private Users user;
+    @JoinColumn(name = "employee_id", nullable = false)
+    private Employees employee; // Nhân viên gửi đơn
 
     @ManyToOne
-    @JoinColumn(name = "ApprovedBy")
-    private Users approvedBy;
+    @JoinColumn(name = "leave_type_id", nullable = false)
+    private LeaveTypes leaveType; // Loại nghỉ
 
-    @Column(name = "LeaveType", length = 50)
-    private String leaveType;
+    @Column(name = "start_date", nullable = false)
+    private LocalDate startDate; // Ngày bắt đầu nghỉ
 
-    @Column(name = "FromDate", nullable = false)
-    private LocalDate fromDate;
+    @Column(name = "end_date", nullable = false)
+    private LocalDate endDate; // Ngày kết thúc nghỉ
 
-    @Column(name = "ToDate", nullable = false)
-    private LocalDate toDate;
+    @Column(name = "total_shift", nullable = false)
+    private Integer totalShift; // Tổng số ca
 
-    @Column(name = "TotalDays",precision = 4, scale = 1, nullable = false)
-    private BigDecimal totalDays;
+    @Column(name = "reason", length = 255)
+    private String reason; // Lý do nghỉ
 
-    @Column(name = "Reason", length = 255)
-    private String reason;
+    @Column(name = "status")
+    private LeaveRequestsStatus status = LeaveRequestsStatus.PENDING; // Trạng thái
 
-    public enum Status {
-        Pending,
-        Approved,
-        Rejected
-    }
+    @ManyToOne
+    @JoinColumn(name = "approved_by")
+    private Employees approvedBy; // Người duyệt
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "Status")
-    private Status status = Status.Pending;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt = LocalDateTime.now(); // Thời gian tạo
 
-    @Column(name = "RejectionReason")
-    private String rejectionReason;
-
-    @CreationTimestamp
-    @Column(name = "CreatedAt", updatable = false)
-    private LocalDateTime createdAt;
-
+    public enum LeaveRequestsStatus {PENDING, APPROVED, REJECTED}
 }
-
-

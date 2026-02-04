@@ -5,20 +5,20 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Table(name = "Departments")
 @Entity
+@Table(name = "Departments") // Công dụng: Quản lý phòng ban
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class Departments {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "DepartmentID")
-    private Integer departmentID;
+    @Column(name = "department_id")
+    private Integer departmentId; // ID phòng ban
 
-    @Column(name = "DepartmentName")
-    private String departmentName;
+    @Column(name = "department_name", length = 100, nullable = false)
+    private String departmentName; // Tên phòng ban
 
-    @Column(name = "Description")
-    private String description;
+    @Column(name = "description", length = 255)
+    private String description; // Mô tả chức năng
 }

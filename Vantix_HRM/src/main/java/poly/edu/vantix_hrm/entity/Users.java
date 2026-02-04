@@ -1,70 +1,44 @@
 package poly.edu.vantix_hrm.entity;
 
-
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
-@Table(name = "Users")
 @Entity
+@Table(name = "Users") // Công dụng: Tài khoản đăng nhập hệ thống
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
-public class Users{
+@AllArgsConstructor
+public class Users {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "UserID")
-    private Integer userID;
+    @Column(name = "user_id")
+    private Integer userId; // ID tài khoản
 
+    @Column(name = "username", nullable = false, unique = true)
+    private String username; // Tên đăng nhập
 
-    @Column(name = "Username", nullable = false, unique = true, length = 100)
-    private String username;
+    @Column(name = "email", unique = true)
+    private String email; // Email đăng nhập / nhận thông báo
 
-    @Column(name = "Password", nullable = false, length = 200)
-    private String password;
-
-    @Column(name = "EmployeeCode", nullable = false, unique = true, length = 50)
-    private String employeeCode;
-
-    @Column(name = "Fullname", nullable = false, length = 100)
-    private String fullName;
-
-    @Column(name = "Gender")
-    @Enumerated(EnumType.STRING)
-    private Gender gender = Gender.Other;
-
-    @Column(name = "Email", unique = true, length = 100)
-    private String email;
-
-    @Column(name = "Phone", unique = true, length = 20)
-    private String phone;
-
-    @Column(name = "Address", length = 255)
-    private String address;
-
-    @Column(name = "AvatarURL", length = 255)
-    private String avatarUrl;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "Status")
-    private UserStatus status = UserStatus.Working;
-
-    // Quan hệ khóa ngoại
-    @ManyToOne
-    @JoinColumn(name = "RoleID", nullable = false)
-    private Roles role;
+    @Column(name = "password_hash", nullable = false)
+    private String passwordHash; // Mật khẩu đã mã hóa
 
     @ManyToOne
-    @JoinColumn(name = "DepartmentID", nullable = false)
-    private Departments department;
+    @JoinColumn(name = "role_id", nullable = false)
+    private Roles role; // Vai trò người dùng
 
-    enum Gender {
-        Male, Female, Other
-    }
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private UserStatus status = UserStatus.ACTIVE; // Trạng thái tài khoản
 
-    enum UserStatus {
-        Working, OnLeave, Resigned
-    }
+    @Column(name = "last_login")
+    private LocalDateTime lastLogin; // Lần đăng nhập gần nhất
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now(); // Ngày tạo
+
+    public enum UserStatus {ACTIVE, LOCKED}
 }
-
-
-

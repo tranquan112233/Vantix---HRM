@@ -11,7 +11,6 @@ import poly.edu.vantix_hrm.entity.Users;
 import poly.edu.vantix_hrm.service.AttendanceService;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -54,20 +53,20 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Override
     public Attendance postCheckIn(Shifts shifts, Users users, Integer lateMinutes) {
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        boolean isExist = attendanceDAO.existsByUser_UserIDAndShift_ShiftIDAndWorkDate(users.getUserID(), shifts.getShiftID(), today);
-        if (isExist) {
-            throw new RuntimeException("⛔ Bạn đã chấm công cho ca " + shifts.getShiftName() + " hôm nay rồi!");
-        }
+//        boolean isExist = attendanceDAO.existsByUser_UserIDAndShift_ShiftIDAndWorkDate(users.getUserID(), shifts.getShiftID(), today);
+//        if (isExist) {
+//            throw new RuntimeException("⛔ Bạn đã chấm công cho ca " + shifts.getShiftName() + " hôm nay rồi!");
+//        }
         Attendance att = new Attendance();
-        att.setUser(users);
+//        att.setUser(users);
         att.setShift(shifts);
         att.setWorkDate(today);
         att.setCheckIn(LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
         att.setCheckOut(null);
-        att.setWorkHours(null);
+//        att.setWorkHours(null);
         att.setLateMinutes(lateMinutes);
         att.setEarlyLeaveMinutes(null);
-        att.setStatus(Attendance.Status.Draft);
+//        att.setStatus(Attendance.Status.Draft);
         return attendanceDAO.save(att);
     }
 
@@ -89,9 +88,9 @@ public class AttendanceServiceImpl implements AttendanceService {
         // 5. LOGIC TÍNH GIỜ LÀM (WorkHours)
         long minutesWorked = Duration.between(att.getCheckIn(), now).toMinutes();
         BigDecimal bdMinutes = BigDecimal.valueOf(minutesWorked);
-        att.setWorkHours(bdMinutes.divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP));
+//        att.setWorkHours(bdMinutes.divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP));
         // 6. Cập nhật trạng thái
-        att.setStatus(Attendance.Status.Approved);
+//        att.setStatus(Attendance.Status.Approved);
         // 7. Lưu xuống DB
         return attendanceDAO.save(att);
     }
