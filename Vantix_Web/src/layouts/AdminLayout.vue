@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex flex-column min-vh-100">
+  <div class="d-flex flex-column vh-100">
     <AdminHeader />
 
     <div class="d-flex flex-grow-1">
@@ -7,12 +7,11 @@
       <AdminSidebar />
 
       <!-- CONTENT -->
-      <div class="flex-fill d-flex flex-column">
-        <main class="flex-fill container py-4">
+      <div class="flex-fill d-flex flex-column" style="min-height: 0; min-width: 0;">
+        <main class="flex-grow-1 container overflow-auto">
           <router-view />
         </main>
 
-        <!-- FOOTER (chỉ nằm dưới content) -->
         <AdminFooter />
       </div>
     </div>
@@ -22,5 +21,5 @@
 <script setup>
 import AdminHeader from "@/components/AdminHeader.vue"
 import AdminSidebar from "@/components/AdminSidebar.vue"
-import AdminFooter from "@/components/AdminFooter.vue";
+import AdminFooter from "@/components/AdminFooter.vue"
 </script>

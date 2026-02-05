@@ -49,7 +49,13 @@ import { RouterLink } from 'vue-router'
 /* ===== SIDEBAR ===== */
 .admin-sidebar {
   width: 240px;
-  min-height: calc(100vh - 56px);
+  /* cố định như header */
+  position: sticky;
+  top: 56px; /* chiều cao header */
+  height: calc(100vh - 56px);
+  overflow-y: auto;
+  flex: 0 0 240px;
+
   background: linear-gradient(180deg, #1f2937, #111827);
   border-right: 1px solid #1f2937;
 }

@@ -1,6 +1,7 @@
 package poly.edu.vantix_hrm.service;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import poly.edu.vantix_hrm.entity.User;
@@ -12,17 +13,24 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    // Lấy danh sách user
+    // =========================
+    // GET ALL USERS
+    // =========================
     public List<User> findAll() {
         return userRepository.findAll();
     }
 
-    // Lấy user theo id
+    // =========================
+    // GET USER BY ID
+    // =========================
     public User findById(Integer id) {
         return userRepository.findById(id)
                 .orElseThrow(() ->
@@ -31,10 +39,11 @@ public class UserService {
                         ));
     }
 
-    // Tạo user mới
+    // =========================
+    // CREATE USER (BCrypt)
+    // =========================
     public User create(User user) {
 
-        // 👉 Luật nghiệp vụ nằm ở đây
         if (userRepository.existsByUsername(user.getUsername())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT, "Username already exists"
@@ -48,14 +57,26 @@ public class UserService {
             );
         }
 
+        // ❗ Không tin dữ liệu từ client
+        user.setId(null);
+        user.setStatus(User.UserStatus.ACTIVE);
+        user.setCreatedAt(null);
+        user.setLastLogin(null);
+
+        // 🔐 BCrypt password
+        user.setPasswordHash(
+                passwordEncoder.encode(user.getPasswordHash())
+        );
+
         return userRepository.save(user);
     }
 
-    // Update user
+    // =========================
+    // UPDATE USER (KHÔNG ĐỔI PASSWORD, KHÔNG ĐỔI STATUS)
+    // =========================
     public User update(Integer id, User user) {
         User existing = findById(id);
 
-        // Không cho đổi username trùng
         if (!existing.getUsername().equals(user.getUsername())
                 && userRepository.existsByUsername(user.getUsername())) {
             throw new ResponseStatusException(
@@ -63,22 +84,55 @@ public class UserService {
             );
         }
 
+        if (user.getEmail() != null &&
+                !user.getEmail().equals(existing.getEmail())
+                && userRepository.existsByEmail(user.getEmail())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "Email already exists"
+            );
+        }
+
         existing.setUsername(user.getUsername());
         existing.setEmail(user.getEmail());
         existing.setRole(user.getRole());
-        existing.setStatus(user.getStatus());
+
+        // ❌ KHÔNG cho đổi password ở đây
+        // ❌ KHÔNG cho đổi status ở đây
 
         return userRepository.save(existing);
     }
 
-    // Khóa user
+    // =========================
+    // TOGGLE LOCK / UNLOCK USER
+    // =========================
     public void lock(Integer id) {
         User user = findById(id);
-        user.setStatus(User.UserStatus.LOCKED);
+
+        user.setStatus(
+                user.getStatus() == User.UserStatus.ACTIVE
+                        ? User.UserStatus.LOCKED
+                        : User.UserStatus.ACTIVE
+        );
+
         userRepository.save(user);
     }
 
-    // Xóa user
+    // =========================
+    // CHANGE PASSWORD (BCrypt)
+    // =========================
+    public void changePassword(Integer id, String newPassword) {
+        User user = findById(id);
+
+        user.setPasswordHash(
+                passwordEncoder.encode(newPassword)
+        );
+
+        userRepository.save(user);
+    }
+
+    // =========================
+    // DELETE USER
+    // =========================
     public void delete(Integer id) {
         User user = findById(id);
         userRepository.delete(user);

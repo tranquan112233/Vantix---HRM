@@ -9,6 +9,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
+@CrossOrigin("*")
 public class UserController {
 
     private final UserService userService;
@@ -29,6 +30,11 @@ public class UserController {
 
     @PostMapping
     public User create(@Valid @RequestBody User user) {
+        // ❗ Không cho client tự set status
+        user.setStatus(null);
+        user.setCreatedAt(null);
+        user.setLastLogin(null);
+
         return userService.create(user);
     }
 
@@ -37,11 +43,15 @@ public class UserController {
             @PathVariable Integer id,
             @Valid @RequestBody User user
     ) {
+        // ❗ Không cho đổi status + password ở đây
+        user.setStatus(null);
+        user.setPasswordHash(null);
+
         return userService.update(id, user);
     }
 
-    @PutMapping("/{id}/lock")
-    public void lock(@PathVariable Integer id) {
+    @PutMapping("/{id}/toggle-lock")
+    public void toggleLock(@PathVariable Integer id) {
         userService.lock(id);
     }
 
@@ -50,3 +60,4 @@ public class UserController {
         userService.delete(id);
     }
 }
+

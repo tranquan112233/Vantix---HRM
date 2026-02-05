@@ -1,7 +1,7 @@
 <template>
-  <nav class="navbar navbar-expand-lg navbar-dark admin-header px-3 shadow">
+  <nav class="navbar navbar-expand-lg navbar-dark admin-header px-3 shadow sticky-top">
 
-  <!-- LOGO -->
+    <!-- LOGO -->
     <RouterLink
         to="/"
         class="navbar-brand fw-bold text-white text-decoration-none"
@@ -21,39 +21,44 @@
     <!-- USER DROPDOWN -->
     <div class="dropdown">
       <button
-          class="btn p-0 border-0 bg-transparent d-flex align-items-center gap-2"
+          class="btn dropdown-toggle p-0 border-0 bg-transparent
+               d-flex align-items-center gap-2"
           data-bs-toggle="dropdown"
+          data-bs-auto-close="true"
       >
         <div class="avatar-circle">
           {{ firstLetter }}
         </div>
-        <span class="text-white fw-semibold">{{ username }}</span>
-        <i class="bi bi-chevron-down text-light small"></i>
+        <span class="text-white fw-semibold">
+          {{ username }}
+        </span>
       </button>
 
       <ul class="dropdown-menu dropdown-menu-end shadow dropdown-dark">
         <li>
           <RouterLink class="dropdown-item" to="/profile">
-            <i class="bi bi-person-circle me-2"></i> Hồ sơ cá nhân
+            <i class="bi bi-person-circle me-2"></i>
+            Hồ sơ cá nhân
           </RouterLink>
         </li>
 
         <li>
-          <a class="dropdown-item" href="#">
-            <i class="bi bi-key-fill"></i> Đổi mật khẩu
-          </a>
+          <RouterLink class="dropdown-item" to="/change-password">
+            <i class="bi bi-key-fill me-2"></i>
+            Đổi mật khẩu
+          </RouterLink>
         </li>
 
         <li><hr class="dropdown-divider" /></li>
 
         <li>
-          <a
+          <button
               class="dropdown-item text-danger"
-              href="#"
-              @click.prevent="logout"
+              @click="logout"
           >
-            <i class="bi bi-box-arrow-right me-2"></i> Đăng xuất
-          </a>
+            <i class="bi bi-box-arrow-right me-2"></i>
+            Đăng xuất
+          </button>
         </li>
       </ul>
     </div>
@@ -61,23 +66,15 @@
   </nav>
 </template>
 
-
-
 <script setup>
 import { computed } from 'vue'
 
-// TEST DATA
-const user = {
-  username: 'Admin',
-  role: { roleName: 'ADMIN' }
-}
+const user = JSON.parse(localStorage.getItem('user')) || {}
 
-const username = computed(() => user.username)
+const username = computed(() => user.username || 'Admin')
 const firstLetter = computed(() =>
     username.value.charAt(0).toUpperCase()
 )
-
-const isAdmin = computed(() => user.role.roleName === 'ADMIN')
 
 const logout = () => {
   localStorage.removeItem('user')
@@ -102,7 +99,6 @@ const logout = () => {
 .home-btn {
   color: #cfcfcf;
 }
-
 .home-btn:hover {
   color: #ffffff !important;
 }
@@ -138,7 +134,6 @@ const logout = () => {
   color: #ffffff;
 }
 
-/* Divider */
 .dropdown-divider {
   border-color: #2f2f2f;
 }
