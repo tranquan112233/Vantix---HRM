@@ -4,11 +4,8 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import poly.edu.vantix_hrm.entity.Role;
 import poly.edu.vantix_hrm.service.RoleService;
-import poly.edu.vantix_hrm.entity.Role;
 
 import java.util.List;
-
-import static org.springframework.data.jpa.domain.AbstractPersistable_.id;
 
 @RestController
 @RequestMapping("/api/roles")
@@ -34,13 +31,6 @@ public class RoleController {
     @PostMapping
     public Role create(@Valid @RequestBody Role role) {
         return roleService.create(role);
-    }
-
-    @PutMapping("/{id}")
-    public Role update(@PathVariable Integer id, @RequestBody Role role) {
-
-        role.setRoleID(id);
-        return roleDAO.save(role);
     }
 
     @DeleteMapping("/{id}")
