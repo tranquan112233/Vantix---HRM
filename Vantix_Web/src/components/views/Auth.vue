@@ -89,15 +89,32 @@ const toggle = () => {
   isLogin.value = !isLogin.value
 }
 
-const login = () => {
-  // demo tạm – sau này thay bằng API
-  if (form.username === 'admin' && form.password === '123') {
-    // lưu trạng thái đăng nhập
+const login = async () => {
+  try {
+    const response = await fetch(
+        "http://localhost:8080/api/auth/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(form)
+        }
+    )
 
-    // chuyển sang Home.vue
-    router.push('/Home')
-  } else {
-    alert('Sai tài khoản hoặc mật khẩu')
+    if (!response.ok) {
+      alert("Sai tài khoản hoặc mật khẩu")
+      return
+    }
+
+    const user = await response.json()
+
+    localStorage.setItem("user", JSON.stringify(user))
+
+    router.push("/Home")
+
+  } catch (e) {
+    alert("Không kết nối được server")
   }
 }
 </script>

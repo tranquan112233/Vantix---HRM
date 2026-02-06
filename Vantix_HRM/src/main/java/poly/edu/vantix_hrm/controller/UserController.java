@@ -3,7 +3,7 @@ package poly.edu.vantix_hrm.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import poly.edu.vantix_hrm.dao.UserDAO;
-import poly.edu.vantix_hrm.entity.Users;
+import poly.edu.vantix_hrm.entity.User;
 
 import java.util.List;
 
@@ -17,26 +17,26 @@ public class UserController {
 
     // Lấy tất cả user
     @GetMapping
-    public List<Users> getAll() {
+    public List<User> getAll() {
         return userDAO.findAll();
     }
 
     // Lấy user theo id
     @GetMapping("/{id}")
-    public Users getById(@PathVariable Integer id) {
+    public User getById(@PathVariable Integer id) {
         return userDAO.findById(id).orElse(null);
     }
 
     // Thêm mới user
     @PostMapping
-    public Users save(@RequestBody Users user) {
+    public User save(@RequestBody User user) {
         return userDAO.save(user);
     }
 
     // Cập nhật user
     @PutMapping("/{id}")
-    public Users update(@PathVariable Integer id, @RequestBody Users user) {
-        user.setUserID(id);
+    public User update(@PathVariable Integer id, @RequestBody User user) {
+        user.setUserId(id);
         return userDAO.save(user);
     }
 
