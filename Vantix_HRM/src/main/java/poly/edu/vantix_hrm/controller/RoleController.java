@@ -4,7 +4,6 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import poly.edu.vantix_hrm.entity.Role;
 import poly.edu.vantix_hrm.service.RoleService;
-import poly.edu.vantix_hrm.dao.RoleDAO;
 import poly.edu.vantix_hrm.entity.Role;
 
 import java.util.List;
@@ -25,20 +24,16 @@ public class RoleController {
     @GetMapping
     public List<Role> getAll() {
         return roleService.findAll();
-        return roleDAO.findAll();
     }
 
     @GetMapping("/{id}")
     public Role getById(@PathVariable Integer id) {
         return roleService.findById(id);
-        return roleDAO.findById(id).orElse(null);
     }
 
     @PostMapping
     public Role create(@Valid @RequestBody Role role) {
         return roleService.create(role);
-    public Role create(@RequestBody Role role) {
-        return roleDAO.save(role);
     }
 
     @PutMapping("/{id}")
