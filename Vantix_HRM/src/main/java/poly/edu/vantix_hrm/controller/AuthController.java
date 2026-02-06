@@ -1,0 +1,38 @@
+package poly.edu.vantix_hrm.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import poly.edu.vantix_hrm.DTO.LoginRequest;
+import poly.edu.vantix_hrm.dao.UserDAO;
+import poly.edu.vantix_hrm.entity.User;
+
+@RestController
+@RequestMapping("/api/auth")
+@CrossOrigin(origins = "http://localhost:5173")
+public class AuthController {
+
+    @Autowired
+    private UserDAO userDAO;
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+
+        User user = userDAO.findByUsername(request.getUsername());
+
+        if (user == null) {
+            return ResponseEntity.status(401)
+                    .body("Sai tài khoản hoặc mật khẩu");
+        }
+
+        if (!user.getPasswordHash()
+                .equals(request.getPassword())) {
+
+            return ResponseEntity.status(401)
+                    .body("Sai tài khoản hoặc mật khẩu");
+        }
+
+        return ResponseEntity.ok(user);
+    }
+}

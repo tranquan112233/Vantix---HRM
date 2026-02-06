@@ -3,7 +3,6 @@ package poly.edu.vantix_hrm.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "users")
 @Getter @Setter
@@ -50,5 +49,4 @@ public class User {
         ACTIVE, // Hoạt động
         LOCKED // Khóa
     }
-
 }

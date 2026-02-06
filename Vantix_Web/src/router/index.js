@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
 // Layouts
 import UserLayout from '@/layouts/UserLayout.vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
@@ -10,11 +9,10 @@ import Profile from '@/views/user/Profile.vue'
 
 // Admin pages
 import Dashboard from '@/views/admin/Dashboard.vue'
-import UserManagement from "../views/admin/UserManagement.vue";
+import UserManagement from "../views/admin/UserManagement.vue"
 
 // Auth
 import Login from "@/views/auth/Login.vue";
-
 const routes = [
 
     // LOGIN
