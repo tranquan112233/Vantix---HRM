@@ -14,7 +14,10 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowCredentials(true);
-        config.addAllowedOrigin("http://localhost:5175");
+
+        // cho phép tất cả localhost với mọi port
+        config.addAllowedOriginPattern("http://localhost:*");
+
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
 
@@ -25,4 +28,5 @@ public class CorsConfig {
 
         return new CorsFilter(source);
     }
+
 }
