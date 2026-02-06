@@ -49,21 +49,20 @@ import { RouterLink } from 'vue-router'
 /* ===== SIDEBAR ===== */
 .admin-sidebar {
   width: 240px;
-  /* cố định như header */
   position: sticky;
-  top: 56px; /* chiều cao header */
+  top: 56px;
   height: calc(100vh - 56px);
   overflow-y: auto;
   flex: 0 0 240px;
 
-  background: linear-gradient(180deg, #1f2937, #111827);
-  border-right: 1px solid #1f2937;
+  background: linear-gradient(180deg, #020617, #0F172A, #020617);
+  border-right: 1px solid #1E293B;
 }
 
 /* ===== LINK ===== */
 .nav-link {
-  color: #d1d5db;
-  border-radius: 8px;
+  color: #CBD5F5;
+  border-radius: 10px;
   padding: 10px 14px;
   margin-bottom: 4px;
   transition: all 0.2s ease;
@@ -72,35 +71,45 @@ import { RouterLink } from 'vue-router'
 
 .nav-link i {
   font-size: 16px;
+  color: #94A3B8;
 }
 
 /* Hover */
 .nav-link:hover {
-  background-color: #1f2937;
-  color: #60a5fa;
+  background-color: #1E293B;
+  color: #60A5FA;
+}
+
+.nav-link:hover i {
+  color: #60A5FA;
 }
 
 /* Active */
 .router-link-active {
-  background: linear-gradient(90deg, #2563eb, #1d4ed8);
-  color: #ffffff !important;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+  background: linear-gradient(90deg, #2563EB, #1D4ED8);
+  color: #FFFFFF !important;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.55);
+}
+
+.router-link-active i {
+  color: #FFFFFF;
 }
 
 /* ===== SECTION TITLE ===== */
 .sidebar-title {
   font-size: 11px;
   font-weight: 600;
-  color: #9ca3af;
+  color: #64748B;
   padding: 14px 12px 6px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
 }
 
 /* ===== DIVIDER ===== */
 .sidebar-divider {
   height: 1px;
-  background-color: #374151;
+  background-color: #1E293B;
   margin: 12px 0;
 }
 </style>
+

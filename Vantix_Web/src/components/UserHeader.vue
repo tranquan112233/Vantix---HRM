@@ -1,5 +1,5 @@
 <template>
-  <nav class="navbar navbar-expand-lg navbar-dark bg-primary px-3 shadow">
+  <nav class="navbar navbar-expand-lg navbar-dark user-header px-3 shadow">
     <!-- LOGO -->
     <RouterLink
         to="/"
@@ -83,18 +83,24 @@ const logout = () => {
 </script>
 
 <style scoped>
+.user-header {
+  background: linear-gradient(90deg, #020617, #0F172A, #1E293B);
+  border-bottom: 1px solid #1E293B;
+}
 .avatar-circle {
   width: 36px;
   height: 36px;
-  min-width: 36px;      /* QUAN TRỌNG */
+  min-width: 36px;
   border-radius: 50%;
-  background-color: #ffffff;
-  color: #0d6efd;
+  background: linear-gradient(135deg, #2563EB, #1D4ED8);
+  color: #FFFFFF;
+  border: 1px solid #3B82F6;
   font-weight: 700;
   font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  line-height: 1;       /* QUAN TRỌNG */
+  line-height: 1;
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.45);
 }
 </style>

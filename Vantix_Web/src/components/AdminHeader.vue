@@ -85,22 +85,23 @@ const logout = () => {
 <style scoped>
 /* ===== HEADER ===== */
 .admin-header {
-  background: linear-gradient(90deg, #0f0f0f, #676767);
-  border-bottom: 1px solid #2a2a2a;
+  background: linear-gradient(90deg, #020617, #0F172A, #1E293B);
+  border-bottom: 1px solid #1E293B;
 }
 
 /* Logo */
 .navbar-brand {
-  letter-spacing: 0.5px;
-  color: #f1f1f1;
+  letter-spacing: 0.6px;
+  color: #F8FAFC;
+  font-weight: 600;
 }
 
 /* Home button */
 .home-btn {
-  color: #cfcfcf;
+  color: #CBD5F5;
 }
 .home-btn:hover {
-  color: #ffffff !important;
+  color: #60A5FA !important;
 }
 
 /* ===== AVATAR ===== */
@@ -109,9 +110,9 @@ const logout = () => {
   height: 36px;
   min-width: 36px;
   border-radius: 50%;
-  background-color: #1c1c1c;
-  color: #ffffff;
-  border: 1px solid #3a3a3a;
+  background: linear-gradient(135deg, #2563EB, #1D4ED8);
+  color: #FFFFFF;
+  border: 1px solid #3B82F6;
   font-weight: 700;
   font-size: 14px;
   display: flex;
@@ -121,20 +122,21 @@ const logout = () => {
 
 /* ===== DROPDOWN ===== */
 .dropdown-dark {
-  background-color: #1a1a1a;
-  border: 1px solid #2f2f2f;
+  background-color: #020617;
+  border: 1px solid #1E293B;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.45);
 }
 
 .dropdown-dark .dropdown-item {
-  color: #e0e0e0;
+  color: #E5E7EB;
 }
 
 .dropdown-dark .dropdown-item:hover {
-  background-color: #2a2a2a;
-  color: #ffffff;
+  background-color: #1E293B;
+  color: #60A5FA;
 }
 
 .dropdown-divider {
-  border-color: #2f2f2f;
+  border-color: #1E293B;
 }
 </style>
