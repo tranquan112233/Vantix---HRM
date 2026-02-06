@@ -35,7 +35,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // ⭐ PHẦN ANH ĐANG THIẾU
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
@@ -43,7 +42,7 @@ public class SecurityConfig {
 
         configuration.setAllowCredentials(true);
         configuration.setAllowedOrigins(
-                List.of("http://localhost:5176") // đúng port Vue
+                List.of("http://localhost:5176")
         );
 
         configuration.setAllowedHeaders(List.of("*"));
