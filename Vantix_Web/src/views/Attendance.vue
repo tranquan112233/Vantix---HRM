@@ -1,18 +1,18 @@
 <script setup>
 import {ref, onMounted, watch} from 'vue';
-// Đảm bảo đường dẫn này đúng với cấu trúc thư mục của bạn
 import attendanceService from "../assets/service/attendance.service.js";
 
 // --- CẤU HÌNH ---
-const currentUserID = ref(1); // Giả lập ID nhân viên
+// Đã đổi tên biến từ currentUserID -> employeeId
+const employeeId = ref(1); // Giả lập ID nhân viên
 
 // --- FORMATTER ---
 const formatTime = (timeStr) => timeStr ? timeStr.slice(0, 5) : '--:--';
 
 const getShiftLabel = (shiftObj) => {
   if (!shiftObj) return 'Khác';
-  if (shiftObj.shiftID === 1) return 'Sáng';
-  if (shiftObj.shiftID === 2) return 'Chiều';
+  if (shiftObj.shiftId === 1) return 'Sáng';
+  if (shiftObj.shiftId === 2) return 'Chiều';
   return shiftObj.shiftName || 'Khác';
 };
 
@@ -30,18 +30,18 @@ const selectedYear = ref(today.getFullYear());
 // --- 1. HÀM LẤY DỮ LIỆU ---
 const fetchAttendanceData = async () => {
   try {
+    // Truyền employeeId vào service
     const response = await attendanceService.getMonthlyAttendance(
-        currentUserID.value,
+        employeeId.value,
         selectedMonth.value,
         selectedYear.value
     );
 
-    // Sắp xếp: Ngày mới nhất lên đầu, nếu cùng ngày thì Ca chiều lên trên
     attendanceList.value = response.data.sort((a, b) => {
       const dateA = new Date(a.workDate);
       const dateB = new Date(b.workDate);
       if (dateB - dateA !== 0) return dateB - dateA;
-      return (b.shift?.shiftID || 0) - (a.shift?.shiftID || 0);
+      return (b.shift?.shiftId || 0) - (a.shift?.shiftId || 0);
     });
 
   } catch (error) {
@@ -53,23 +53,19 @@ const fetchAttendanceData = async () => {
 // --- 2. HÀM CHẤM CÔNG (CHECK-IN) ---
 const handleCheckIn = async () => {
   if (loading.value) return;
-
   loading.value = true;
   message.value = '';
 
   try {
-    const response = await attendanceService.checkIn(currentUserID.value);
-
-    // Thành công: Backend trả về message string
+    // Truyền employeeId vào service
+    const response = await attendanceService.checkIn(employeeId.value);
     message.value = `✅ Chấm công thành công! Giờ vào: ${formatTime(response.data.checkIn)}`;
     isError.value = false;
-
     await fetchAttendanceData();
-
   } catch (error) {
     isError.value = true;
     if (error.response && error.response.data) {
-      message.value = error.response.data;
+      message.value = error.response.data; // Hiển thị message lỗi từ backend (vd: "Đã chấm công rồi")
     } else {
       message.value = "❌ Có lỗi kết nối đến máy chủ.";
     }
@@ -81,19 +77,15 @@ const handleCheckIn = async () => {
 // --- 3. HÀM CHẤM OUT (CHECK-OUT) ---
 const handleCheckOut = async () => {
   if (loading.value) return;
-
   loading.value = true;
   message.value = '';
 
   try {
-    const response = await attendanceService.checkOut(currentUserID.value);
-
-    // Thành công: Backend trả về message string (vd: Check-out lúc 17:00...)
+    // Truyền employeeId vào service
+    const response = await attendanceService.checkOut(employeeId.value);
     message.value = response.data;
     isError.value = false;
-
     await fetchAttendanceData();
-
   } catch (error) {
     isError.value = true;
     if (error.response && error.response.data) {
@@ -169,7 +161,6 @@ onMounted(() => {
             <th>Ca làm</th>
             <th>Vào</th>
             <th>Ra</th>
-            <th>Giờ làm</th>
             <th>Trễ (p)</th>
             <th>Sớm (p)</th>
             <th>Trạng thái</th>
@@ -177,21 +168,20 @@ onMounted(() => {
           </thead>
           <tbody>
           <tr v-if="attendanceList.length === 0">
-            <td colspan="8" class="empty-cell">Không có dữ liệu trong tháng {{ selectedMonth }}/{{ selectedYear }}.</td>
+            <td colspan="7" class="empty-cell">Không có dữ liệu trong tháng {{ selectedMonth }}/{{ selectedYear }}.</td>
           </tr>
-          <tr v-for="att in attendanceList" :key="att.attendanceID">
+
+          <tr v-for="att in attendanceList" :key="att.attendanceId">
             <td>{{ att.workDate }}</td>
 
             <td>
-              <span :class="['shift-badge', att.shift?.shiftID === 1 ? 'morning' : 'afternoon']">
+              <span :class="['shift-badge', att.shift?.shiftId === 1 ? 'morning' : 'afternoon']">
                  {{ getShiftLabel(att.shift) }}
               </span>
             </td>
 
             <td>{{ formatTime(att.checkIn) }}</td>
             <td>{{ formatTime(att.checkOut) }}</td>
-            <td>{{ att.workHours ? att.workHours + 'h' : '--' }}</td>
-
             <td :class="{ 'warning-text': att.lateMinutes > 0 }">
               {{ att.lateMinutes > 0 ? att.lateMinutes : '-' }}
             </td>
@@ -214,7 +204,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* --- GIỮ NGUYÊN STYLE CŨ --- */
+/* Code CSS giữ nguyên như cũ */
 .attendance-page {
   min-height: 100vh;
   padding: 60px 0;
@@ -345,7 +335,6 @@ td {
   font-style: italic;
 }
 
-/* Status Badge */
 .status-badge {
   padding: 5px 12px;
   border-radius: 6px;
@@ -374,7 +363,6 @@ td {
   color: #c62828;
 }
 
-/* Shift Badge */
 .shift-badge {
   font-weight: 700;
   font-size: 13px;
