@@ -42,6 +42,7 @@ public class Attendance {
     private Integer earlyLeaveMinutes; // Phút về sớm
 
     @Column(name = "status")
+    @Enumerated(EnumType.STRING)
     private AttendanceStatus status = AttendanceStatus.DRAFT; // Trạng thái phiếu chấm công
 
     public enum AttendanceStatus {DRAFT, PENDING, APPROVED, REJECTED}

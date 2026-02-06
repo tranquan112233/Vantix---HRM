@@ -36,7 +36,7 @@ public class DepartmentController {
     // Cập nhật department
     @PutMapping("/{id}")
     public Departments update(@PathVariable Integer id, @RequestBody Departments departments) {
-        departments.setDepartmentID(id);
+//        departments.setDepartmentID(id);
         return departmentDAO.save(departments);
     }
 

@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import poly.edu.vantix_hrm.dao.RoleDAO;
 import poly.edu.vantix_hrm.entity.Roles;
-import poly.edu.vantix_hrm.entity.Users;
 
 import java.util.List;
 
@@ -38,7 +37,7 @@ public class RoleController {
     @PutMapping("/{id}")
     public Roles update(@PathVariable Integer id, @RequestBody Roles role) {
 
-        role.setRoleID(id);   // ⚠️ QUAN TRỌNG
+//        role.setRoleID(id);   // ⚠️ QUAN TRỌNG
         return roleDAO.save(role);
     }
 

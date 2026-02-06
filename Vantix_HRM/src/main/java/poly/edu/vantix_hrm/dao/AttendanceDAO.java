@@ -8,15 +8,12 @@ import poly.edu.vantix_hrm.entity.Attendance;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface AttendanceDAO extends JpaRepository<Attendance, Integer> {
+    @Query(value = "SELECT * FROM Attendance " + "WHERE employee_id = :employeeId " + "AND MONTH(work_date) = :month " + "AND YEAR(work_date) = :year", nativeQuery = true)
+    List<Attendance> getMonthlyAttendance(@Param("employeeId") Integer employeeId, @Param("month") int month, @Param("year") int year);
 
-    @Query("SELECT a FROM Attendance a WHERE a.user.userID = :userId AND MONTH(a.workDate) = :month AND YEAR(a.workDate) = :year")
-    List<Attendance> findAttendanceByMonth(@Param("userId") Integer userId, @Param("month") int month, @Param("year") int year);
-
-    boolean existsByUser_UserIDAndShift_ShiftIDAndWorkDate(Integer userId, Integer shiftId, LocalDate workDate);
-
-    Optional<Attendance> findByUser_UserIDAndWorkDateAndCheckOutIsNull(Integer userId, LocalDate workDate);
+    @Query(value = "SELECT EXISTS(SELECT 1 FROM Attendance " + "WHERE employee_id = :employeeId " + "AND shift_id = :shiftId " + "AND work_date = :workDate)", nativeQuery = true)
+    Boolean isAlreadyCheckedIn(@Param("employeeId") Integer employeeId, @Param("shiftId") Integer shiftId, @Param("workDate") LocalDate workDate);
 }

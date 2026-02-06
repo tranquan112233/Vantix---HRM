@@ -36,7 +36,7 @@ public class UserController {
     // Cập nhật user
     @PutMapping("/{id}")
     public Users update(@PathVariable Integer id, @RequestBody Users user) {
-        user.setUserID(id);
+//        user.setUserID(id);
         return userDAO.save(user);
     }
 
