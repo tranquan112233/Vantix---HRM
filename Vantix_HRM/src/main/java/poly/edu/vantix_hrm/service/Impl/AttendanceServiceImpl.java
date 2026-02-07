@@ -82,15 +82,16 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     public Attendance updateAttendanceRecord(Attendance att, Boolean isAuto) {
-        LocalTime gioVietNam = LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        att.setCheckOut(gioVietNam);
         if (isAuto) {
+            att.setCheckOut(att.getShift().getEndTime());
             att.setEarlyLeaveMinutes(0);
             att.setStatus(Attendance.AttendanceStatus.PENDING);
             return attendanceDAO.save(att);
         }
+        LocalTime now = LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        att.setCheckOut(now);
         Shifts shift = att.getShift();
-        Long minutesDiff = Duration.between(gioVietNam, shift.getEndTime()).toMinutes();
+        Long minutesDiff = Duration.between(now, shift.getEndTime()).toMinutes();
         att.setEarlyLeaveMinutes((int) Math.max(0, minutesDiff));
         att.setStatus(Attendance.AttendanceStatus.APPROVED);
         return attendanceDAO.save(att);
@@ -114,4 +115,16 @@ public class AttendanceServiceImpl implements AttendanceService {
         return att;
     }
 
+    @Override
+    public Attendance findPendingAutoCheckOut(Employees employee) {
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        return attendanceDAO.findPendingAttendance(employee.getEmployeeId(), today)
+                .orElseThrow(() -> new RuntimeException("Bạn không có yêu cầu xác nhận công nào đang chờ xử lý."));
+    }
+
+    @Override
+    public Attendance finalizeAndApproveCheckOut(Attendance att) {
+        att.setStatus(Attendance.AttendanceStatus.APPROVED);
+        return attendanceDAO.save(att);
+    }
 }

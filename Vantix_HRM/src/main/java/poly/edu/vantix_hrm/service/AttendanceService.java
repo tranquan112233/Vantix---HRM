@@ -25,4 +25,10 @@ public interface AttendanceService {
 
     // Hàm CheckOut
     Attendance updateAttendanceRecord(Attendance att, Boolean isAuto);
+
+    // Xác nhận ca đã được CheckOutAuto
+    Attendance findPendingAutoCheckOut(Employees employee);
+
+    // Hàm xác nhận CheckOut
+    Attendance finalizeAndApproveCheckOut(Attendance att);
 }
