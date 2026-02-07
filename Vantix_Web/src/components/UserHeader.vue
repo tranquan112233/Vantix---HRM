@@ -61,26 +61,73 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
-// TEST DATA
-const user = {
-  username: 'Admin',
-  role: { roleName: 'ADMIN' }
+const router = useRouter()
+
+const jwtUser = ref(null)
+
+/**
+ * Decode JWT payload (base64url)
+ */
+function decodeJwt(token) {
+  try {
+    const payload = token.split('.')[1]
+    const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    return JSON.parse(decoded)
+  } catch {
+    return null
+  }
 }
 
-const username = computed(() => user.username)
+const loadUserFromJwt = () => {
+  const token = localStorage.getItem('token')
+  if (!token) {
+    jwtUser.value = null
+    return
+  }
+
+  const payload = decodeJwt(token)
+  if (!payload) {
+    jwtUser.value = null
+    return
+  }
+
+  // Optional: check expire
+  if (payload.exp && Date.now() >= payload.exp * 1000) {
+    logout()
+    return
+  }
+
+  jwtUser.value = {
+    username: payload.sub,
+    role: payload.role
+  }
+}
+
+onMounted(loadUserFromJwt)
+
+/* ===== COMPUTED ===== */
+
+const username = computed(() => jwtUser.value?.username || 'User')
+
 const firstLetter = computed(() =>
-    username.value.charAt(0).toUpperCase()
+    (username.value.charAt(0) || '?').toUpperCase()
 )
 
-const isAdmin = computed(() => user.role.roleName === 'ADMIN')
+const isAdmin = computed(() =>
+    (jwtUser.value?.role || '').toUpperCase() === 'ADMIN'
+)
+
+/* ===== ACTIONS ===== */
 
 const logout = () => {
-  localStorage.removeItem('user')
-  location.href = '/login'
+  localStorage.removeItem('token')
+  router.push('/login')
 }
 </script>
+
 
 <style scoped>
 .avatar-circle {

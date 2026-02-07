@@ -11,7 +11,7 @@
 
     <!-- HOME ICON -->
     <RouterLink
-        to="/"
+        to="/home"
         class="btn btn-link text-light ms-auto me-3 p-0 fs-5 home-btn"
         title="Trang chủ"
     >
