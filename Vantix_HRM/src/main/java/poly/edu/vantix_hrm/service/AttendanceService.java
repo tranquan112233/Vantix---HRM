@@ -17,6 +17,12 @@ public interface AttendanceService {
     // Kiểm tra ca hợp lệ
     Shifts getCurrentShift();
 
-    // Thêm mới chấm công
-    Attendance createAttendanceRecord(Employees employees, Shifts shift);
+    // Hàm CheckIn
+    Attendance createAttendanceRecord(Employees employee, Shifts shift);
+
+    // Xác định ca cần CheckOut
+    Attendance findAttendanceToUpdate(Employees employee, Shifts shift);
+
+    // Hàm CheckOut
+    Attendance updateAttendanceRecord(Attendance att, Boolean isAuto);
 }

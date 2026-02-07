@@ -3,7 +3,6 @@ import {ref, onMounted, watch} from 'vue';
 import attendanceService from "../assets/service/attendance.service.js";
 
 // --- CẤU HÌNH ---
-// Đã đổi tên biến từ currentUserID -> employeeId
 const employeeId = ref(1); // Giả lập ID nhân viên
 
 // --- FORMATTER ---
@@ -18,9 +17,10 @@ const getShiftLabel = (shiftObj) => {
 
 // --- STATE ---
 const message = ref('');
-const isError = ref(false);
+const messageType = ref('success'); // 'success' | 'error' | 'warning'
 const loading = ref(false);
 const attendanceList = ref([]);
+const showConfirmModal = ref(false); // Trạng thái hiển thị Modal xác nhận
 
 // Filter: Tháng/Năm hiện tại
 const today = new Date();
@@ -30,7 +30,6 @@ const selectedYear = ref(today.getFullYear());
 // --- 1. HÀM LẤY DỮ LIỆU ---
 const fetchAttendanceData = async () => {
   try {
-    // Truyền employeeId vào service
     const response = await attendanceService.getMonthlyAttendance(
         employeeId.value,
         selectedMonth.value,
@@ -57,44 +56,74 @@ const handleCheckIn = async () => {
   message.value = '';
 
   try {
-    // Truyền employeeId vào service
     const response = await attendanceService.checkIn(employeeId.value);
     message.value = `✅ Chấm công thành công! Giờ vào: ${formatTime(response.data.checkIn)}`;
-    isError.value = false;
+    messageType.value = 'success';
     await fetchAttendanceData();
   } catch (error) {
-    isError.value = true;
-    if (error.response && error.response.data) {
-      message.value = error.response.data; // Hiển thị message lỗi từ backend (vd: "Đã chấm công rồi")
-    } else {
-      message.value = "❌ Có lỗi kết nối đến máy chủ.";
-    }
+    handleError(error);
   } finally {
     loading.value = false;
   }
 };
 
-// --- 3. HÀM CHẤM OUT (CHECK-OUT) ---
-const handleCheckOut = async () => {
+// --- 3. LOGIC CHẤM OUT (CHECK-OUT) ---
+
+// Bước 1: Kích hoạt Modal hỏi xác nhận
+const requestCheckOut = () => {
   if (loading.value) return;
-  loading.value = true;
+  showConfirmModal.value = true; // Mở Modal
   message.value = '';
+};
+
+// Bước 2: Thực hiện gọi API sau khi người dùng bấm "Đồng ý"
+const confirmCheckOut = async () => {
+  showConfirmModal.value = false; // Đóng Modal
+  loading.value = true;
 
   try {
-    // Truyền employeeId vào service
-    const response = await attendanceService.checkOut(employeeId.value);
-    message.value = response.data;
-    isError.value = false;
+    // --- SỬA LỖI TẠI ĐÂY ---
+    // Trước đó: checkOutManual({ employeeId: ... }) -> Gửi Object -> Lỗi Backend
+    // Sửa thành: checkOutManual(employeeId.value) -> Gửi số nguyên -> OK
+    const response = await attendanceService.checkOutManual(employeeId.value);
+
+    message.value = "✅ Kết thúc ca làm việc thành công!";
+    messageType.value = 'success';
     await fetchAttendanceData();
   } catch (error) {
-    isError.value = true;
-    if (error.response && error.response.data) {
-      message.value = error.response.data;
-    } else {
-      message.value = "❌ Có lỗi kết nối đến máy chủ.";
-    }
+    handleError(error);
   } finally {
     loading.value = false;
+  }
+};
+
+// --- 4. HÀM XỬ LÝ LỖI THÔNG MINH ---
+const handleError = (error) => {
+  messageType.value = 'error'; // Mặc định là lỗi đỏ
+
+  if (error.response && error.response.data) {
+    const data = error.response.data;
+
+    // Lấy nội dung message từ JSON hoặc String
+    if (typeof data === 'object' && data.message) {
+      message.value = data.message;
+    } else {
+      message.value = String(data);
+    }
+
+    // --- LOGIC ĐỔI MÀU ---
+    // Chuyển chữ thường để so sánh cho dễ
+    const msgLower = String(message.value).toLowerCase();
+
+    // Nếu có từ khóa "xác nhận" hoặc "approved" -> Màu Vàng
+    if (msgLower.includes("xác nhận") || msgLower.includes("approved") || msgLower.includes("đã có trạng thái")) {
+      messageType.value = 'warning';
+    }
+
+  } else if (error.message) {
+    message.value = error.message;
+  } else {
+    message.value = "❌ Không thể kết nối đến máy chủ.";
   }
 };
 
@@ -124,7 +153,7 @@ onMounted(() => {
 
         <div
             class="card"
-            @click="!loading && handleCheckOut()"
+            @click="!loading && requestCheckOut()"
             :class="{ 'loading-state': loading }"
         >
           <div class="icon">🚪</div>
@@ -134,7 +163,7 @@ onMounted(() => {
       </div>
 
       <transition name="fade">
-        <div v-if="message" :class="['alert', isError ? 'error' : 'success']">
+        <div v-if="message" :class="['alert', messageType]">
           {{ message }}
         </div>
       </transition>
@@ -142,12 +171,10 @@ onMounted(() => {
       <div class="table-container">
         <div class="table-header">
           <h3>Lịch sử chấm công</h3>
-
           <div class="header-controls">
             <select v-model="selectedMonth" class="custom-select">
               <option v-for="m in 12" :key="m" :value="m">Tháng {{ m }}</option>
             </select>
-
             <select v-model="selectedYear" class="custom-select">
               <option v-for="y in 5" :key="y" :value="2024 + y">{{ 2024 + y }}</option>
             </select>
@@ -170,26 +197,21 @@ onMounted(() => {
           <tr v-if="attendanceList.length === 0">
             <td colspan="7" class="empty-cell">Không có dữ liệu trong tháng {{ selectedMonth }}/{{ selectedYear }}.</td>
           </tr>
-
           <tr v-for="att in attendanceList" :key="att.attendanceId">
             <td>{{ att.workDate }}</td>
-
             <td>
               <span :class="['shift-badge', att.shift?.shiftId === 1 ? 'morning' : 'afternoon']">
                  {{ getShiftLabel(att.shift) }}
               </span>
             </td>
-
             <td>{{ formatTime(att.checkIn) }}</td>
             <td>{{ formatTime(att.checkOut) }}</td>
             <td :class="{ 'warning-text': att.lateMinutes > 0 }">
               {{ att.lateMinutes > 0 ? att.lateMinutes : '-' }}
             </td>
-
             <td :class="{ 'warning-text': att.earlyLeaveMinutes > 0 }">
               {{ att.earlyLeaveMinutes > 0 ? att.earlyLeaveMinutes : '-' }}
             </td>
-
             <td>
                 <span :class="['status-badge', att.status]">
                   {{ att.status || 'Draft' }}
@@ -200,11 +222,23 @@ onMounted(() => {
         </table>
       </div>
     </div>
+
+    <div v-if="showConfirmModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Xác nhận Check-out?</h3>
+        <p>Bạn có chắc chắn muốn kết thúc ca làm việc này không?</p>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="showConfirmModal = false">Hủy bỏ</button>
+          <button class="btn-confirm" @click="confirmCheckOut">Đồng ý</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <style scoped>
-/* Code CSS giữ nguyên như cũ */
+/* --- GIỮ NGUYÊN CSS CŨ --- */
 .attendance-page {
   min-height: 100vh;
   padding: 60px 0;
@@ -240,7 +274,7 @@ onMounted(() => {
   cursor: pointer;
   border: 1px solid #e3f2fd;
   box-shadow: 0 10px 25px rgba(33, 150, 243, 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s;
 }
 
 .card:hover {
@@ -299,11 +333,6 @@ p {
   font-weight: 600;
   outline: none;
   cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-.custom-select:hover {
-  border-color: #2196f3;
 }
 
 table {
@@ -318,7 +347,6 @@ th {
   padding: 15px;
   font-size: 13px;
   text-transform: uppercase;
-  letter-spacing: 1px;
 }
 
 td {
@@ -326,13 +354,6 @@ td {
   border-bottom: 1px solid #f1f1f1;
   color: #37474f;
   font-size: 14px;
-}
-
-.empty-cell {
-  text-align: center;
-  padding: 30px;
-  color: #90a4ae;
-  font-style: italic;
 }
 
 .status-badge {
@@ -385,12 +406,14 @@ td {
   font-weight: 700;
 }
 
+/* CSS ALERT */
 .alert {
   padding: 15px;
   border-radius: 12px;
   margin-bottom: 30px;
   text-align: center;
-  font-weight: 500;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .success {
@@ -403,6 +426,88 @@ td {
   background: #ffebee;
   color: #c62828;
   border: 1px solid #ffcdd2;
+}
+
+.warning {
+  background: #fff3e0;
+  color: #ef6c00;
+  border: 1px solid #ffe0b2;
+}
+
+/* CSS MODAL */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-content h3 {
+  font-size: 20px;
+  margin-bottom: 10px;
+  color: #1a237e;
+}
+
+.modal-actions {
+  margin-top: 25px;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.btn-confirm, .btn-cancel {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-confirm {
+  background: #2196f3;
+  color: white;
+}
+
+.btn-confirm:hover {
+  background: #1976d2;
+}
+
+.btn-cancel {
+  background: #f5f5f5;
+  color: #616161;
+}
+
+.btn-cancel:hover {
+  background: #eeeeee;
+}
+
+@keyframes popIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .fade-enter-active, .fade-leave-active {

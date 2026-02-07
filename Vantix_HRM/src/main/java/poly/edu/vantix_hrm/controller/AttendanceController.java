@@ -43,4 +43,19 @@ public class AttendanceController {
             return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
         }
     }
+
+    @PutMapping("/checkOutManual")
+    public ResponseEntity<?> checkOutManual(@RequestBody Integer employeeId) {
+        try {
+            Employees employee = attendanceService.isEmployeeValid(employeeId);
+            Shifts shift = attendanceService.getCurrentShift();
+            Attendance attendance = attendanceService.findAttendanceToUpdate(employee, shift);
+            Attendance putAttendance = attendanceService.updateAttendanceRecord(attendance, false);
+            return ResponseEntity.ok(putAttendance);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
+        }
+    }
 }

@@ -79,4 +79,39 @@ public class AttendanceServiceImpl implements AttendanceService {
         att.setStatus(Attendance.AttendanceStatus.DRAFT);
         return attendanceDAO.save(att);
     }
+
+    @Override
+    public Attendance updateAttendanceRecord(Attendance att, Boolean isAuto) {
+        LocalTime gioVietNam = LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        att.setCheckOut(gioVietNam);
+        if (isAuto) {
+            att.setEarlyLeaveMinutes(0);
+            att.setStatus(Attendance.AttendanceStatus.PENDING);
+            return attendanceDAO.save(att);
+        }
+        Shifts shift = att.getShift();
+        Long minutesDiff = Duration.between(gioVietNam, shift.getEndTime()).toMinutes();
+        att.setEarlyLeaveMinutes((int) Math.max(0, minutesDiff));
+        att.setStatus(Attendance.AttendanceStatus.APPROVED);
+        return attendanceDAO.save(att);
+    }
+
+    @Override
+    public Attendance findAttendanceToUpdate(Employees employee, Shifts shift) {
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        Attendance att = attendanceDAO.findExistingAttendance(employee.getEmployeeId(), shift.getShiftId(), today).orElseThrow(() -> {
+            String notFoundMsg = "Bạn chưa chấm công ca " + shift.getShiftName() + " ngày " + today;
+            return new RuntimeException(notFoundMsg);
+        });
+        if (att.getStatus() == Attendance.AttendanceStatus.APPROVED || att.getStatus() == Attendance.AttendanceStatus.REJECTED) {
+            String statusErrorMsg = "Ca này đã có trạng thái " + att.getStatus() + ", không thể chỉnh sửa.";
+            throw new RuntimeException(statusErrorMsg);
+        }
+        if (att.getStatus() == Attendance.AttendanceStatus.PENDING) {
+            String statusErrorMsg = "Bạn đã được Check Out xin vui lòng xác nhận.";
+            throw new RuntimeException(statusErrorMsg);
+        }
+        return att;
+    }
+
 }
