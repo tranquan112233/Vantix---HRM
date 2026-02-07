@@ -33,14 +33,6 @@ public class RoleController {
         return roleService.create(role);
     }
 
-    @PutMapping("/{id}")
-    public Role update(
-            @PathVariable Integer id,
-            @Valid @RequestBody Role role
-    ) {
-        return roleService.update(id, role);
-    }
-
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Integer id) {
         roleService.delete(id);
