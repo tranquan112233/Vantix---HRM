@@ -17,12 +17,12 @@ const getShiftLabel = (shiftObj) => {
 
 // --- STATE ---
 const message = ref('');
-const messageType = ref('success'); // 'success' | 'error' | 'warning'
+const messageType = ref('success');
 const loading = ref(false);
 const attendanceList = ref([]);
-const showConfirmModal = ref(false); // Trạng thái hiển thị Modal xác nhận
+const showConfirmModal = ref(false);
 
-// Filter: Tháng/Năm hiện tại
+// Filter
 const today = new Date();
 const selectedMonth = ref(today.getMonth() + 1);
 const selectedYear = ref(today.getFullYear());
@@ -35,21 +35,19 @@ const fetchAttendanceData = async () => {
         selectedMonth.value,
         selectedYear.value
     );
-
     attendanceList.value = response.data.sort((a, b) => {
       const dateA = new Date(a.workDate);
       const dateB = new Date(b.workDate);
       if (dateB - dateA !== 0) return dateB - dateA;
       return (b.shift?.shiftId || 0) - (a.shift?.shiftId || 0);
     });
-
   } catch (error) {
     console.error("Lỗi tải dữ liệu:", error);
     attendanceList.value = [];
   }
 };
 
-// --- 2. HÀM CHẤM CÔNG (CHECK-IN) ---
+// --- 2. HÀM CHẤM CÔNG ---
 const handleCheckIn = async () => {
   if (loading.value) return;
   loading.value = true;
@@ -67,26 +65,18 @@ const handleCheckIn = async () => {
   }
 };
 
-// --- 3. LOGIC CHẤM OUT (CHECK-OUT) ---
-
-// Bước 1: Kích hoạt Modal hỏi xác nhận
+// --- 3. HÀM CHECK OUT ---
 const requestCheckOut = () => {
   if (loading.value) return;
-  showConfirmModal.value = true; // Mở Modal
+  showConfirmModal.value = true;
   message.value = '';
 };
 
-// Bước 2: Thực hiện gọi API sau khi người dùng bấm "Đồng ý"
 const confirmCheckOut = async () => {
-  showConfirmModal.value = false; // Đóng Modal
+  showConfirmModal.value = false;
   loading.value = true;
-
   try {
-    // --- SỬA LỖI TẠI ĐÂY ---
-    // Trước đó: checkOutManual({ employeeId: ... }) -> Gửi Object -> Lỗi Backend
-    // Sửa thành: checkOutManual(employeeId.value) -> Gửi số nguyên -> OK
     const response = await attendanceService.checkOutManual(employeeId.value);
-
     message.value = "✅ Kết thúc ca làm việc thành công!";
     messageType.value = 'success';
     await fetchAttendanceData();
@@ -97,29 +87,41 @@ const confirmCheckOut = async () => {
   }
 };
 
-// --- 4. HÀM XỬ LÝ LỖI THÔNG MINH ---
-const handleError = (error) => {
-  messageType.value = 'error'; // Mặc định là lỗi đỏ
+// --- 4. HÀM XÁC NHẬN CÔNG (MỚI THÊM) ---
+const handleConfirm = async () => {
+  if (loading.value) return;
+  loading.value = true;
+  message.value = '';
 
+  try {
+    // Gọi API Confirm
+    const response = await attendanceService.confirmCheckOut(employeeId.value);
+
+    message.value = "✅ Xác nhận công thành công! Trạng thái đã chuyển sang APPROVED.";
+    messageType.value = 'success';
+    await fetchAttendanceData(); // Load lại bảng để thấy status thay đổi
+  } catch (error) {
+    handleError(error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// --- XỬ LÝ LỖI ---
+const handleError = (error) => {
+  messageType.value = 'error';
   if (error.response && error.response.data) {
     const data = error.response.data;
-
-    // Lấy nội dung message từ JSON hoặc String
     if (typeof data === 'object' && data.message) {
       message.value = data.message;
     } else {
       message.value = String(data);
     }
-
-    // --- LOGIC ĐỔI MÀU ---
-    // Chuyển chữ thường để so sánh cho dễ
     const msgLower = String(message.value).toLowerCase();
-
-    // Nếu có từ khóa "xác nhận" hoặc "approved" -> Màu Vàng
+    // Logic đổi màu vàng nếu là cảnh báo
     if (msgLower.includes("xác nhận") || msgLower.includes("approved") || msgLower.includes("đã có trạng thái")) {
       messageType.value = 'warning';
     }
-
   } else if (error.message) {
     message.value = error.message;
   } else {
@@ -127,12 +129,8 @@ const handleError = (error) => {
   }
 };
 
-// --- LIFECYCLE ---
 watch([selectedMonth, selectedYear], fetchAttendanceData);
-
-onMounted(() => {
-  fetchAttendanceData();
-});
+onMounted(() => fetchAttendanceData());
 </script>
 
 <template>
@@ -141,24 +139,22 @@ onMounted(() => {
       <h1 class="page-title">Hệ Thống Chấm Công Vantix</h1>
 
       <div class="card-grid">
-        <div
-            class="card"
-            @click="!loading && handleCheckIn()"
-            :class="{ 'loading-state': loading }"
-        >
+        <div class="card" @click="!loading && handleCheckIn()" :class="{ 'loading-state': loading }">
           <div class="icon">⏱️</div>
           <h3>Chấm Công</h3>
-          <p>Nhấn để bắt đầu ca làm việc</p>
+          <p>Bắt đầu ca làm việc</p>
         </div>
 
-        <div
-            class="card"
-            @click="!loading && requestCheckOut()"
-            :class="{ 'loading-state': loading }"
-        >
+        <div class="card" @click="!loading && requestCheckOut()" :class="{ 'loading-state': loading }">
           <div class="icon">🚪</div>
           <h3>Chấm Out</h3>
-          <p>Nhấn để kết thúc ca làm</p>
+          <p>Kết thúc ca làm</p>
+        </div>
+
+        <div class="card confirm-card" @click="!loading && handleConfirm()" :class="{ 'loading-state': loading }">
+          <div class="icon">✅</div>
+          <h3>Xác nhận</h3>
+          <p>Duyệt công bị treo</p>
         </div>
       </div>
 
@@ -206,17 +202,11 @@ onMounted(() => {
             </td>
             <td>{{ formatTime(att.checkIn) }}</td>
             <td>{{ formatTime(att.checkOut) }}</td>
-            <td :class="{ 'warning-text': att.lateMinutes > 0 }">
-              {{ att.lateMinutes > 0 ? att.lateMinutes : '-' }}
-            </td>
+            <td :class="{ 'warning-text': att.lateMinutes > 0 }">{{ att.lateMinutes > 0 ? att.lateMinutes : '-' }}</td>
             <td :class="{ 'warning-text': att.earlyLeaveMinutes > 0 }">
               {{ att.earlyLeaveMinutes > 0 ? att.earlyLeaveMinutes : '-' }}
             </td>
-            <td>
-                <span :class="['status-badge', att.status]">
-                  {{ att.status || 'Draft' }}
-                </span>
-            </td>
+            <td><span :class="['status-badge', att.status]">{{ att.status || 'Draft' }}</span></td>
           </tr>
           </tbody>
         </table>
@@ -233,7 +223,6 @@ onMounted(() => {
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -259,11 +248,20 @@ onMounted(() => {
   font-weight: 700;
 }
 
+/* --- CẬP NHẬT CSS CARD GRID (QUAN TRỌNG) --- */
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 30px;
+  /* Sửa thành 3 cột để chứa 3 nút */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
   margin-bottom: 40px;
+}
+
+/* Nếu màn hình nhỏ thì tự xuống dòng */
+@media (max-width: 768px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .card {
@@ -281,6 +279,11 @@ onMounted(() => {
   transform: translateY(-8px);
   box-shadow: 0 15px 35px rgba(33, 150, 243, 0.15);
   border-color: #2196f3;
+}
+
+/* Style riêng cho nút Confirm nếu muốn */
+.confirm-card:hover {
+  border-color: #4caf50;
 }
 
 .loading-state {
@@ -303,6 +306,7 @@ p {
   font-size: 15px;
 }
 
+/* --- CSS BẢNG VÀ ALERT GIỮ NGUYÊN --- */
 .table-container {
   background: white;
   padding: 25px;
@@ -406,7 +410,6 @@ td {
   font-weight: 700;
 }
 
-/* CSS ALERT */
 .alert {
   padding: 15px;
   border-radius: 12px;
@@ -434,7 +437,6 @@ td {
   border: 1px solid #ffe0b2;
 }
 
-/* CSS MODAL */
 .modal-overlay {
   position: fixed;
   top: 0;
