@@ -241,12 +241,17 @@
           ref="toastRef"
           class="toast text-bg-success border-0"
           role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+          data-bs-delay="3000"
+          data-bs-autohide="true"
       >
         <div class="d-flex">
           <div class="toast-body">
             {{ toastMessage }}
           </div>
           <button
+              type="button"
               class="btn-close btn-close-white me-2 m-auto"
               data-bs-dismiss="toast"
           ></button>
@@ -306,11 +311,21 @@ const MIN_PASSWORD = 6
 /* ================= TOAST ================= */
 const toastRef = ref(null)
 const toastMessage = ref('')
-let toastInstance = null
 
 const showToast = (msg) => {
   toastMessage.value = msg
-  toastInstance.show()
+
+  const el = toastRef.value
+  if (!el) return
+
+  // reset trạng thái cũ
+  el.classList.remove('hide', 'show')
+
+  // force reflow để toast chạy lại
+  void el.offsetWidth
+
+  // show toast
+  el.classList.add('show')
 }
 
 
@@ -456,9 +471,9 @@ const save = async () => {
     modal.hide()
 
   } catch (e) {
-    handleServerError(e)
   }
 }
+
 
 
 
@@ -471,9 +486,6 @@ const formatDate = (v) => v ? new Date(v).toLocaleString() : '-'
 
 onMounted(async () => {
   await loadData()
-  toastInstance = new window.bootstrap.Toast(toastRef.value, {
-    delay: 3000
-  })
 })
 </script>
 
