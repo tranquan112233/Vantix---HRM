@@ -174,27 +174,49 @@
           <div class="modal-body">
             <div class="mb-3">
               <label class="form-label">Username</label>
-              <input v-model="form.username" class="form-control" />
+              <input
+                  v-model="form.username"
+                  class="form-control"
+                  :class="{ 'is-invalid': errors.username }"
+              />
+              <div class="invalid-feedback">{{ errors.username }}</div>
             </div>
 
             <div class="mb-3">
               <label class="form-label">Email</label>
-              <input v-model="form.email" type="email" class="form-control" />
+              <input
+                  v-model="form.email"
+                  type="email"
+                  class="form-control"
+                  :class="{ 'is-invalid': errors.email }"
+              />
+              <div class="invalid-feedback">{{ errors.email }}</div>
             </div>
 
             <div class="mb-3" v-if="!isEdit">
               <label class="form-label">Password</label>
-              <input v-model="form.passwordHash" type="password" class="form-control" />
+              <input
+                  v-model="form.passwordHash"
+                  type="password"
+                  class="form-control"
+                  :class="{ 'is-invalid': errors.passwordHash }"
+              />
+              <div class="invalid-feedback">{{ errors.passwordHash }}</div>
             </div>
 
             <div class="mb-3">
               <label class="form-label">Role</label>
-              <select v-model="form.roleId" class="form-select">
-                <option disabled value="">-- Chọn role --</option>
+              <select
+                  v-model="form.roleId"
+                  class="form-select"
+                  :class="{ 'is-invalid': errors.roleId }"
+              >
+              <option disabled value="">-- Chọn role --</option>
                 <option v-for="r in roles" :key="r.id" :value="r.id">
                   {{ r.roleName }}
                 </option>
               </select>
+              <div class="invalid-feedback">{{ errors.roleId }}</div>
             </div>
           </div>
 
@@ -204,7 +226,6 @@
             </button>
             <button
                 class="btn btn-primary"
-                data-bs-dismiss="modal"
                 @click="save"
             >
               Lưu
@@ -214,7 +235,24 @@
         </div>
       </div>
     </div>
-
+    <!-- TOAST -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+      <div
+          ref="toastRef"
+          class="toast text-bg-success border-0"
+          role="alert"
+      >
+        <div class="d-flex">
+          <div class="toast-body">
+            {{ toastMessage }}
+          </div>
+          <button
+              class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast"
+          ></button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -241,6 +279,40 @@ const form = ref({
   passwordHash: '',
   roleId: ''
 })
+
+/* ================= VALIDATE ================= */
+const errors = ref({
+  username: '',
+  email: '',
+  passwordHash: '',
+  roleId: ''
+})
+
+
+const resetErrors = () => {
+  errors.value = {
+    username: '',
+    email: '',
+    passwordHash: '',
+    roleId: ''
+  }
+}
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const MIN_USERNAME = 3
+const MIN_PASSWORD = 6
+
+
+/* ================= TOAST ================= */
+const toastRef = ref(null)
+const toastMessage = ref('')
+let toastInstance = null
+
+const showToast = (msg) => {
+  toastMessage.value = msg
+  toastInstance.show()
+}
+
 
 const loadData = async () => {
   users.value = (await UserService.getAll()).data
@@ -301,11 +373,13 @@ watch([searchText, pageSize], () => currentPage.value = 1)
 /* MODAL DATA */
 const openCreate = () => {
   isEdit.value = false
+  resetErrors()
   form.value = { id: null, username: '', email: '', passwordHash: '', roleId: '' }
 }
 
 const openEdit = (u) => {
   isEdit.value = true
+  resetErrors()
   form.value = {
     id: u.id,
     username: u.username,
@@ -317,24 +391,49 @@ const openEdit = (u) => {
 
 /* SAVE */
 const save = async () => {
-  // Validate đơn giản
-  if (!form.value.username?.trim()) {
-    alert('Vui lòng nhập username')
-    return
-  }
-  if (!isEdit.value && !form.value.passwordHash?.trim()) {
-    alert('Vui lòng nhập password')
-    return
-  }
-  if (!form.value.roleId) {
-    alert('Vui lòng chọn role')
-    return
+  resetErrors()
+  let valid = true
+
+  /* ===== USERNAME ===== */
+  if (!form.value.username.trim()) {
+    errors.value.username = 'Vui lòng nhập username'
+    valid = false
+  } else if (form.value.username.length < MIN_USERNAME) {
+    errors.value.username = `Username phải ≥ ${MIN_USERNAME} ký tự`
+    valid = false
   }
 
-  // Map roleId -> role object theo yêu cầu backend
+  /* ===== EMAIL ===== */
+  if (!form.value.email || !form.value.email.trim()) {
+    errors.value.email = 'Vui lòng nhập email'
+    valid = false
+  } else if (!EMAIL_REGEX.test(form.value.email)) {
+    errors.value.email = 'Email không đúng định dạng'
+    valid = false
+  }
+
+  /* ===== PASSWORD ===== */
+  if (!isEdit.value) {
+    if (!form.value.passwordHash.trim()) {
+      errors.value.passwordHash = 'Vui lòng nhập password'
+      valid = false
+    } else if (form.value.passwordHash.length < MIN_PASSWORD) {
+      errors.value.passwordHash = `Password phải ≥ ${MIN_PASSWORD} ký tự`
+      valid = false
+    }
+  }
+
+  /* ===== ROLE ===== */
+  if (!form.value.roleId) {
+    errors.value.roleId = 'Vui lòng chọn role'
+    valid = false
+  }
+
+  if (!valid) return
+
   const payload = {
-    username: form.value.username,
-    email: form.value.email || null,
+    username: form.value.username.trim(),
+    email: form.value.email?.trim() || null,
     role: { id: form.value.roleId }
   }
 
@@ -346,14 +445,22 @@ const save = async () => {
         ...payload,
         passwordHash: form.value.passwordHash
       })
+      showToast('🎉 Tạo user thành công')
     }
+
+
     await loadData()
+
+    const modalEl = document.getElementById('userModal')
+    const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl)
+    modal.hide()
+
   } catch (e) {
-    // Tùy chọn: hiển thị lỗi từ server (trùng username/email, ...)
-    const msg = e?.response?.data?.message || 'Lưu thất bại'
-    alert(msg)
+    handleServerError(e)
   }
 }
+
+
 
 const toggleLock = async (u) => {
   await UserService.toggleLock(u.id)
@@ -362,7 +469,12 @@ const toggleLock = async (u) => {
 
 const formatDate = (v) => v ? new Date(v).toLocaleString() : '-'
 
-onMounted(loadData)
+onMounted(async () => {
+  await loadData()
+  toastInstance = new window.bootstrap.Toast(toastRef.value, {
+    delay: 3000
+  })
+})
 </script>
 
 <style scoped>

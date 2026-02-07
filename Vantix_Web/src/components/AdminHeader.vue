@@ -68,19 +68,25 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import AuthService from '@/assets/services/auth.service.js'
 
-const user = JSON.parse(localStorage.getItem('user')) || {}
+const router = useRouter()
 
-const username = computed(() => user.username || 'Admin')
+// LẤY USER QUA SERVICE
+const user = computed(() => AuthService.getUser() || {})
+
+const username = computed(() => user.value.username || 'Admin')
 const firstLetter = computed(() =>
-    username.value.charAt(0).toUpperCase()
+    (username.value.charAt(0) || '?').toUpperCase()
 )
 
 const logout = () => {
-  localStorage.removeItem('user')
-  location.href = '/login'
+  AuthService.logout()
+  router.push('/login')
 }
 </script>
+
 
 <style scoped>
 /* ===== HEADER ===== */
