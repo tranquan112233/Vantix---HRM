@@ -1,6 +1,6 @@
 <template>
   <div class="login-bg">
-    <img :src="logo" alt="Vantix HR" class="app-logo" />
+    <img src="@/assets/img/removeBackgroundLogo.png" alt="Vantix HR" class="app-logo" />
 
     <div class="auth-card">
       <!-- LEFT -->

@@ -71,7 +71,7 @@
                     data-bs-target="#departmentModal"
                     @click="openEdit(d)"
                 >
-                  <i class="bi bi-pencil"></i>
+                  <i class="bi bi-pencil-square"></i>
                 </button>
 
                 <button
