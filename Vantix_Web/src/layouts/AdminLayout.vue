@@ -19,7 +19,7 @@
 </template>
 
 <script setup>
-import AdminHeader from "@/components/AdminHeader.vue"
-import AdminSidebar from "@/components/AdminSidebar.vue"
-import AdminFooter from "@/components/AdminFooter.vue"
+import AdminHeader from "@/components/admin/AdminHeader.vue"
+import AdminSidebar from "@/components/admin/AdminSidebar.vue"
+import AdminFooter from "@/components/admin/AdminFooter.vue"
 </script>

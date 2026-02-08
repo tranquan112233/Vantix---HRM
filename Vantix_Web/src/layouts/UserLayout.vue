@@ -16,6 +16,6 @@
 </template>
 
 <script setup>
-import UserHeader from '@/components/UserHeader.vue'
-import UserFooter from '@/components/UserFooter.vue'
+import UserHeader from '@/components/user/UserHeader.vue'
+import UserFooter from '@/components/user/UserFooter.vue'
 </script>

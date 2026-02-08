@@ -2,7 +2,7 @@
   <footer class="mt-auto">
     <div class="container-fluid py-3 px-4 text-center">
       <div class="text-muted small">
-        © {{ year }} <strong>Vantix HRM</strong>. All rights reserved.
+        © {{ year }} <strong>Vantix Co.LTD</strong>. All rights reserved.
       </div>
     </div>
   </footer>

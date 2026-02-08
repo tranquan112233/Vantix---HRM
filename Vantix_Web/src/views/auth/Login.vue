@@ -63,7 +63,7 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import AuthService from '@/assets/services/auth.service'
+import AuthService from '@/services/auth.service'
 
 const router = useRouter()   // ← CỰC KỲ QUAN TRỌNG
 const error = ref(null)

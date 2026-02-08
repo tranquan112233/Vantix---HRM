@@ -5,13 +5,14 @@
         to="/"
         class="navbar-brand fw-bold text-white text-decoration-none"
     >
-      <i class="bi bi-building"></i> Vantix HRM
+      <i class="bi bi-building"></i> Vantix Co.LTD
     </RouterLink>
 
     <div class="ms-auto dropdown">
       <button
           class="btn p-0 border-0 bg-transparent d-flex align-items-center gap-2"
           data-bs-toggle="dropdown"
+          aria-expanded="false"
       >
         <div class="avatar-circle">
           {{ firstLetter }}

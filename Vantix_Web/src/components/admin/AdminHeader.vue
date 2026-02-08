@@ -6,7 +6,7 @@
         to="/"
         class="navbar-brand fw-bold text-white text-decoration-none"
     >
-      <i class="bi bi-building"></i> Vantix HRM
+      <i class="bi bi-building"></i> Vantix Co.LTD
     </RouterLink>
 
     <!-- HOME ICON -->
@@ -69,7 +69,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import AuthService from '@/assets/services/auth.service.js'
+import AuthService from '@/services/auth.service.js'
 
 const router = useRouter()
 

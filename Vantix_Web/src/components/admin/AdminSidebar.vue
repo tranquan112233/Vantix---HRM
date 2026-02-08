@@ -3,7 +3,7 @@
     <ul class="nav nav-pills flex-column px-2 pt-3">
 
       <!-- ===== QUẢN LÝ ===== -->
-      <li class="sidebar-title">QUẢN LÝ</li>
+      <li class="sidebar-title">QUẢN LÝ CHUNG</li>
 
       <li class="nav-item">
         <RouterLink to="/admin/dashboard" class="nav-link">
@@ -14,15 +14,22 @@
 
       <li class="nav-item">
         <RouterLink to="/admin/users" class="nav-link">
-          <i class="bi bi-people me-2"></i>
+          <i class="bi bi-person-circle me-2"></i>
           Users
         </RouterLink>
       </li>
-
+      <li class="sidebar-divider"></li>
+      <li class="sidebar-title">QUẢN LÝ NHÂN SỰ</li>
       <li class="nav-item">
         <RouterLink to="/admin/departments" class="nav-link">
           <i class="bi bi-diagram-3 me-2"></i>
           Departments
+        </RouterLink>
+      </li>
+      <li class="nav-item">
+        <RouterLink to="/admin/employees" class="nav-link">
+          <i class="bi bi-people-fill me-2"></i>
+          Employees
         </RouterLink>
       </li>
 
