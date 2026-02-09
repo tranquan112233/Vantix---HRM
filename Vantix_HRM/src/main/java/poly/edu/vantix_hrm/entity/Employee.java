@@ -41,8 +41,6 @@ public class Employee {
     @JoinColumn(name = "position_id")
     private Position position;
 
-    private LocalDate hireDate;
-
     @Enumerated(EnumType.STRING)
     private WorkStatus workStatus = WorkStatus.WORKING;
 

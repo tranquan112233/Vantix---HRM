@@ -12,6 +12,7 @@ import Profile from '@/views/user/Profile.vue'
 import Dashboard from '@/views/admin/Dashboard.vue'
 import UserManagement from '@/views/admin/UserManagement.vue'
 import DepartmentManagement from "@/views/admin/DepartmentManagement.vue";
+import EmployeeManagement from "@/views/admin/EmployeeManagement.vue";
 
 // Auth
 import Login from '@/views/auth/Login.vue'
@@ -67,6 +68,11 @@ const routes = [
                 path: 'departments',
                 name: 'admin-departments',
                 component: DepartmentManagement
+            },
+            {
+                path: 'employees',
+                name: 'admin-employees',
+                component: EmployeeManagement
             }
         ]
     }

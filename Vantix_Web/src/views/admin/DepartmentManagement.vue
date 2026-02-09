@@ -276,7 +276,7 @@ const save = async () => {
 /* DELETE */
 const remove = async (d) => {
   if (!confirm(`Xóa department "${d.name}"?`)) return
-  await DepartmentService.delete(d.id)
+  await DepartmentService.remove(d.id)
   showToast('Đã xóa department')
   loadData()
 }
