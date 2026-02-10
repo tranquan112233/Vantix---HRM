@@ -2,10 +2,10 @@ package poly.edu.vantix_hrm.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import poly.edu.vantix_hrm.dto.EmployeeRequest;
-import poly.edu.vantix_hrm.dto.EmployeeResponse;
-import poly.edu.vantix_hrm.dto.SimpleDepartmentDTO;
-import poly.edu.vantix_hrm.dto.SimplePositionDTO;
+import poly.edu.vantix_hrm.DTO.EmployeeRequest;
+import poly.edu.vantix_hrm.DTO.EmployeeResponse;
+import poly.edu.vantix_hrm.DTO.SimpleDepartmentDTO;
+import poly.edu.vantix_hrm.DTO.SimplePositionDTO;
 import poly.edu.vantix_hrm.entity.Employee;
 import poly.edu.vantix_hrm.repository.DepartmentRepository;
 import poly.edu.vantix_hrm.repository.EmployeeRepository;

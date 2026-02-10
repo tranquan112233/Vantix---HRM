@@ -1,4 +1,4 @@
-package poly.edu.vantix_hrm.dto;
+package poly.edu.vantix_hrm.DTO;
 
 import lombok.Data;
 

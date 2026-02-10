@@ -3,8 +3,8 @@ package poly.edu.vantix_hrm.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import poly.edu.vantix_hrm.dto.EmployeeRequest;
-import poly.edu.vantix_hrm.dto.EmployeeResponse;
+import poly.edu.vantix_hrm.DTO.EmployeeRequest;
+import poly.edu.vantix_hrm.DTO.EmployeeResponse;
 import poly.edu.vantix_hrm.service.EmployeeService;
 
 import java.util.List;
