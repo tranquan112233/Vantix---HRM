@@ -37,7 +37,7 @@ export default {
           title: 'Chấm công',
           desc: 'Xem lịch sử ca làm việc',
           icon: '⏱️',
-          route: '/attendance'
+          route: '/contract'
         },
         {
           title: 'Nghỉ phép',
