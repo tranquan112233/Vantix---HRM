@@ -16,7 +16,7 @@ public class Contracts {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "contract_id")
-    private Integer contractId; // ID hợp đồng
+    private Integer contractId; // ID hợp đồ
 
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
