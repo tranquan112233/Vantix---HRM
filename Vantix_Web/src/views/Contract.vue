@@ -1,42 +1,9 @@
 <script setup>
 import {ref, computed, onMounted} from 'vue';
-import {useRouter} from 'vue-router'; // Import router để điều hướng
+import {useRouter} from 'vue-router';
+import contractService from "../assets/service/contract.service.js";
 
 const router = useRouter();
-
-// --- GIẢ LẬP SERVICE ---
-const mockContracts = [
-  {
-    contractId: 101,
-    employee: {id: 1, name: 'Nguyễn Văn A'},
-    type: 'INDEFINITE',
-    startDate: '2023-01-01',
-    endDate: null,
-    position: 'Backend Developer',
-    baseSalary: 25000000,
-    status: 'ACTIVE'
-  },
-  {
-    contractId: 102,
-    employee: {id: 2, name: 'Trần Thị B'},
-    type: 'YEAR_1',
-    startDate: '2024-01-01',
-    endDate: '2025-01-01',
-    position: 'HR Specialist',
-    baseSalary: 15000000,
-    status: 'ACTIVE'
-  },
-  {
-    contractId: 103,
-    employee: {id: 3, name: 'Lê Văn C'},
-    type: 'YEAR_1',
-    startDate: '2022-06-01',
-    endDate: '2023-06-01',
-    position: 'Intern',
-    baseSalary: 5000000,
-    status: 'EXPIRED'
-  }
-];
 
 // --- STATE ---
 const contracts = ref([]);
@@ -45,7 +12,15 @@ const showModal = ref(false);
 const message = ref('');
 const messageType = ref('success');
 
-// Form Model (Chỉ dùng để tạo mới)
+// 🌟 STATE BỘ LỌC ĐA TẦNG (CÓ THÊM LƯƠNG)
+const currentFilter = ref('ALL');
+const searchQuery = ref('');
+const selectedType = ref('ALL');
+const selectedPosition = ref('ALL');
+const minSalary = ref(null); // Lương tối thiểu
+const maxSalary = ref(null); // Lương tối đa
+
+// Form Model
 const form = ref({
   contractId: null,
   employeeName: '',
@@ -58,40 +33,81 @@ const form = ref({
 });
 
 // --- HELPER FORMATTERS ---
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(value);
-};
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return 'Vô thời hạn';
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('vi-VN');
-};
-
+const formatCurrency = (value) => new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(value);
+const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleDateString('vi-VN') : 'Vô thời hạn';
 const getTypeLabel = (type) => {
-  const map = {
-    'YEAR_1': '1 Năm',
-    'YEAR_3': '3 Năm',
-    'INDEFINITE': 'Vô thời hạn'
-  };
+  const map = {'YEAR_1': '1 Năm', 'YEAR_3': '3 Năm', 'INDEFINITE': 'Vô thời hạn'};
   return map[type] || type;
 };
+
+// --- COMPUTED: TỰ ĐỘNG LẤY DANH SÁCH VỊ TRÍ ---
+const availablePositions = computed(() => {
+  const positions = contracts.value.map(c => c.position).filter(Boolean);
+  return [...new Set(positions)];
+});
 
 // --- COMPUTED STATS ---
 const totalContracts = computed(() => contracts.value.length);
 const activeContracts = computed(() => contracts.value.filter(c => c.status === 'ACTIVE').length);
 const expiredContracts = computed(() => contracts.value.filter(c => c.status === 'EXPIRED').length);
 
+// --- 🌟 LOGIC "PHỄU LỌC" ĐA TẦNG SIÊU CẤP ---
+const filteredContracts = computed(() => {
+  let result = contracts.value;
+
+  if (currentFilter.value !== 'ALL') result = result.filter(c => c.status === currentFilter.value);
+  if (selectedType.value !== 'ALL') result = result.filter(c => c.type === selectedType.value);
+  if (selectedPosition.value !== 'ALL') result = result.filter(c => c.position === selectedPosition.value);
+
+  // Lọc theo khoảng lương
+  if (minSalary.value !== null && minSalary.value !== '') {
+    result = result.filter(c => c.baseSalary >= Number(minSalary.value));
+  }
+  if (maxSalary.value !== null && maxSalary.value !== '') {
+    result = result.filter(c => c.baseSalary <= Number(maxSalary.value));
+  }
+
+  if (searchQuery.value.trim() !== '') {
+    const query = searchQuery.value.toLowerCase().trim();
+    result = result.filter(c => {
+      const nameMatch = c.employee?.fullName?.toLowerCase().includes(query);
+      const idMatch = c.contractId?.toString().includes(query);
+      return nameMatch || idMatch;
+    });
+  }
+
+  return result;
+});
+
+const isFilterActive = computed(() => {
+  return currentFilter.value !== 'ALL' || selectedType.value !== 'ALL' ||
+      selectedPosition.value !== 'ALL' || searchQuery.value !== '' ||
+      (minSalary.value !== null && minSalary.value !== '') ||
+      (maxSalary.value !== null && maxSalary.value !== '');
+});
+
+const clearFilters = () => {
+  currentFilter.value = 'ALL';
+  searchQuery.value = '';
+  selectedType.value = 'ALL';
+  selectedPosition.value = 'ALL';
+  minSalary.value = null;
+  maxSalary.value = null;
+};
+
 // --- METHODS ---
 const fetchContracts = async () => {
   loading.value = true;
-  setTimeout(() => {
-    contracts.value = mockContracts;
+  try {
+    const response = await contractService.getAllContracts();
+    contracts.value = response.data;
+  } catch (error) {
+    console.error("Lỗi API:", error);
+  } finally {
     loading.value = false;
-  }, 500);
+  }
 };
 
-// Chỉ mở Modal để thêm mới (Không truyền tham số contract vào nữa)
 const openCreateModal = () => {
   form.value = {
     contractId: null,
@@ -106,33 +122,24 @@ const openCreateModal = () => {
   showModal.value = true;
 };
 
-// Xử lý tạo mới hợp đồng
 const handleSubmit = () => {
-  // Logic thêm mới (Giả lập)
   const newContract = {
     ...form.value,
-    contractId: Math.floor(Math.random() * 1000) + 1000, // ID ngẫu nhiên
-    employee: {name: form.value.employeeName}
+    contractId: Math.floor(Math.random() * 1000) + 1000,
+    employee: {fullName: form.value.employeeName}
   };
-
-  contracts.value.unshift(newContract); // Thêm lên đầu danh sách
-  showMessage('Tạo hợp đồng mới thành công!', 'success');
+  contracts.value.unshift(newContract);
+  showMessage('Tạo hợp đồng thành công!', 'success');
   showModal.value = false;
 };
 
-// Chuyển hướng sang trang Phụ lục
-const viewAnnex = (contractId) => {
-  // Điều hướng đến route: /contract/:id/annex
-  router.push({name: 'ContractAnnex', params: {id: contractId}});
-};
-
+const viewAnnex = (id) => router.push({name: 'ContractAnnex', params: {id}});
 const deleteContract = (id) => {
-  if (confirm('Bạn có chắc chắn muốn xóa hợp đồng này? Hành động này không thể hoàn tác.')) {
+  if (confirm('Xóa hợp đồng này?')) {
     contracts.value = contracts.value.filter(c => c.contractId !== id);
     showMessage('Đã xóa hợp đồng.', 'warning');
   }
 };
-
 const showMessage = (msg, type = 'success') => {
   message.value = msg;
   messageType.value = type;
@@ -145,381 +152,650 @@ onMounted(() => fetchContracts());
 <template>
   <div class="management-page">
     <div class="container">
-      <h1 class="page-title">Quản Lý Hợp Đồng Nhân Sự</h1>
 
-      <div class="card-grid">
-        <div class="card">
-          <div class="icon">📄</div>
-          <h3>{{ totalContracts }}</h3>
-          <p>Tổng số hợp đồng</p>
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Hợp Đồng Nhân Sự</h1>
+          <p class="page-subtitle">Quản lý và theo dõi trạng thái hợp đồng lao động</p>
+        </div>
+        <button class="btn-primary" @click="openCreateModal()">
+          <span class="plus-icon">+</span> Thêm Hợp Đồng Mới
+        </button>
+      </div>
+
+      <div class="stat-cards">
+        <div class="stat-card" :class="{ active: currentFilter === 'ALL' }" @click="currentFilter = 'ALL'">
+          <div class="stat-icon bg-blue">📄</div>
+          <div class="stat-info">
+            <span class="stat-label">Tổng số hợp đồng</span>
+            <h3 class="stat-value text-blue">{{ totalContracts }}</h3>
+          </div>
         </div>
 
-        <div class="card">
-          <div class="icon">✅</div>
-          <h3>{{ activeContracts }}</h3>
-          <p>Đang hiệu lực</p>
+        <div class="stat-card" :class="{ active: currentFilter === 'ACTIVE' }" @click="currentFilter = 'ACTIVE'">
+          <div class="stat-icon bg-green">✅</div>
+          <div class="stat-info">
+            <span class="stat-label">Đang hiệu lực</span>
+            <h3 class="stat-value text-green">{{ activeContracts }}</h3>
+          </div>
         </div>
 
-        <div class="card">
-          <div class="icon">⚠️</div>
-          <h3>{{ expiredContracts }}</h3>
-          <p>Đã hết hạn</p>
+        <div class="stat-card" :class="{ active: currentFilter === 'EXPIRED' }" @click="currentFilter = 'EXPIRED'">
+          <div class="stat-icon bg-orange">⚠️</div>
+          <div class="stat-info">
+            <span class="stat-label">Đã hết hạn</span>
+            <h3 class="stat-value text-orange">{{ expiredContracts }}</h3>
+          </div>
         </div>
       </div>
 
       <transition name="fade">
-        <div v-if="message" :class="['alert', messageType]">
-          {{ message }}
-        </div>
+        <div v-if="message" :class="['alert', messageType]">{{ message }}</div>
       </transition>
 
-      <div class="table-container">
-        <div class="table-header">
-          <h3>Danh sách hợp đồng</h3>
-          <button class="btn-primary" @click="openCreateModal()">
-            + Thêm Mới
-          </button>
+      <div class="content-panel">
+
+        <div class="filter-panel">
+          <div class="filter-row">
+            <div class="search-box">
+              <span class="search-icon">🔍</span>
+              <input v-model="searchQuery" type="text" placeholder="Tìm ID hoặc Tên nhân viên..."/>
+              <button v-if="searchQuery" class="clear-input-btn" @click="searchQuery = ''">✖</button>
+            </div>
+
+            <select v-model="selectedType" class="form-select">
+              <option value="ALL">Tất cả loại HĐ</option>
+              <option value="YEAR_1">1 Năm</option>
+              <option value="YEAR_3">3 Năm</option>
+              <option value="INDEFINITE">Vô thời hạn</option>
+            </select>
+
+            <select v-model="selectedPosition" class="form-select">
+              <option value="ALL">Tất cả vị trí</option>
+              <option v-for="pos in availablePositions" :key="pos" :value="pos">{{ pos }}</option>
+            </select>
+          </div>
+
+          <div class="filter-row mt-10">
+            <div class="salary-range-box">
+              <span class="range-label">Mức lương:</span>
+              <input v-model="minSalary" type="number" placeholder="Từ (VNĐ)" class="form-input" min="0"/>
+              <span class="separator">-</span>
+              <input v-model="maxSalary" type="number" placeholder="Đến (VNĐ)" class="form-input" min="0"/>
+            </div>
+
+            <button v-if="isFilterActive" class="btn-reset" @click="clearFilters">
+              Xóa bộ lọc
+            </button>
+          </div>
         </div>
 
-        <table>
-          <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nhân Viên</th>
-            <th>Vị Trí</th>
-            <th>Loại HĐ</th>
-            <th>Ngày Hiệu Lực</th>
-            <th>Lương Cơ Bản</th>
-            <th>Trạng Thái</th>
-            <th>Thao Tác</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr v-if="contracts.length === 0">
-            <td colspan="8" class="empty-cell">Chưa có dữ liệu hợp đồng.</td>
-          </tr>
-          <tr v-for="c in contracts" :key="c.contractId">
-            <td>#{{ c.contractId }}</td>
-            <td class="font-bold">{{ c.employee?.name || 'Unknown' }}</td>
-            <td>{{ c.position }}</td>
-            <td>
-              <span class="type-badge">{{ getTypeLabel(c.type) }}</span>
-            </td>
-            <td>
-              {{ formatDate(c.startDate) }} <br>
-              <span class="sub-text">đến {{ formatDate(c.endDate) }}</span>
-            </td>
-            <td class="salary-text">{{ formatCurrency(c.baseSalary) }}</td>
-            <td>
-                <span :class="['status-badge', c.status]">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+            <tr>
+              <th width="8%">ID</th>
+              <th width="20%">NHÂN VIÊN</th>
+              <th width="15%">VỊ TRÍ</th>
+              <th width="12%">LOẠI HĐ</th>
+              <th width="18%">THỜI HẠN</th>
+              <th width="12%">LƯƠNG CƠ BẢN</th>
+              <th width="10%">TRẠNG THÁI</th>
+              <th width="5%" class="text-center"></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-if="filteredContracts.length === 0">
+              <td colspan="8" class="empty-state">
+                <div class="empty-icon">📂</div>
+                <p>Không tìm thấy hợp đồng nào phù hợp.</p>
+              </td>
+            </tr>
+            <tr v-for="c in filteredContracts" :key="c.contractId">
+              <td class="text-muted">#{{ c.contractId }}</td>
+              <td class="font-medium text-dark">{{ c.employee?.fullName || 'Unknown' }}</td>
+              <td class="text-muted">{{ c.position }}</td>
+              <td><span class="badge badge-light-blue">{{ getTypeLabel(c.type) }}</span></td>
+              <td>
+                <div class="date-range">
+                  <span>{{ formatDate(c.startDate) }}</span>
+                  <span class="date-arrow">→</span>
+                  <span>{{ formatDate(c.endDate) }}</span>
+                </div>
+              </td>
+              <td class="font-medium text-success">{{ formatCurrency(c.baseSalary) }}</td>
+              <td>
+                <span :class="['badge', c.status === 'ACTIVE' ? 'badge-success' : 'badge-danger']">
                   {{ c.status === 'ACTIVE' ? 'Hiệu lực' : 'Hết hạn' }}
                 </span>
-            </td>
-            <td>
-              <div class="action-buttons">
-                <button class="btn-icon view" @click="viewAnnex(c.contractId)" title="Xem Phụ lục">
-                  👁️
-                </button>
-
-                <button class="btn-icon delete" @click="deleteContract(c.contractId)" title="Xóa Hợp đồng">
-                  🗑️
-                </button>
-              </div>
-            </td>
-          </tr>
-          </tbody>
-        </table>
+              </td>
+              <td class="text-center">
+                <div class="action-menu">
+                  <button class="icon-btn" @click="viewAnnex(c.contractId)" title="Phụ lục">👁️</button>
+                  <button class="icon-btn delete" @click="deleteContract(c.contractId)" title="Xóa">🗑️</button>
+                </div>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
     <div v-if="showModal" class="modal-overlay">
       <div class="modal-content">
-        <h3>Tạo Hợp Đồng Mới</h3>
-        <p class="modal-subtitle">Lưu ý: Hợp đồng sau khi tạo chỉ có thể thêm Phụ lục, không thể sửa trực tiếp.</p>
-
+        <div class="modal-header">
+          <h3>Tạo Hợp Đồng Mới</h3>
+          <button class="close-modal" @click="showModal = false">✖</button>
+        </div>
         <form @submit.prevent="handleSubmit" class="contract-form">
-          <div class="form-group">
-            <label>Tên nhân viên</label>
-            <input v-model="form.employeeName" type="text" required placeholder="Nhập tên nhân viên..."/>
-          </div>
-
+          <div class="form-group"><label>Tên nhân viên</label><input v-model="form.employeeName" type="text"
+                                                                     class="form-input" required/></div>
           <div class="form-row">
-            <div class="form-group">
-              <label>Vị trí</label>
-              <input v-model="form.position" type="text" required placeholder="Vd: Backend Dev"/>
-            </div>
-            <div class="form-group">
-              <label>Loại HĐ</label>
-              <select v-model="form.type">
-                <option value="YEAR_1">1 Năm</option>
-                <option value="YEAR_3">3 Năm</option>
-                <option value="INDEFINITE">Vô thời hạn</option>
-              </select>
-            </div>
+            <div class="form-group"><label>Vị trí</label><input v-model="form.position" type="text" class="form-input"
+                                                                required/></div>
+            <div class="form-group"><label>Loại HĐ</label><select v-model="form.type" class="form-select">
+              <option value="YEAR_1">1 Năm</option>
+              <option value="YEAR_3">3 Năm</option>
+              <option value="INDEFINITE">Vô thời hạn</option>
+            </select></div>
           </div>
-
           <div class="form-row">
-            <div class="form-group">
-              <label>Ngày bắt đầu</label>
-              <input v-model="form.startDate" type="date" required/>
-            </div>
-            <div class="form-group">
-              <label>Ngày kết thúc</label>
-              <input v-model="form.endDate" type="date" :disabled="form.type === 'INDEFINITE'"/>
-            </div>
+            <div class="form-group"><label>Ngày bắt đầu</label><input v-model="form.startDate" type="date"
+                                                                      class="form-input" required/></div>
+            <div class="form-group"><label>Ngày kết thúc</label><input v-model="form.endDate" type="date"
+                                                                       class="form-input"
+                                                                       :disabled="form.type === 'INDEFINITE'"/></div>
           </div>
-
           <div class="form-row">
-            <div class="form-group">
-              <label>Lương cơ bản (VND)</label>
-              <input v-model="form.baseSalary" type="number" min="0" required/>
-            </div>
-            <div class="form-group">
-              <label>Trạng thái</label>
-              <select v-model="form.status">
-                <option value="ACTIVE">Hiệu lực</option>
-                <option value="EXPIRED">Hết hạn</option>
-              </select>
-            </div>
+            <div class="form-group"><label>Lương cơ bản (VND)</label><input v-model="form.baseSalary" type="number"
+                                                                            class="form-input" required/></div>
+            <div class="form-group"><label>Trạng thái</label><select v-model="form.status" class="form-select">
+              <option value="ACTIVE">Hiệu lực</option>
+              <option value="EXPIRED">Hết hạn</option>
+            </select></div>
           </div>
-
           <div class="modal-actions">
-            <button type="button" class="btn-cancel" @click="showModal = false">Hủy</button>
-            <button type="submit" class="btn-confirm">Lưu Hợp Đồng</button>
+            <button type="button" class="btn-secondary" @click="showModal = false">Hủy</button>
+            <button type="submit" class="btn-primary">Lưu Hợp Đồng</button>
           </div>
         </form>
       </div>
     </div>
-
   </div>
 </template>
 
 <style scoped>
-/* BACKGROUND & LAYOUT */
+/* RESET & VARIABLES */
+* {
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
 .management-page {
   min-height: 100vh;
-  padding: 40px 0;
-  background: linear-gradient(135deg, #f0f7ff, #ffffff);
-  display: flex;
-  justify-content: center;
+  background-color: #f4f7f8;
+  padding: 30px 0;
+  color: #334155;
 }
 
 .container {
-  width: 90%;
-  max-width: 1000px;
+  width: 95%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.page-title {
-  text-align: center;
-  color: #1a237e;
-  margin-bottom: 30px;
-  font-weight: 700;
-}
-
-/* CARDS */
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 25px;
-  text-align: center;
-  border: 1px solid #e3f2fd;
-  box-shadow: 0 8px 20px rgba(33, 150, 243, 0.05);
-  transition: transform 0.2s;
-}
-
-.card:hover {
-  transform: translateY(-5px);
-  border-color: #2196f3;
-}
-
-.icon {
-  font-size: 36px;
-  margin-bottom: 10px;
-}
-
-.card h3 {
-  color: #0d47a1;
-  font-size: 24px;
-  margin: 5px 0;
-}
-
-.card p {
-  color: #78909c;
-  font-size: 14px;
-}
-
-/* TABLE STYLES */
-.table-container {
-  background: white;
-  padding: 25px;
-  border-radius: 20px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.03);
-}
-
-.table-header {
+/* HEADER */
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  border-left: 4px solid #2196f3;
-  padding-left: 15px;
+  margin-bottom: 25px;
 }
 
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 5px 0;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* BUTTONS */
 .btn-primary {
-  background: #2196f3;
+  background: #2563eb;
   color: white;
   border: none;
-  padding: 10px 20px;
+  padding: 10px 18px;
   border-radius: 8px;
-  cursor: pointer;
   font-weight: 600;
-  transition: background 0.2s;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
 }
 
 .btn-primary:hover {
-  background: #1976d2;
+  background: #1d4ed8;
+  transform: translateY(-1px);
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th {
-  background: #f8fbff;
-  color: #546e7a;
-  padding: 15px;
-  text-align: left;
-  font-size: 13px;
-  text-transform: uppercase;
-}
-
-td {
-  padding: 15px;
-  border-bottom: 1px solid #f1f1f1;
-  color: #37474f;
+.btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
   font-size: 14px;
-  vertical-align: middle;
+  cursor: pointer;
 }
 
-.font-bold {
-  font-weight: 600;
-  color: #1565c0;
+.btn-secondary:hover {
+  background: #e2e8f0;
 }
 
-.sub-text {
-  font-size: 12px;
-  color: #90a4ae;
+/* STAT CARDS */
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 25px;
 }
 
-.salary-text {
-  font-family: 'Courier New', Courier, monospace;
-  font-weight: 600;
-  color: #2e7d32;
-}
-
-/* BADGES */
-.status-badge {
-  padding: 5px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.ACTIVE {
-  background: #e8f5e9;
-  color: #2e7d32;
-}
-
-.EXPIRED {
-  background: #ffebee;
-  color: #c62828;
-}
-
-.type-badge {
-  background: #e3f2fd;
-  color: #0277bd;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-/* ACTION BUTTONS */
-.action-buttons {
+.stat-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 15px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
-.btn-icon {
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card.active {
+  border-color: #3b82f6;
+  ring: 2px solid #3b82f6;
+  background-color: #f0fdfa;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.bg-blue {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+.bg-green {
+  background: #f0fdf4;
+  color: #22c55e;
+}
+
+.bg-orange {
+  background: #fff7ed;
+  color: #f97316;
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 4px 0 0 0;
+}
+
+.text-blue {
+  color: #1e40af;
+}
+
+.text-green {
+  color: #166534;
+}
+
+.text-orange {
+  color: #9a3412;
+}
+
+/* CONTENT PANEL & FILTERS */
+.content-panel {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.filter-panel {
+  padding: 20px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafafa;
+}
+
+.filter-row {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.mt-10 {
+  margin-top: 15px;
+}
+
+.search-box {
+  position: relative;
+  flex: 1;
+  min-width: 250px;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 10px 35px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.search-box input:focus {
+  border-color: #3b82f6;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.clear-input-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
   background: none;
   border: none;
+  color: #94a3b8;
   cursor: pointer;
-  font-size: 18px; /* Tăng size icon một chút cho dễ bấm */
+}
+
+.form-select, .form-input {
+  padding: 10px 15px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #334155;
+  outline: none;
+  background: white;
+}
+
+.form-select:focus, .form-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* SALARY RANGE */
+.salary-range-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+}
+
+.range-label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.salary-range-box .form-input {
+  border: none;
   padding: 6px;
-  border-radius: 6px;
+  width: 120px;
+  background: transparent;
+}
+
+.salary-range-box .form-input:focus {
+  box-shadow: none;
+  border-bottom: 1px solid #3b82f6;
+  border-radius: 0;
+}
+
+.separator {
+  color: #cbd5e1;
+}
+
+.btn-reset {
+  background: white;
+  color: #ef4444;
+  border: 1px solid #fca5a5;
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
   transition: all 0.2s;
 }
 
-/* Style riêng cho nút View Annex */
-.btn-icon.view:hover {
-  background: #e3f2fd;
-  transform: scale(1.1);
+.btn-reset:hover {
+  background: #fef2f2;
 }
 
-.btn-icon.delete:hover {
-  background: #ffebee;
-  transform: scale(1.1);
+/* TABLE */
+.table-responsive {
+  overflow-x: auto;
 }
 
-/* MODAL & FORM */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.data-table th {
+  background: #f8fafc;
+  padding: 14px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.data-table td {
+  padding: 16px 20px;
+  font-size: 14px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.text-dark {
+  color: #0f172a;
+}
+
+.text-muted {
+  color: #64748b;
+}
+
+.text-success {
+  color: #15803d;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 600;
+}
+
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.date-arrow {
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+/* BADGES (PILL SHAPE) */
+.badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.badge-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-light-blue {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+/* ACTIONS */
+.action-menu {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: 0.2s;
+}
+
+.icon-btn:hover {
+  background: #e2e8f0;
+}
+
+.icon-btn.delete:hover {
+  background: #fee2e2;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px !important;
+}
+
+.empty-icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+  opacity: 0.5;
+}
+
+/* MODAL & ALERTS */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
-  backdrop-filter: blur(4px);
-  z-index: 999;
+  z-index: 50;
+  backdrop-filter: blur(2px);
 }
 
 .modal-content {
   background: white;
-  padding: 30px;
+  padding: 25px;
   border-radius: 16px;
-  width: 90%;
-  max-width: 600px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
-  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  width: 100%;
+  max-width: 550px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
-.modal-subtitle {
-  font-size: 13px;
-  color: #ef6c00; /* Màu cam cảnh báo */
-  margin-top: -10px;
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
-  font-style: italic;
 }
 
-.contract-form {
-  margin-top: 10px;
+.modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+  color: #0f172a;
+}
+
+.close-modal {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #94a3b8;
+  cursor: pointer;
 }
 
 .form-group {
   margin-bottom: 15px;
   display: flex;
   flex-direction: column;
-  text-align: left;
+  gap: 6px;
 }
 
 .form-row {
@@ -530,88 +806,34 @@ td {
 
 label {
   font-size: 13px;
-  color: #546e7a;
-  margin-bottom: 5px;
-  font-weight: 600;
-}
-
-input, select {
-  padding: 10px;
-  border: 1px solid #cfd8dc;
-  border-radius: 8px;
-  font-size: 14px;
-  outline: none;
-}
-
-input:focus, select:focus {
-  border-color: #2196f3;
-  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+  font-weight: 500;
+  color: #475569;
 }
 
 .modal-actions {
-  margin-top: 25px;
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  margin-top: 25px;
 }
 
-.btn-confirm {
-  background: #2196f3;
-  color: white;
-  padding: 10px 24px;
-  border-radius: 8px;
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn-cancel {
-  background: #f5f5f5;
-  color: #616161;
-  padding: 10px 24px;
-  border-radius: 8px;
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* ALERTS */
 .alert {
-  padding: 12px;
+  padding: 12px 16px;
   border-radius: 8px;
   margin-bottom: 20px;
-  text-align: center;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 14px;
 }
 
 .success {
-  background: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #c8e6c9;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
 }
 
 .warning {
-  background: #fff3e0;
-  color: #ef6c00;
-  border: 1px solid #ffe0b2;
-}
-
-@keyframes popIn {
-  from {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.5s;
-}
-
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
+  background: #fef08a;
+  color: #854d0e;
+  border: 1px solid #fde047;
 }
 </style>
