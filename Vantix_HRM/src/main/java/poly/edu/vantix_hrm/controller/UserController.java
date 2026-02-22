@@ -59,5 +59,20 @@ public class UserController {
     public void delete(@PathVariable Integer id) {
         userService.delete(id);
     }
+
+    @GetMapping("/exists/username")
+    public boolean existsUsername(
+            @RequestParam String username) {
+
+        return userService.existsUsername(username);
+    }
+
+
+    @GetMapping("/exists/email")
+    public boolean existsEmail(
+            @RequestParam String email) {
+
+        return userService.existsEmail(email);
+    }
 }
 

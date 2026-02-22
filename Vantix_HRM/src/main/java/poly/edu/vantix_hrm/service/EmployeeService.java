@@ -1,15 +1,23 @@
 package poly.edu.vantix_hrm.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import poly.edu.vantix_hrm.DTO.EmployeeRequest;
-import poly.edu.vantix_hrm.DTO.EmployeeResponse;
-import poly.edu.vantix_hrm.DTO.SimpleDepartmentDTO;
-import poly.edu.vantix_hrm.DTO.SimplePositionDTO;
+import org.springframework.transaction.annotation.Transactional;
+import poly.edu.vantix_hrm.dto.EmployeeRequest;
+import poly.edu.vantix_hrm.dto.EmployeeResponse;
+import poly.edu.vantix_hrm.dto.SimpleDepartmentDTO;
+import poly.edu.vantix_hrm.dto.SimplePositionDTO;
+import poly.edu.vantix_hrm.entity.Department;
 import poly.edu.vantix_hrm.entity.Employee;
+import poly.edu.vantix_hrm.entity.Position;
+import poly.edu.vantix_hrm.entity.Role;
+import poly.edu.vantix_hrm.entity.User;
 import poly.edu.vantix_hrm.repository.DepartmentRepository;
 import poly.edu.vantix_hrm.repository.EmployeeRepository;
 import poly.edu.vantix_hrm.repository.PositionRepository;
+import poly.edu.vantix_hrm.repository.RoleRepository;
+import poly.edu.vantix_hrm.repository.UserRepository;
 
 import java.util.List;
 
@@ -21,6 +29,14 @@ public class EmployeeService {
     private final DepartmentRepository departmentRepository;
     private final PositionRepository positionRepository;
 
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+
+    private final PasswordEncoder passwordEncoder;
+
+
+    /* ================= FIND ================= */
+
     public List<EmployeeResponse> findAll() {
         return employeeRepository.findAll()
                 .stream()
@@ -28,26 +44,83 @@ public class EmployeeService {
                 .toList();
     }
 
+
+    /* ================= CREATE ================= */
+
+    @Transactional
     public EmployeeResponse create(EmployeeRequest req) {
-        Employee e = new Employee();
-        mapToEntity(e, req);
-        return toResponse(employeeRepository.save(e));
+
+        // kiểm tra username tồn tại
+        if (userRepository.existsByUsername(req.getUsername())) {
+            throw new RuntimeException("Username đã tồn tại");
+        }
+        if (userRepository.existsByEmail(req.getEmail())) {
+            throw new RuntimeException("Email đã tồn tại");
+        }
+
+        // tìm role
+        Role role = roleRepository.findById(req.getRoleId())
+                .orElseThrow(() -> new RuntimeException("Role không tồn tại"));
+
+        // tạo user
+        User user = new User();
+
+        user.setUsername(req.getUsername());
+        user.setEmail(req.getEmail());
+        user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
+        user.setRole(role);
+
+        userRepository.save(user);
+
+
+        // tạo employee
+        Employee employee = new Employee();
+
+        mapToEntity(employee, req);
+
+        // liên kết user
+        employee.setUser(user);
+
+        return toResponse(employeeRepository.save(employee));
     }
 
+
+    /* ================= UPDATE ================= */
+
+    @Transactional
     public EmployeeResponse update(Integer id, EmployeeRequest req) {
-        Employee e = employeeRepository.findById(id)
+
+        Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên"));
-        mapToEntity(e, req);
-        return toResponse(employeeRepository.save(e));
+
+        // chỉ update employee, không update user
+        mapToEntity(employee, req);
+
+        return toResponse(employeeRepository.save(employee));
     }
 
+
+    /* ================= DELETE ================= */
+
+    @Transactional
     public void delete(Integer id) {
-        employeeRepository.deleteById(id);
+
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên"));
+
+        // xóa user trước
+        if (employee.getUser() != null) {
+            userRepository.delete(employee.getUser());
+        }
+
+        employeeRepository.delete(employee);
     }
+
 
     /* ================= MAP ================= */
 
     private void mapToEntity(Employee e, EmployeeRequest req) {
+
         e.setFullName(req.getFullName());
         e.setGender(req.getGender());
         e.setBirthDate(req.getBirthDate());
@@ -55,18 +128,21 @@ public class EmployeeService {
         e.setAddress(req.getAddress());
         e.setWorkStatus(req.getWorkStatus());
 
-        e.setDepartment(
-                departmentRepository.findById(req.getDepartmentId())
-                        .orElseThrow(() -> new RuntimeException("Phòng ban không tồn tại"))
-        );
+        Department department = departmentRepository.findById(req.getDepartmentId())
+                .orElseThrow(() -> new RuntimeException("Phòng ban không tồn tại"));
 
-        e.setPosition(
-                positionRepository.findById(req.getPositionId())
-                        .orElseThrow(() -> new RuntimeException("Chức vụ không tồn tại"))
-        );
+        Position position = positionRepository.findById(req.getPositionId())
+                .orElseThrow(() -> new RuntimeException("Chức vụ không tồn tại"));
+
+        e.setDepartment(department);
+        e.setPosition(position);
     }
 
+
+    /* ================= RESPONSE ================= */
+
     private EmployeeResponse toResponse(Employee e) {
+
         EmployeeResponse dto = new EmployeeResponse();
 
         dto.setId(e.getId());
@@ -94,4 +170,3 @@ public class EmployeeService {
         return dto;
     }
 }
-

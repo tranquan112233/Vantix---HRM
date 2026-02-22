@@ -3,6 +3,8 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import EmployeeService from '@/services/employee.service'
 import DepartmentService from '@/services/department.service'
 import PositionService from '@/services/position.service'
+import RoleService from '@/services/role.service'
+import UserService from '@/services/user.service'
 
 import { useSearch } from '@/composables/useSearch'
 import { useMultiSort } from '@/composables/useMultiSort'
@@ -13,6 +15,7 @@ import { useToast } from '@/composables/useToast'
 const employees = ref([])
 const departments = ref([])
 const positions = ref([])
+const roles = ref([])
 const isEdit = ref(false)
 
 /* SEARCH */
@@ -28,11 +31,19 @@ const { searchText, filteredData } = useSearch(employees, [
 const { sort, sortIcon, sortedData } = useMultiSort(filteredData)
 
 /* PAGINATION */
-const { currentPage, pageSize, totalPages, paginatedData, changePage } = usePagination(sortedData)
+const {
+  currentPage,
+  pageSize,
+  totalPages,
+  paginatedData,
+  changePage
+} = usePagination(sortedData)
 
 /* FORM */
 const form = ref({
   id: null,
+
+  // employee
   fullName: '',
   gender: 'MALE',
   birthDate: null,
@@ -40,7 +51,13 @@ const form = ref({
   address: '',
   workStatus: 'WORKING',
   departmentId: null,
-  positionId: null
+  positionId: null,
+
+  // account
+  username: '',
+  email: '',
+  password: '',
+  roleId: null
 })
 
 const errors = reactive({})
@@ -52,33 +69,83 @@ const loadData = async () => {
   employees.value = (await EmployeeService.getAll()).data
   departments.value = (await DepartmentService.getAll()).data
   positions.value = (await PositionService.getAll()).data
+  roles.value = (await RoleService.getAll()).data
 }
 
 /* VALIDATE */
-const validate = () => {
+const validate = async () => {
+
   Object.keys(errors).forEach(k => delete errors[k])
 
-  if (!form.value.fullName || !form.value.fullName.trim()) {
+  /* employee validate */
+
+  if (!form.value.fullName?.trim())
     errors.fullName = 'Vui lòng nhập họ tên'
-  }
-  if (!form.value.departmentId) {
+
+  if (!form.value.departmentId)
     errors.departmentId = 'Vui lòng chọn phòng ban'
-  }
-  if (!form.value.positionId) {
+
+  if (!form.value.positionId)
     errors.positionId = 'Vui lòng chọn chức vụ'
-  }
-  if (form.value.phone && !/^[0-9+\-\s()]{8,20}$/.test(form.value.phone.trim())) {
+
+  if (form.value.phone &&
+      !/^[0-9+\-\s()]{8,20}$/.test(form.value.phone))
     errors.phone = 'Số điện thoại không hợp lệ'
+
+
+  /* account validatess ONLY CREATE */
+
+  if (!isEdit.value) {
+
+    if (!form.value.username?.trim())
+      errors.username = 'Vui lòng nhập username'
+
+    if (!form.value.email?.trim())
+      errors.email = 'Vui lòng nhập email'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email))
+      errors.email = 'Email không hợp lệ'
+
+    if (!form.value.password)
+      errors.password = 'Vui lòng nhập password'
+
+    if (!form.value.roleId)
+      errors.roleId = 'Vui lòng chọn role'
+
+
+    /* CHECK EXISTING */
+
+    if (!errors.username) {
+
+      const existsUsername =
+          await UserService.existsUsername(form.value.username)
+
+      if (existsUsername.data)
+        errors.username = 'Username đã tồn tại'
+    }
+
+    if (!errors.email) {
+
+      const existsEmail =
+          await UserService.existsEmail(form.value.email)
+
+      if (existsEmail.data)
+        errors.email = 'Email đã tồn tại'
+    }
+
   }
 
   return Object.keys(errors).length === 0
 }
 
-/* MODAL */
+/* OPEN CREATE */
 const openCreate = () => {
+
   isEdit.value = false
+
   Object.assign(form.value, {
+
     id: null,
+
     fullName: '',
     gender: 'MALE',
     birthDate: null,
@@ -86,32 +153,54 @@ const openCreate = () => {
     address: '',
     workStatus: 'WORKING',
     departmentId: null,
-    positionId: null
+    positionId: null,
+
+    username: '',
+    email: '',
+    password: '',
+    roleId: null
   })
+
   Object.keys(errors).forEach(k => delete errors[k])
 }
 
+/* OPEN EDIT */
 const openEdit = (e) => {
+
   isEdit.value = true
+
   Object.assign(form.value, {
+
     id: e.id,
+
     fullName: e.fullName,
     gender: e.gender || 'MALE',
     birthDate: e.birthDate || null,
     phone: e.phone || '',
     address: e.address || '',
     workStatus: e.workStatus || 'WORKING',
+
     departmentId: e.department?.id ?? null,
-    positionId: e.position?.id ?? null
+    positionId: e.position?.id ?? null,
+
+    // account readonly
+    username: e.user?.username || '',
+    email: e.user?.email || '',
+    password: '',
+    roleId: e.user?.role?.id || null
   })
+
   Object.keys(errors).forEach(k => delete errors[k])
 }
 
 /* SAVE */
 const save = async () => {
-  if (!validate()) return
+
+  if (!(await validate()))
+    return
 
   const payload = {
+
     fullName: form.value.fullName,
     gender: form.value.gender,
     birthDate: form.value.birthDate,
@@ -122,36 +211,70 @@ const save = async () => {
     positionId: form.value.positionId
   }
 
+  if (!isEdit.value) {
+
+    payload.username = form.value.username
+    payload.email = form.value.email
+    payload.password = form.value.password
+    payload.roleId = form.value.roleId
+  }
+
   try {
-    if (isEdit.value) {
+
+    if (isEdit.value)
       await EmployeeService.update(form.value.id, payload)
-      showToast('Cập nhật nhân viên thành công', 'success')
-    } else {
+    else
       await EmployeeService.create(payload)
-      showToast('Tạo nhân viên thành công', 'success')
-    }
+
+    showToast(
+        isEdit.value
+            ? 'Cập nhật thành công'
+            : 'Tạo thành công',
+        'success'
+    )
 
     await loadData()
+
     btnCancel.value.click()
-  } catch {
-    showToast('Có lỗi xảy ra', 'danger')
+
+  }
+  catch (e) {
+
+    showToast(
+        e?.response?.data?.message ||
+        'Có lỗi xảy ra',
+        'danger'
+    )
   }
 }
 
 /* DELETE */
 const remove = async (e) => {
-  if (!confirm(`Xóa nhân viên "${e.fullName}"?`)) return
+
+  if (!confirm(`Xóa nhân viên "${e.fullName}"?`))
+    return
+
   await EmployeeService.remove(e.id)
+
   showToast('Đã xóa nhân viên', 'success')
+
   loadData()
 }
 
 /* UTILS */
-const formatDateOnly = (v) => (v ? new Date(v).toLocaleDateString() : '-')
-const genderLabel = (g) => (g === 'MALE' ? 'Nam' : g === 'FEMALE' ? 'Nữ' : 'Khác')
+const formatDateOnly = (v) =>
+    v ? new Date(v).toLocaleDateString() : '-'
 
-watch([searchText, pageSize], () => (currentPage.value = 1))
+const genderLabel = (g) =>
+    g === 'MALE' ? 'Nam' :
+        g === 'FEMALE' ? 'Nữ' : 'Khác'
+
+
+watch([searchText, pageSize],
+    () => currentPage.value = 1)
+
 onMounted(loadData)
+
 </script>
 
 <template>
@@ -451,6 +574,109 @@ onMounted(loadData)
                     </div>
                   </div>
                 </div>
+              </div>
+              <!--Thông tin tài khoản-->
+              <div class="col-12" v-if="!isEdit">
+
+                <div class="fw-semibold mb-2">
+                  Thông tin tài khoản
+                </div>
+
+                <div class="row g-3">
+
+                  <!-- USERNAME -->
+                  <div class="col-12 col-md-6">
+                    <label class="form-label">
+                      Username
+                    </label>
+
+                    <input
+                        v-model="form.username"
+                        class="form-control"
+                        :class="{ 'is-invalid': errors.username }"
+                    />
+
+                    <div v-if="errors.username"
+                         class="invalid-feedback d-block">
+                      {{ errors.username }}
+                    </div>
+                  </div>
+
+
+                  <!-- EMAIL -->
+                  <div class="col-12 col-md-6">
+                    <label class="form-label">
+                      Email
+                    </label>
+
+                    <input
+                        v-model="form.email"
+                        class="form-control"
+                        :class="{ 'is-invalid': errors.email }"
+                    />
+
+                    <div v-if="errors.email"
+                         class="invalid-feedback d-block">
+                      {{ errors.email }}
+                    </div>
+                  </div>
+
+
+                  <!-- PASSWORD -->
+                  <div class="col-12 col-md-6">
+                    <label class="form-label">
+                      Password
+                    </label>
+
+                    <input
+                        type="password"
+                        v-model="form.password"
+                        class="form-control"
+                        :class="{ 'is-invalid': errors.password }"
+                    />
+
+                    <div v-if="errors.password"
+                         class="invalid-feedback d-block">
+                      {{ errors.password }}
+                    </div>
+                  </div>
+
+
+                  <!-- ROLE -->
+                  <div class="col-12 col-md-6">
+                    <label class="form-label">
+                      Role
+                    </label>
+
+                    <select
+                        v-model.number="form.roleId"
+                        class="form-select"
+                        :class="{ 'is-invalid': errors.roleId }"
+                    >
+
+                      <option :value="null">
+                        -- Chọn Role --
+                      </option>
+
+                      <option
+                          v-for="r in roles"
+                          :key="r.id"
+                          :value="r.id"
+                      >
+                        {{ r.roleName }}
+                      </option>
+
+                    </select>
+
+                    <div v-if="errors.roleId"
+                         class="invalid-feedback d-block">
+                      {{ errors.roleId }}
+                    </div>
+
+                  </div>
+
+                </div>
+
               </div>
             </div>
           </div>

@@ -7,6 +7,7 @@ import AdminLayout from '@/layouts/AdminLayout.vue'
 // User pages
 import Home from '@/views/user/Home.vue'
 import Profile from '@/views/user/Profile.vue'
+import ChangePassword from "@/views/user/ChangePassword.vue";
 
 // Admin pages
 import Dashboard from '@/views/admin/Dashboard.vue'
@@ -16,6 +17,8 @@ import EmployeeManagement from "@/views/admin/EmployeeManagement.vue";
 
 // Auth
 import Login from '@/views/auth/Login.vue'
+import ForgotPassword from "@/views/auth/ForgotPassword.vue";
+import ResetPassword from "@/views/auth/ResetPassword.vue";
 
 const routes = [
     // LOGIN
@@ -28,6 +31,20 @@ const routes = [
     {
         path: '/login',
         redirect: '/'
+    },
+
+    // FORGOT/RESET PASSWORD
+    {
+        path: '/forgot-password',
+        name: 'forgot-password',
+        component: ForgotPassword,
+        meta: { public: true }
+    },
+    {
+        path: '/reset-password',
+        name: 'reset-password',
+        component: ResetPassword,
+        meta: { public: true }
     },
 
     // USER
@@ -44,6 +61,11 @@ const routes = [
                 path: 'profile',
                 name: 'profile',
                 component: Profile
+            },
+            {
+                path: 'change-password',
+                name: 'change-password',
+                component: ChangePassword
             }
         ]
     },

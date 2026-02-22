@@ -34,6 +34,12 @@
             <label>Mật khẩu</label>
           </div>
 
+          <div class="d-flex justify-content-end mb-3">
+            <router-link to="/forgot-password" class="switch">
+              Quên mật khẩu?
+            </router-link>
+          </div>
+
           <button class="btn-login" type="submit">
             Đăng nhập
           </button>
