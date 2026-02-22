@@ -1,24 +1,26 @@
 <script setup>
-import {ref, computed, onMounted} from 'vue';
+import {ref, computed, onMounted, watch} from 'vue';
 import {useRouter} from 'vue-router';
 import contractService from "../assets/service/contract.service.js";
+import positionsService from "../assets/service/positions.service.js";
 
 const router = useRouter();
 
 // --- STATE ---
 const contracts = ref([]);
+const dbPositions = ref([]);
 const loading = ref(false);
 const showModal = ref(false);
 const message = ref('');
 const messageType = ref('success');
 
-// 🌟 STATE BỘ LỌC ĐA TẦNG (CÓ THÊM LƯƠNG)
+// 🌟 STATE BỘ LỌC ĐA TẦNG
 const currentFilter = ref('ALL');
 const searchQuery = ref('');
 const selectedType = ref('ALL');
 const selectedPosition = ref('ALL');
-const minSalary = ref(null); // Lương tối thiểu
-const maxSalary = ref(null); // Lương tối đa
+const minSalary = ref(null);
+const maxSalary = ref(null);
 
 // Form Model
 const form = ref({
@@ -32,6 +34,32 @@ const form = ref({
   status: 'ACTIVE'
 });
 
+// 🌟 STATE CHO CUSTOM DROPDOWN VỊ TRÍ
+const positionSearch = ref('');
+const showPositionDropdown = ref(false);
+
+// Đồng bộ text tìm kiếm vào form.position liên tục
+watch(positionSearch, (newVal) => {
+  form.value.position = newVal;
+});
+
+// Lọc danh sách vị trí trong form thêm mới dựa trên chữ đang gõ
+const filteredFormPositions = computed(() => {
+  if (!positionSearch.value) return dbPositions.value;
+  const query = positionSearch.value.toLowerCase();
+  return dbPositions.value.filter(pos => {
+    const name = pos.positionName || pos.name || pos;
+    return name.toLowerCase().includes(query);
+  });
+});
+
+const selectPosition = (pos) => {
+  const name = pos.positionName || pos.name || pos;
+  positionSearch.value = name;
+  form.value.position = name;
+  showPositionDropdown.value = false;
+};
+
 // --- HELPER FORMATTERS ---
 const formatCurrency = (value) => new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(value);
 const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleDateString('vi-VN') : 'Vô thời hạn';
@@ -40,7 +68,7 @@ const getTypeLabel = (type) => {
   return map[type] || type;
 };
 
-// --- COMPUTED: TỰ ĐỘNG LẤY DANH SÁCH VỊ TRÍ ---
+// --- COMPUTED: LẤY DANH SÁCH VỊ TRÍ CHO BỘ LỌC TỔNG ---
 const availablePositions = computed(() => {
   const positions = contracts.value.map(c => c.position).filter(Boolean);
   return [...new Set(positions)];
@@ -51,7 +79,7 @@ const totalContracts = computed(() => contracts.value.length);
 const activeContracts = computed(() => contracts.value.filter(c => c.status === 'ACTIVE').length);
 const expiredContracts = computed(() => contracts.value.filter(c => c.status === 'EXPIRED').length);
 
-// --- 🌟 LOGIC "PHỄU LỌC" ĐA TẦNG SIÊU CẤP ---
+// --- LOGIC LỌC ĐA TẦNG ---
 const filteredContracts = computed(() => {
   let result = contracts.value;
 
@@ -59,7 +87,6 @@ const filteredContracts = computed(() => {
   if (selectedType.value !== 'ALL') result = result.filter(c => c.type === selectedType.value);
   if (selectedPosition.value !== 'ALL') result = result.filter(c => c.position === selectedPosition.value);
 
-  // Lọc theo khoảng lương
   if (minSalary.value !== null && minSalary.value !== '') {
     result = result.filter(c => c.baseSalary >= Number(minSalary.value));
   }
@@ -75,7 +102,6 @@ const filteredContracts = computed(() => {
       return nameMatch || idMatch;
     });
   }
-
   return result;
 });
 
@@ -95,6 +121,23 @@ const clearFilters = () => {
   maxSalary.value = null;
 };
 
+// --- AUTO-CALCULATE END DATE LOGIC ---
+watch([() => form.value.startDate, () => form.value.type], ([newStart, newType]) => {
+  if (!newStart || newType === 'INDEFINITE') {
+    form.value.endDate = '';
+    return;
+  }
+  const date = new Date(newStart);
+  if (newType === 'YEAR_1') date.setFullYear(date.getFullYear() + 1);
+  else if (newType === 'YEAR_3') date.setFullYear(date.getFullYear() + 3);
+
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  form.value.endDate = `${yyyy}-${mm}-${dd}`;
+});
+
+
 // --- METHODS ---
 const fetchContracts = async () => {
   loading.value = true;
@@ -102,13 +145,25 @@ const fetchContracts = async () => {
     const response = await contractService.getAllContracts();
     contracts.value = response.data;
   } catch (error) {
-    console.error("Lỗi API:", error);
+    console.error("Lỗi API Contracts:", error);
   } finally {
     loading.value = false;
   }
 };
 
+const fetchPositions = async () => {
+  try {
+    const response = await positionsService.getAllPositions();
+    dbPositions.value = response.data;
+  } catch (error) {
+    console.error("Lỗi API Positions:", error);
+  }
+};
+
 const openCreateModal = () => {
+  positionSearch.value = ''; // Xóa text tìm kiếm cũ
+  showPositionDropdown.value = false;
+
   form.value = {
     contractId: null,
     employeeName: '',
@@ -123,6 +178,12 @@ const openCreateModal = () => {
 };
 
 const handleSubmit = () => {
+  // Kiểm tra rỗng vị trí
+  if (!form.value.position.trim()) {
+    alert("Vui lòng chọn hoặc nhập vị trí công việc!");
+    return;
+  }
+
   const newContract = {
     ...form.value,
     contractId: Math.floor(Math.random() * 1000) + 1000,
@@ -146,7 +207,10 @@ const showMessage = (msg, type = 'success') => {
   setTimeout(() => message.value = '', 3000);
 };
 
-onMounted(() => fetchContracts());
+onMounted(() => {
+  fetchContracts();
+  fetchPositions();
+});
 </script>
 
 <template>
@@ -171,7 +235,6 @@ onMounted(() => fetchContracts());
             <h3 class="stat-value text-blue">{{ totalContracts }}</h3>
           </div>
         </div>
-
         <div class="stat-card" :class="{ active: currentFilter === 'ACTIVE' }" @click="currentFilter = 'ACTIVE'">
           <div class="stat-icon bg-green">✅</div>
           <div class="stat-info">
@@ -179,7 +242,6 @@ onMounted(() => fetchContracts());
             <h3 class="stat-value text-green">{{ activeContracts }}</h3>
           </div>
         </div>
-
         <div class="stat-card" :class="{ active: currentFilter === 'EXPIRED' }" @click="currentFilter = 'EXPIRED'">
           <div class="stat-icon bg-orange">⚠️</div>
           <div class="stat-info">
@@ -194,7 +256,6 @@ onMounted(() => fetchContracts());
       </transition>
 
       <div class="content-panel">
-
         <div class="filter-panel">
           <div class="filter-row">
             <div class="search-box">
@@ -202,20 +263,17 @@ onMounted(() => fetchContracts());
               <input v-model="searchQuery" type="text" placeholder="Tìm ID hoặc Tên nhân viên..."/>
               <button v-if="searchQuery" class="clear-input-btn" @click="searchQuery = ''">✖</button>
             </div>
-
             <select v-model="selectedType" class="form-select">
               <option value="ALL">Tất cả loại HĐ</option>
               <option value="YEAR_1">1 Năm</option>
               <option value="YEAR_3">3 Năm</option>
               <option value="INDEFINITE">Vô thời hạn</option>
             </select>
-
             <select v-model="selectedPosition" class="form-select">
               <option value="ALL">Tất cả vị trí</option>
               <option v-for="pos in availablePositions" :key="pos" :value="pos">{{ pos }}</option>
             </select>
           </div>
-
           <div class="filter-row mt-10">
             <div class="salary-range-box">
               <span class="range-label">Mức lương:</span>
@@ -223,10 +281,7 @@ onMounted(() => fetchContracts());
               <span class="separator">-</span>
               <input v-model="maxSalary" type="number" placeholder="Đến (VNĐ)" class="form-input" min="0"/>
             </div>
-
-            <button v-if="isFilterActive" class="btn-reset" @click="clearFilters">
-              Xóa bộ lọc
-            </button>
+            <button v-if="isFilterActive" class="btn-reset" @click="clearFilters">Xóa bộ lọc</button>
           </div>
         </div>
 
@@ -264,11 +319,9 @@ onMounted(() => fetchContracts());
                 </div>
               </td>
               <td class="font-medium text-success">{{ formatCurrency(c.baseSalary) }}</td>
-              <td>
-                <span :class="['badge', c.status === 'ACTIVE' ? 'badge-success' : 'badge-danger']">
-                  {{ c.status === 'ACTIVE' ? 'Hiệu lực' : 'Hết hạn' }}
-                </span>
-              </td>
+              <td><span :class="['badge', c.status === 'ACTIVE' ? 'badge-success' : 'badge-danger']">{{
+                  c.status === 'ACTIVE' ? 'Hiệu lực' : 'Hết hạn'
+                }}</span></td>
               <td class="text-center">
                 <div class="action-menu">
                   <button class="icon-btn" @click="viewAnnex(c.contractId)" title="Phụ lục">👁️</button>
@@ -289,32 +342,78 @@ onMounted(() => fetchContracts());
           <button class="close-modal" @click="showModal = false">✖</button>
         </div>
         <form @submit.prevent="handleSubmit" class="contract-form">
-          <div class="form-group"><label>Tên nhân viên</label><input v-model="form.employeeName" type="text"
-                                                                     class="form-input" required/></div>
-          <div class="form-row">
-            <div class="form-group"><label>Vị trí</label><input v-model="form.position" type="text" class="form-input"
-                                                                required/></div>
-            <div class="form-group"><label>Loại HĐ</label><select v-model="form.type" class="form-select">
-              <option value="YEAR_1">1 Năm</option>
-              <option value="YEAR_3">3 Năm</option>
-              <option value="INDEFINITE">Vô thời hạn</option>
-            </select></div>
+          <div class="form-group">
+            <label>ID nhân viên</label>
+            <input v-model="form.employeeName" type="text" class="form-input" required
+                   placeholder="Nhập ID nhân viên..."/>
           </div>
+
           <div class="form-row">
-            <div class="form-group"><label>Ngày bắt đầu</label><input v-model="form.startDate" type="date"
-                                                                      class="form-input" required/></div>
-            <div class="form-group"><label>Ngày kết thúc</label><input v-model="form.endDate" type="date"
-                                                                       class="form-input"
-                                                                       :disabled="form.type === 'INDEFINITE'"/></div>
+            <div class="form-group dropdown-container">
+              <label>Vị trí</label>
+              <div class="custom-combobox">
+                <input
+                    type="text"
+                    v-model="positionSearch"
+                    @focus="showPositionDropdown = true"
+                    @blur="showPositionDropdown = false"
+                    class="form-input"
+                    placeholder="Gõ để tìm hoặc nhập vị trí..."
+                    required
+                />
+                <span class="combo-icon">▼</span>
+
+                <ul v-if="showPositionDropdown" class="dropdown-list">
+                  <li v-if="filteredFormPositions.length === 0" class="dropdown-empty">
+                    Bấm "Lưu" để thêm vị trí mới này
+                  </li>
+                  <li
+                      v-for="pos in filteredFormPositions"
+                      :key="pos.positionId || pos.id || pos"
+                      @mousedown.prevent="selectPosition(pos)"
+                      class="dropdown-item"
+                  >
+                    {{ pos.positionName || pos.name || pos }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Loại HĐ</label>
+              <select v-model="form.type" class="form-select">
+                <option value="YEAR_1">1 Năm</option>
+                <option value="YEAR_3">3 Năm</option>
+                <option value="INDEFINITE">Vô thời hạn</option>
+              </select>
+            </div>
           </div>
+
           <div class="form-row">
-            <div class="form-group"><label>Lương cơ bản (VND)</label><input v-model="form.baseSalary" type="number"
-                                                                            class="form-input" required/></div>
-            <div class="form-group"><label>Trạng thái</label><select v-model="form.status" class="form-select">
-              <option value="ACTIVE">Hiệu lực</option>
-              <option value="EXPIRED">Hết hạn</option>
-            </select></div>
+            <div class="form-group">
+              <label>Ngày bắt đầu</label>
+              <input v-model="form.startDate" type="date" class="form-input" required/>
+            </div>
+            <div class="form-group">
+              <label>Ngày kết thúc</label>
+              <input v-model="form.endDate" type="date" class="form-input" disabled/>
+            </div>
           </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Lương cơ bản (VND)</label>
+              <input v-model="form.baseSalary" type="number" class="form-input" required min="0"/>
+            </div>
+            <div class="form-group">
+              <label>Trạng thái</label>
+              <select v-model="form.status" class="form-select">
+                <option value="ACTIVE">Hiệu lực</option>
+                <option value="EXPIRED">Hết hạn</option>
+              </select>
+            </div>
+          </div>
+
           <div class="modal-actions">
             <button type="button" class="btn-secondary" @click="showModal = false">Hủy</button>
             <button type="submit" class="btn-primary">Lưu Hợp Đồng</button>
@@ -345,7 +444,6 @@ onMounted(() => fetchContracts());
   margin: 0 auto;
 }
 
-/* HEADER */
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -366,7 +464,6 @@ onMounted(() => fetchContracts());
   margin: 0;
 }
 
-/* BUTTONS */
 .btn-primary {
   background: #2563eb;
   color: white;
@@ -403,7 +500,6 @@ onMounted(() => fetchContracts());
   background: #e2e8f0;
 }
 
-/* STAT CARDS */
 .stat-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -491,7 +587,6 @@ onMounted(() => fetchContracts());
   color: #9a3412;
 }
 
-/* CONTENT PANEL & FILTERS */
 .content-panel {
   background: #ffffff;
   border-radius: 12px;
@@ -558,6 +653,7 @@ onMounted(() => fetchContracts());
 }
 
 .form-select, .form-input {
+  width: 100%;
   padding: 10px 15px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
@@ -565,6 +661,7 @@ onMounted(() => fetchContracts());
   color: #334155;
   outline: none;
   background: white;
+  transition: all 0.2s;
 }
 
 .form-select:focus, .form-input:focus {
@@ -572,7 +669,13 @@ onMounted(() => fetchContracts());
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-/* SALARY RANGE */
+.form-input:disabled {
+  background-color: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+  border-color: #e2e8f0;
+}
+
 .salary-range-box {
   display: flex;
   align-items: center;
@@ -622,7 +725,6 @@ onMounted(() => fetchContracts());
   background: #fef2f2;
 }
 
-/* TABLE */
 .table-responsive {
   overflow-x: auto;
 }
@@ -685,7 +787,6 @@ onMounted(() => fetchContracts());
   font-size: 12px;
 }
 
-/* BADGES (PILL SHAPE) */
 .badge {
   padding: 6px 12px;
   border-radius: 20px;
@@ -710,7 +811,6 @@ onMounted(() => fetchContracts());
   border: 1px solid #e2e8f0;
 }
 
-/* ACTIONS */
 .action-menu {
   display: flex;
   gap: 10px;
@@ -746,7 +846,6 @@ onMounted(() => fetchContracts());
   opacity: 0.5;
 }
 
-/* MODAL & ALERTS */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -835,5 +934,63 @@ label {
   background: #fef08a;
   color: #854d0e;
   border: 1px solid #fde047;
+}
+
+/* 🌟 CSS CHO CUSTOM COMBOBOX VỊ TRÍ */
+.dropdown-container {
+  position: relative;
+}
+
+.custom-combobox {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.combo-icon {
+  position: absolute;
+  right: 12px;
+  font-size: 10px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.dropdown-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  margin-top: 4px;
+  padding: 5px 0;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  list-style: none;
+}
+
+.dropdown-item {
+  padding: 10px 15px;
+  font-size: 14px;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.dropdown-item:hover {
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.dropdown-empty {
+  padding: 10px 15px;
+  font-size: 13px;
+  color: #94a3b8;
+  font-style: italic;
+  text-align: center;
 }
 </style>
