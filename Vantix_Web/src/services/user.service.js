@@ -30,13 +30,13 @@ export default {
     },
 
     existsUsername(username) {
-        return api.get('/users/exists/username', {
+        return api.get('/users/exists-username', {
             params: { username }
         })
     },
 
     existsEmail(email) {
-        return api.get('/users/exists/email', {
+        return api.get('/users/exists-email', {
             params: { email }
         })
     }
