@@ -20,7 +20,7 @@ public class Salaries {
 
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
-    private Employees employees; // Nhân viên nhận lương
+    private Employee employees; // Nhân viên nhận lương
 
     @Column(name = "salary_month")
     private LocalDate salaryMonth; // Tháng/Năm tính lương

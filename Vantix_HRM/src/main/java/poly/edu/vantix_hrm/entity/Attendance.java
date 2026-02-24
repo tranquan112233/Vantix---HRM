@@ -20,14 +20,14 @@ public class Attendance {
 
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
-    private Employees employee; // Nhân viên
+    private Employee employee; // Nhân viên
 
     @Column(name = "work_date", nullable = false)
     private LocalDate workDate; // Ngày làm việc
 
     @ManyToOne
     @JoinColumn(name = "shift_id", nullable = false)
-    private Shifts shift; // Ca làm
+    private Shift shift; // Ca làm
 
     @Column(name = "check_in")
     private LocalTime checkIn; // Giờ vào

@@ -20,7 +20,7 @@ public class LeaveRequests {
 
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
-    private Employees employee; // Nhân viên gửi đơn
+    private Employee employee; // Nhân viên gửi đơn
 
     @ManyToOne
     @JoinColumn(name = "leave_type_id", nullable = false)
@@ -43,7 +43,7 @@ public class LeaveRequests {
 
     @ManyToOne
     @JoinColumn(name = "approved_by")
-    private Employees approvedBy; // Người duyệt
+    private Employee approvedBy; // Người duyệt
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now(); // Thời gian tạo

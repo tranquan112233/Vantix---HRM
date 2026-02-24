@@ -30,9 +30,11 @@ public class User {
     @Enumerated(EnumType.STRING)
     private UserStatus status = UserStatus.ACTIVE;
 
+    @Column(name = "last_login")
     private LocalDateTime lastLogin;
 
-    @Column(updatable = false)
+    @Column(updatable = false, name = "created_at")
+
     private LocalDateTime createdAt;
 
     @PrePersist

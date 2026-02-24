@@ -1,6 +1,6 @@
 <script setup>
 import {ref, onMounted, watch} from 'vue';
-import attendanceService from "../assets/service/attendance.service.js";
+import attendanceService from "../services/attendance.service.js";
 
 // --- CẤU HÌNH ---
 const employeeId = ref(1); // Giả lập ID nhân viên

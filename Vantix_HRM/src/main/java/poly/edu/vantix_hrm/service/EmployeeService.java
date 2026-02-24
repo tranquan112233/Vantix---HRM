@@ -8,11 +8,7 @@ import poly.edu.vantix_hrm.dto.EmployeeRequest;
 import poly.edu.vantix_hrm.dto.EmployeeResponse;
 import poly.edu.vantix_hrm.dto.SimpleDepartmentDTO;
 import poly.edu.vantix_hrm.dto.SimplePositionDTO;
-import poly.edu.vantix_hrm.entity.Department;
-import poly.edu.vantix_hrm.entity.Employee;
-import poly.edu.vantix_hrm.entity.Position;
-import poly.edu.vantix_hrm.entity.Role;
-import poly.edu.vantix_hrm.entity.User;
+import poly.edu.vantix_hrm.entity.*;
 import poly.edu.vantix_hrm.repository.DepartmentRepository;
 import poly.edu.vantix_hrm.repository.EmployeeRepository;
 import poly.edu.vantix_hrm.repository.PositionRepository;
@@ -145,7 +141,7 @@ public class EmployeeService {
 
         EmployeeResponse dto = new EmployeeResponse();
 
-        dto.setId(e.getId());
+        dto.setId(e.getEmployeeId());
         dto.setFullName(e.getFullName());
         dto.setGender(e.getGender());
         dto.setBirthDate(e.getBirthDate());

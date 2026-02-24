@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Notifications {
+public class Notification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "notification_id")
@@ -27,7 +27,7 @@ public class Notifications {
 
     @ManyToOne
     @JoinColumn(name = "position_id")
-    private Positions position; // Gửi theo chức vụ
+    private Position position; // Gửi theo chức vụ
 
     @Column(name = "title", length = 100)
     private String title; // Tiêu đề

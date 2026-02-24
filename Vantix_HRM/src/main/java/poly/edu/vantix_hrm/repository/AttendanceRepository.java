@@ -1,4 +1,4 @@
-package poly.edu.vantix_hrm.dao;
+package poly.edu.vantix_hrm.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface AttendanceDAO extends JpaRepository<Attendance, Integer> {
+public interface AttendanceRepository extends JpaRepository<Attendance, Integer> {
     @Query(value = "SELECT * FROM Attendance " + "WHERE employee_id = :employeeId " + "AND MONTH(work_date) = :month " + "AND YEAR(work_date) = :year", nativeQuery = true)
     List<Attendance> getMonthlyAttendance(@Param("employeeId") Integer employeeId, @Param("month") int month, @Param("year") int year);
 

@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import poly.edu.vantix_hrm.dao.AttendanceDAO;
+import poly.edu.vantix_hrm.repository.AttendanceRepository;
 import poly.edu.vantix_hrm.entity.Attendance;
 import poly.edu.vantix_hrm.service.AttendanceService;
 
@@ -18,7 +18,7 @@ import java.util.List;
 public class AttendanceScheduler {
 
     @Autowired
-    private AttendanceDAO attendanceDAO;
+    private AttendanceRepository attendanceDAO;
 
     @Autowired
     private AttendanceService attendanceService;
