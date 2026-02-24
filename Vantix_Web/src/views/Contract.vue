@@ -25,7 +25,7 @@ const maxSalary = ref(null);
 // Form Model
 const form = ref({
   contractId: null,
-  employeeName: '',
+  employeeId: '',
   type: 'YEAR_1',
   startDate: '',
   endDate: '',
@@ -38,12 +38,10 @@ const form = ref({
 const positionSearch = ref('');
 const showPositionDropdown = ref(false);
 
-// Đồng bộ text tìm kiếm vào form.position liên tục
 watch(positionSearch, (newVal) => {
   form.value.position = newVal;
 });
 
-// Lọc danh sách vị trí trong form thêm mới dựa trên chữ đang gõ
 const filteredFormPositions = computed(() => {
   if (!positionSearch.value) return dbPositions.value;
   const query = positionSearch.value.toLowerCase();
@@ -68,7 +66,6 @@ const getTypeLabel = (type) => {
   return map[type] || type;
 };
 
-// --- COMPUTED: LẤY DANH SÁCH VỊ TRÍ CHO BỘ LỌC TỔNG ---
 const availablePositions = computed(() => {
   const positions = contracts.value.map(c => c.position).filter(Boolean);
   return [...new Set(positions)];
@@ -138,7 +135,7 @@ watch([() => form.value.startDate, () => form.value.type], ([newStart, newType])
 });
 
 
-// --- METHODS ---
+// --- METHODS CALL API THẬT ---
 const fetchContracts = async () => {
   loading.value = true;
   try {
@@ -161,12 +158,12 @@ const fetchPositions = async () => {
 };
 
 const openCreateModal = () => {
-  positionSearch.value = ''; // Xóa text tìm kiếm cũ
+  positionSearch.value = '';
   showPositionDropdown.value = false;
 
   form.value = {
     contractId: null,
-    employeeName: '',
+    employeeId: '',
     type: 'YEAR_1',
     startDate: '',
     endDate: '',
@@ -177,34 +174,74 @@ const openCreateModal = () => {
   showModal.value = true;
 };
 
-const handleSubmit = () => {
-  // Kiểm tra rỗng vị trí
+// 🌟 ĐÃ XÓA CODE DEMO TẠO MỚI, THAY BẰNG API THẬT
+const handleSubmit = async () => {
   if (!form.value.position.trim()) {
     alert("Vui lòng chọn hoặc nhập vị trí công việc!");
     return;
   }
 
-  const newContract = {
-    ...form.value,
-    contractId: Math.floor(Math.random() * 1000) + 1000,
-    employee: {fullName: form.value.employeeName}
+  const payload = {
+    type: form.value.type,
+    position: form.value.position,
+    startDate: form.value.startDate,
+    endDate: form.value.endDate || null,
+    baseSalary: Number(form.value.baseSalary),
+    status: form.value.status,
+    employee: {
+      employeeId: Number(form.value.employeeId)
+    }
   };
-  contracts.value.unshift(newContract);
-  showMessage('Tạo hợp đồng thành công!', 'success');
-  showModal.value = false;
+
+  try {
+    loading.value = true;
+
+    // GỌI API THÊM MỚI XUỐNG DATABASE
+    await contractService.createContract(payload);
+
+    // NẾU THÊM THÀNH CÔNG -> GỌI LẠI API LẤY DANH SÁCH MỚI NHẤT
+    await fetchContracts();
+
+    showMessage('Tạo hợp đồng thành công!', 'success');
+    showModal.value = false;
+  } catch (error) {
+    console.error("Lỗi khi tạo hợp đồng:", error);
+    // Bắt lỗi từ BE trả về (Ví dụ: ID nhân viên không tồn tại)
+    const errorMsg = error.response?.data || 'Có lỗi xảy ra, vui lòng kiểm tra lại ID nhân viên!';
+    showMessage(errorMsg, 'warning');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 🌟 ĐÃ XÓA CODE DEMO XÓA, THAY BẰNG API THẬT
+const deleteContract = async (id) => {
+  if (confirm('Bạn có chắc chắn muốn xóa hợp đồng này? Chú ý: Hành động này không thể hoàn tác.')) {
+    try {
+      loading.value = true;
+
+      // GỌI API XÓA DỮ LIỆU THẬT
+      await contractService.deleteContract(id);
+
+      // LỌC BỎ HỢP ĐỒNG ĐÃ XÓA KHỎI UI MÀ KHÔNG CẦN TẢI LẠI TRANG
+      contracts.value = contracts.value.filter(c => c.contractId !== id);
+
+      showMessage('Đã xóa hợp đồng thành công.', 'success');
+    } catch (error) {
+      console.error("Lỗi khi xóa hợp đồng:", error);
+      showMessage('Lỗi: Không thể xóa hợp đồng này (có thể do có phụ lục liên kết).', 'warning');
+    } finally {
+      loading.value = false;
+    }
+  }
 };
 
 const viewAnnex = (id) => router.push({name: 'ContractAnnex', params: {id}});
-const deleteContract = (id) => {
-  if (confirm('Xóa hợp đồng này?')) {
-    contracts.value = contracts.value.filter(c => c.contractId !== id);
-    showMessage('Đã xóa hợp đồng.', 'warning');
-  }
-};
+
 const showMessage = (msg, type = 'success') => {
   message.value = msg;
   messageType.value = type;
-  setTimeout(() => message.value = '', 3000);
+  setTimeout(() => message.value = '', 4000);
 };
 
 onMounted(() => {
@@ -222,9 +259,13 @@ onMounted(() => {
           <h1 class="page-title">Hợp Đồng Nhân Sự</h1>
           <p class="page-subtitle">Quản lý và theo dõi trạng thái hợp đồng lao động</p>
         </div>
-        <button class="btn-primary" @click="openCreateModal()">
+        <button class="btn-primary" @click="openCreateModal()" :disabled="loading">
           <span class="plus-icon">+</span> Thêm Hợp Đồng Mới
         </button>
+      </div>
+
+      <div v-if="loading" class="global-loader">
+        Đang xử lý dữ liệu...
       </div>
 
       <div class="stat-cards">
@@ -303,7 +344,7 @@ onMounted(() => {
             <tr v-if="filteredContracts.length === 0">
               <td colspan="8" class="empty-state">
                 <div class="empty-icon">📂</div>
-                <p>Không tìm thấy hợp đồng nào phù hợp.</p>
+                <p>Không tìm thấy hợp đồng nào.</p>
               </td>
             </tr>
             <tr v-for="c in filteredContracts" :key="c.contractId">
@@ -325,7 +366,9 @@ onMounted(() => {
               <td class="text-center">
                 <div class="action-menu">
                   <button class="icon-btn" @click="viewAnnex(c.contractId)" title="Phụ lục">👁️</button>
-                  <button class="icon-btn delete" @click="deleteContract(c.contractId)" title="Xóa">🗑️</button>
+                  <button class="icon-btn delete" @click="deleteContract(c.contractId)" title="Xóa" :disabled="loading">
+                    🗑️
+                  </button>
                 </div>
               </td>
             </tr>
@@ -344,8 +387,8 @@ onMounted(() => {
         <form @submit.prevent="handleSubmit" class="contract-form">
           <div class="form-group">
             <label>ID nhân viên</label>
-            <input v-model="form.employeeName" type="text" class="form-input" required
-                   placeholder="Nhập ID nhân viên..."/>
+            <input v-model="form.employeeId" type="number" class="form-input" required
+                   placeholder="Nhập ID nhân viên..." min="1"/>
           </div>
 
           <div class="form-row">
@@ -415,8 +458,10 @@ onMounted(() => {
           </div>
 
           <div class="modal-actions">
-            <button type="button" class="btn-secondary" @click="showModal = false">Hủy</button>
-            <button type="submit" class="btn-primary">Lưu Hợp Đồng</button>
+            <button type="button" class="btn-secondary" @click="showModal = false" :disabled="loading">Hủy</button>
+            <button type="submit" class="btn-primary" :disabled="loading">
+              {{ loading ? 'Đang lưu...' : 'Lưu Hợp Đồng' }}
+            </button>
           </div>
         </form>
       </div>
@@ -464,6 +509,30 @@ onMounted(() => {
   margin: 0;
 }
 
+.global-loader {
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 10px;
+  text-align: center;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-weight: 500;
+  font-size: 14px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 .btn-primary {
   background: #2563eb;
   color: white;
@@ -480,9 +549,15 @@ onMounted(() => {
   box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: #1d4ed8;
   transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .btn-secondary {
@@ -496,8 +571,13 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
   background: #e2e8f0;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .stat-cards {
@@ -827,12 +907,17 @@ onMounted(() => {
   transition: 0.2s;
 }
 
-.icon-btn:hover {
+.icon-btn:hover:not(:disabled) {
   background: #e2e8f0;
 }
 
-.icon-btn.delete:hover {
+.icon-btn.delete:hover:not(:disabled) {
   background: #fee2e2;
+}
+
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .empty-state {
@@ -922,21 +1007,27 @@ label {
   margin-bottom: 20px;
   font-weight: 500;
   font-size: 14px;
+  border-left: 4px solid;
 }
 
 .success {
   background: #dcfce7;
   color: #166534;
-  border: 1px solid #bbf7d0;
+  border-color: #22c55e;
 }
 
 .warning {
   background: #fef08a;
   color: #854d0e;
-  border: 1px solid #fde047;
+  border-color: #eab308;
 }
 
-/* 🌟 CSS CHO CUSTOM COMBOBOX VỊ TRÍ */
+.danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #ef4444;
+}
+
 .dropdown-container {
   position: relative;
 }

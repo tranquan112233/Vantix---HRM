@@ -50,4 +50,26 @@ public class ContractsServiceImpl implements ContractsService {
             throw new RuntimeException("Lỗi khi lưu hợp đồng: " + e.getMessage());
         }
     }
+
+    @Override
+    public void validateEmployeeContractEligibility(Integer employeeId) {
+        // Lấy danh sách lịch sử hợp đồng của nhân viên này
+        List<Contract> contracts = contractsRepository.findByEmployee_EmployeeId(employeeId);
+
+        // GIAI ĐOẠN 1: Kiểm tra xem nhân viên đã từng có hợp đồng nào chưa
+        if (!contracts.isEmpty()) {
+
+            // GIAI ĐOẠN 2: Nếu đã từng có, kiểm tra xem có cái nào đang ACTIVE không
+            boolean hasActiveContract = contracts.stream()
+                    .anyMatch(c -> c.getStatus() == Contract.ContractStatus.ACTIVE);
+
+            if (hasActiveContract) {
+                // Nếu có hợp đồng ACTIVE -> Chặn lại và ném lỗi
+                throw new RuntimeException("Nhân viên này hiện đang có hợp đồng còn hiệu lực. Không thể tạo thêm!");
+            }
+
+            // Nếu code chạy xuống được đây có nghĩa là họ có hợp đồng, nhưng tất cả đều đã EXPIRED -> Cho phép tạo mới
+        }
+        // Nếu contracts.isEmpty() -> Nhân viên mới tinh chưa có hợp đồng -> Cho phép tạo mới
+    }
 }
