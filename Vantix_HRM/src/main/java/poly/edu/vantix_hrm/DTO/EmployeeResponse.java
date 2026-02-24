@@ -1,4 +1,4 @@
-package poly.edu.vantix_hrm.DTO;
+package poly.edu.vantix_hrm.dto;
 import lombok.Data;
 import poly.edu.vantix_hrm.entity.Employee.Gender;
 import poly.edu.vantix_hrm.entity.Employee.WorkStatus;

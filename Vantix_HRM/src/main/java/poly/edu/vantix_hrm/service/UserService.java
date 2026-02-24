@@ -137,4 +137,12 @@ public class UserService {
         User user = findById(id);
         userRepository.delete(user);
     }
+
+    public boolean existsUsername(String username) {
+        return userRepository.existsByUsername(username);
+    }
+
+    public boolean existsEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
 }

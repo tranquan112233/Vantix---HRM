@@ -2,7 +2,7 @@
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary px-3 shadow">
     <!-- LOGO -->
     <RouterLink
-        to="/"
+        to="/home"
         class="navbar-brand fw-bold text-white text-decoration-none"
     >
       <i class="bi bi-building"></i> Vantix Co.LTD
@@ -23,15 +23,17 @@
 
       <ul class="dropdown-menu dropdown-menu-end shadow">
         <li>
-          <RouterLink class="dropdown-item" to="/profile">
-            <i class="bi bi-person-circle me-2"></i> Hồ sơ cá nhân
-          </RouterLink>
+          <router-link class="dropdown-item" to="/home/profile">
+            <i class="bi bi-person-circle me-2"></i>
+            Hồ sơ cá nhân
+          </router-link>
         </li>
 
         <li>
-          <a class="dropdown-item" href="#">
-            <i class="bi bi-key-fill"></i> Đổi mật khẩu
-          </a>
+          <router-link class="dropdown-item" to="/home/change-password">
+            <i class="bi bi-key-fill me-2"></i>
+            Đổi mật khẩu
+          </router-link>
         </li>
 
         <li v-if="isAdmin"><hr class="dropdown-divider" /></li>
