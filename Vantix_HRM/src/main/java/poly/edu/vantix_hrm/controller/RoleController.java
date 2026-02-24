@@ -1,9 +1,9 @@
 package poly.edu.vantix_hrm.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
-import poly.edu.vantix_hrm.dao.RoleDAO;
-import poly.edu.vantix_hrm.entity.Roles;
+import poly.edu.vantix_hrm.entity.Role;
+import poly.edu.vantix_hrm.service.RoleService;
 
 import java.util.List;
 
@@ -12,38 +12,29 @@ import java.util.List;
 @CrossOrigin("*")
 public class RoleController {
 
-    @Autowired
-    private RoleDAO roleDAO;
+    private final RoleService roleService;
 
-    // Lấy tất cả role
+    public RoleController(RoleService roleService) {
+        this.roleService = roleService;
+    }
+
     @GetMapping
-    public List<Roles> getAll() {
-        return roleDAO.findAll();
+    public List<Role> getAll() {
+        return roleService.findAll();
     }
 
-    // Lấy role theo ID
     @GetMapping("/{id}")
-    public Roles getById(@PathVariable Integer id) {
-        return roleDAO.findById(id).orElse(null);
+    public Role getById(@PathVariable Integer id) {
+        return roleService.findById(id);
     }
 
-    // Thêm mới role
     @PostMapping
-    public Roles create(@RequestBody Roles role) {
-        return roleDAO.save(role);
+    public Role create(@Valid @RequestBody Role role) {
+        return roleService.create(role);
     }
 
-    // Cập nhật role
-    @PutMapping("/{id}")
-    public Roles update(@PathVariable Integer id, @RequestBody Roles role) {
-
-//        role.setRoleID(id);   // ⚠️ QUAN TRỌNG
-        return roleDAO.save(role);
-    }
-
-    // Xóa role
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Integer id) {
-        roleDAO.deleteById(id);
+        roleService.delete(id);
     }
 }
