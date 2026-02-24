@@ -1,5 +1,5 @@
 <template>
-<!--  <AppHeader />-->
+  <!--  <AppHeader />-->
   <div class="home">
     <div class="card-grid">
       <div
@@ -14,7 +14,7 @@
       </div>
     </div>
   </div>
-  <AppFooter />
+  <AppFooter/>
 </template>
 
 <script>
@@ -37,7 +37,7 @@ export default {
           title: 'Chấm công',
           desc: 'Xem lịch sử ca làm việc',
           icon: '⏱️',
-          route: '/contract'
+          route: '/attendance'
         },
         {
           title: 'Nghỉ phép',
@@ -50,6 +50,12 @@ export default {
           desc: 'Xem bảng lương cá nhân',
           icon: '💰',
           route: '/salary'
+        },
+        {
+          title: 'Hợp đồng',
+          desc: 'Quản lý hợp đồng lao động',
+          icon: '💰',
+          route: '/contract'
         }
       ]
     }

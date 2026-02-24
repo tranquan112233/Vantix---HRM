@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class LeaveRequests {
+public class LeaveRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "leave_id")
@@ -20,11 +20,11 @@ public class LeaveRequests {
 
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
-    private Employees employee; // Nhân viên gửi đơn
+    private Employee employee; // Nhân viên gửi đơn
 
     @ManyToOne
     @JoinColumn(name = "leave_type_id", nullable = false)
-    private LeaveTypes leaveType; // Loại nghỉ
+    private LeaveType leaveType; // Loại nghỉ
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate; // Ngày bắt đầu nghỉ
@@ -43,7 +43,7 @@ public class LeaveRequests {
 
     @ManyToOne
     @JoinColumn(name = "approved_by")
-    private Employees approvedBy; // Người duyệt
+    private Employee approvedBy; // Người duyệt
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now(); // Thời gian tạo

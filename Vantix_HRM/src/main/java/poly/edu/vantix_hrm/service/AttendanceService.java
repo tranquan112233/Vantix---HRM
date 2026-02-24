@@ -1,33 +1,33 @@
 package poly.edu.vantix_hrm.service;
 
 import poly.edu.vantix_hrm.entity.Attendance;
-import poly.edu.vantix_hrm.entity.Employees;
-import poly.edu.vantix_hrm.entity.Shifts;
+import poly.edu.vantix_hrm.entity.Employee;
+import poly.edu.vantix_hrm.entity.Shift;
 
 import java.time.LocalDate;
 import java.util.List;
 
 public interface AttendanceService {
     // Lấy chấm công theo tháng
-    List<Attendance> getMonthlyAttendance(Employees employees, LocalDate MonthAndYear);
+    List<Attendance> getMonthlyAttendance(Employee employee, LocalDate MonthAndYear);
 
     // Kiểm tra ID nhân viên
-    Employees isEmployeeValid(Integer employeeId);
+    Employee isEmployeeValid(Integer employeeId);
 
     // Kiểm tra ca hợp lệ
-    Shifts getCurrentShift();
+    Shift getCurrentShift();
 
     // Hàm CheckIn
-    Attendance createAttendanceRecord(Employees employee, Shifts shift);
+    Attendance createAttendanceRecord(Employee employee, Shift shift);
 
     // Xác định ca cần CheckOut
-    Attendance findAttendanceToUpdate(Employees employee, Shifts shift);
+    Attendance findAttendanceToUpdate(Employee employee, Shift shift);
 
     // Hàm CheckOut
     Attendance updateAttendanceRecord(Attendance att, Boolean isAuto);
 
     // Xác nhận ca đã được CheckOutAuto
-    Attendance findPendingAutoCheckOut(Employees employee);
+    Attendance findPendingAutoCheckOut(Employee employee);
 
     // Hàm xác nhận CheckOut
     Attendance finalizeAndApproveCheckOut(Attendance att);

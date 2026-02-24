@@ -2,8 +2,8 @@ package poly.edu.vantix_hrm.controller;
 ;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import poly.edu.vantix_hrm.dao.UserDAO;
-import poly.edu.vantix_hrm.entity.Users;
+import poly.edu.vantix_hrm.repository.UserRepository;
+import poly.edu.vantix_hrm.entity.User;
 
 import java.util.List;
 
@@ -13,36 +13,36 @@ import java.util.List;
 public class UserController {
 
     @Autowired
-    UserDAO userDAO;
+    UserRepository userRepository;
 
     // Lấy tất cả user
     @GetMapping
-    public List<Users> getAll() {
-        return userDAO.findAll();
+    public List<User> getAll() {
+        return userRepository.findAll();
     }
 
     // Lấy user theo id
     @GetMapping("/{id}")
-    public Users getById(@PathVariable Integer id) {
-        return userDAO.findById(id).orElse(null);
+    public User getById(@PathVariable Integer id) {
+        return userRepository.findById(id).orElse(null);
     }
 
     // Thêm mới user
     @PostMapping
-    public Users save(@RequestBody Users user) {
-        return userDAO.save(user);
+    public User save(@RequestBody User user) {
+        return userRepository.save(user);
     }
 
     // Cập nhật user
     @PutMapping("/{id}")
-    public Users update(@PathVariable Integer id, @RequestBody Users user) {
+    public User update(@PathVariable Integer id, @RequestBody User user) {
 //        user.setUserID(id);
-        return userDAO.save(user);
+        return userRepository.save(user);
     }
 
     // Xóa user
     @DeleteMapping("/{id}")
     public void deleteById(@PathVariable Integer id) {
-        userDAO.deleteById(id);
+        userRepository.deleteById(id);
     }
 }

@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import poly.edu.vantix_hrm.entity.Positions;
+import poly.edu.vantix_hrm.entity.Position;
 import poly.edu.vantix_hrm.service.PositionsService;
 
 import java.util.List;
@@ -21,7 +21,7 @@ public class PositionsController {
 
     @GetMapping("getAllPositions")
     public ResponseEntity<?> getAllPositions() {
-        List<Positions> positionsList = positionsService.getAllPositions();
-        return ResponseEntity.ok(positionsList);
+        List<Position> positionList = positionsService.getAllPositions();
+        return ResponseEntity.ok(positionList);
     }
 }

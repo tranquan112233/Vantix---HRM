@@ -2,7 +2,7 @@ package poly.edu.vantix_hrm.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import poly.edu.vantix_hrm.dao.RoleDAO;
+import poly.edu.vantix_hrm.repository.RoleRepository;
 import poly.edu.vantix_hrm.entity.Roles;
 
 import java.util.List;
@@ -13,24 +13,24 @@ import java.util.List;
 public class RoleController {
 
     @Autowired
-    private RoleDAO roleDAO;
+    private RoleRepository roleRepository;
 
     // Lấy tất cả role
     @GetMapping
     public List<Roles> getAll() {
-        return roleDAO.findAll();
+        return roleRepository.findAll();
     }
 
     // Lấy role theo ID
     @GetMapping("/{id}")
     public Roles getById(@PathVariable Integer id) {
-        return roleDAO.findById(id).orElse(null);
+        return roleRepository.findById(id).orElse(null);
     }
 
     // Thêm mới role
     @PostMapping
     public Roles create(@RequestBody Roles role) {
-        return roleDAO.save(role);
+        return roleRepository.save(role);
     }
 
     // Cập nhật role
@@ -38,12 +38,12 @@ public class RoleController {
     public Roles update(@PathVariable Integer id, @RequestBody Roles role) {
 
 //        role.setRoleID(id);   // ⚠️ QUAN TRỌNG
-        return roleDAO.save(role);
+        return roleRepository.save(role);
     }
 
     // Xóa role
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Integer id) {
-        roleDAO.deleteById(id);
+        roleRepository.deleteById(id);
     }
 }

@@ -2,8 +2,8 @@ package poly.edu.vantix_hrm.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import poly.edu.vantix_hrm.dao.DepartmentDAO;
-import poly.edu.vantix_hrm.entity.Departments;
+import poly.edu.vantix_hrm.repository.DepartmentRepository;
+import poly.edu.vantix_hrm.entity.Department;
 
 import java.util.List;
 
@@ -13,36 +13,36 @@ import java.util.List;
 public class DepartmentController {
 
     @Autowired
-    DepartmentDAO departmentDAO;
+    DepartmentRepository departmentRepository;
 
     // Lấy tất cả department
     @GetMapping
-    public List<Departments> findAll() {
-        return departmentDAO.findAll();
+    public List<Department> findAll() {
+        return departmentRepository.findAll();
     }
 
     // Lấy department theo id
     @GetMapping("/{id}")
-    public Departments findById(@PathVariable Integer id) {
-        return departmentDAO.findById(id).orElse(null);
+    public Department findById(@PathVariable Integer id) {
+        return departmentRepository.findById(id).orElse(null);
     }
 
     // Thêm mới department
     @PostMapping
-    public Departments save(@RequestBody Departments departments) {
-        return departmentDAO.save(departments);
+    public Department save(@RequestBody Department department) {
+        return departmentRepository.save(department);
     }
 
     // Cập nhật department
     @PutMapping("/{id}")
-    public Departments update(@PathVariable Integer id, @RequestBody Departments departments) {
+    public Department update(@PathVariable Integer id, @RequestBody Department department) {
 //        departments.setDepartmentID(id);
-        return departmentDAO.save(departments);
+        return departmentRepository.save(department);
     }
 
     // Xóa department
     @DeleteMapping("/{id}")
     public void deleteById(@PathVariable Integer id) {
-        departmentDAO.deleteById(id);
+        departmentRepository.deleteById(id);
     }
 }

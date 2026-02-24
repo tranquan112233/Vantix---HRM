@@ -12,7 +12,7 @@ import java.time.LocalDate;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Contracts {
+public class Contract {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "contract_id")
@@ -20,7 +20,7 @@ public class Contracts {
 
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
-    private Employees employee; // Nhân viên ký hợp đồng
+    private Employee employee; // Nhân viên ký hợp đồng
 
     @Enumerated(EnumType.STRING)
     @Column(name = "contract_type")

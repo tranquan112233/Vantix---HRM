@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import poly.edu.vantix_hrm.dao.AttendanceDAO;
+import poly.edu.vantix_hrm.repository.AttendanceRepository;
 import poly.edu.vantix_hrm.entity.Attendance;
 import poly.edu.vantix_hrm.service.AttendanceService;
 
@@ -18,7 +18,7 @@ import java.util.List;
 public class AttendanceScheduler {
 
     @Autowired
-    private AttendanceDAO attendanceDAO;
+    private AttendanceRepository attendanceRepository;
 
     @Autowired
     private AttendanceService attendanceService;
@@ -27,7 +27,7 @@ public class AttendanceScheduler {
     public void autoCheckOutScanner() {
         LocalTime now = LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        List<Attendance> listNeedAutoCheckOut = attendanceDAO.findLateEmployees(today, now);
+        List<Attendance> listNeedAutoCheckOut = attendanceRepository.findLateEmployees(today, now);
         if (listNeedAutoCheckOut.isEmpty()) return;
         for (Attendance att : listNeedAutoCheckOut) {
             try {
@@ -44,12 +44,12 @@ public class AttendanceScheduler {
         LocalTime now = LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         LocalTime cutoffTime = now.minusMinutes(15);
-        List<Attendance> expiredList = attendanceDAO.findExpiredPending(today, cutoffTime);
+        List<Attendance> expiredList = attendanceRepository.findExpiredPending(today, cutoffTime);
         if (expiredList.isEmpty()) return;
         for (Attendance att : expiredList) {
             try {
                 att.setStatus(Attendance.AttendanceStatus.REJECTED);
-                attendanceDAO.save(att);
+                attendanceRepository.save(att);
                 System.out.println("❌ Auto-Reject NV: " + att.getEmployee().getEmployeeId());
             } catch (Exception e) {
                 System.err.println("Lỗi xử lý NV " + att.getEmployee().getEmployeeId() + ": " + e.getMessage());

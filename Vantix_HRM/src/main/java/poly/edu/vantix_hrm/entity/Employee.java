@@ -12,7 +12,7 @@ import java.time.LocalDate;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Employees {
+public class Employee {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "employee_id")
@@ -20,7 +20,7 @@ public class Employees {
 
     @OneToOne
     @JoinColumn(name = "user_id", unique = true)
-    private Users user; // Liên kết tài khoản đăng nhập
+    private User user; // Liên kết tài khoản đăng nhập
 
     @Column(name = "full_name", length = 100, nullable = false)
     private String fullName; // Họ và tên
@@ -40,11 +40,11 @@ public class Employees {
 
     @ManyToOne
     @JoinColumn(name = "department_id")
-    private Departments department; // Phòng ban
+    private Department department; // Phòng ban
 
     @ManyToOne
     @JoinColumn(name = "position_id")
-    private Positions position; // Chức vụ
+    private Position position; // Chức vụ
 
     @Enumerated(EnumType.STRING)
     @Column(name = "work_status")

@@ -2,12 +2,12 @@ package poly.edu.vantix_hrm.service.Impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import poly.edu.vantix_hrm.dao.AttendanceDAO;
-import poly.edu.vantix_hrm.dao.EmployeesDAO;
-import poly.edu.vantix_hrm.dao.ShiftsDAO;
+import poly.edu.vantix_hrm.repository.AttendanceRepository;
+import poly.edu.vantix_hrm.repository.EmployeesRepository;
+import poly.edu.vantix_hrm.repository.ShiftsRepository;
 import poly.edu.vantix_hrm.entity.Attendance;
-import poly.edu.vantix_hrm.entity.Employees;
-import poly.edu.vantix_hrm.entity.Shifts;
+import poly.edu.vantix_hrm.entity.Employee;
+import poly.edu.vantix_hrm.entity.Shift;
 import poly.edu.vantix_hrm.service.AttendanceService;
 
 import java.time.Duration;
@@ -20,34 +20,34 @@ import java.util.List;
 public class AttendanceServiceImpl implements AttendanceService {
 
     @Autowired
-    private AttendanceDAO attendanceDAO;
+    private AttendanceRepository attendanceRepository;
 
     @Autowired
-    private EmployeesDAO employeesDAO;
+    private EmployeesRepository employeesRepository;
 
     @Autowired
-    private ShiftsDAO shiftsDAO;
+    private ShiftsRepository shiftsRepository;
 
     @Override
-    public List<Attendance> getMonthlyAttendance(Employees employees, LocalDate MonthAndYear) {
+    public List<Attendance> getMonthlyAttendance(Employee employee, LocalDate MonthAndYear) {
         int Month = MonthAndYear.getMonthValue();
         int Year = MonthAndYear.getYear();
-        return attendanceDAO.getMonthlyAttendance(employees.getEmployeeId(), Month, Year);
+        return attendanceRepository.getMonthlyAttendance(employee.getEmployeeId(), Month, Year);
     }
 
     @Override
-    public Employees isEmployeeValid(Integer employeeId) {
+    public Employee isEmployeeValid(Integer employeeId) {
         String msgError = "Không tìm thấy nhân viên (" + employeeId + ") trên hệ thống.";
-        Employees employee = employeesDAO.findById(employeeId).orElseThrow(() -> new RuntimeException(msgError));
+        Employee employee = employeesRepository.findById(employeeId).orElseThrow(() -> new RuntimeException(msgError));
         return employee;
     }
 
     @Override
-    public Shifts getCurrentShift() {
+    public Shift getCurrentShift() {
         String msgError = "Hiện tại không nằm trong khung giờ chấm công hợp lệ.";
-        List<Shifts> getAllShifts = shiftsDAO.findAll();
+        List<Shift> getAllShifts = shiftsRepository.findAll();
         LocalTime VietNam = LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        for (Shifts shift : getAllShifts) {
+        for (Shift shift : getAllShifts) {
             LocalTime startShift = shift.getStartTime().minusMinutes(15);
             LocalTime endShift = shift.getEndTime();
             if (!VietNam.isBefore(startShift) && !VietNam.isAfter(endShift)) return shift;
@@ -56,11 +56,11 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     @Override
-    public Attendance createAttendanceRecord(Employees employees, Shifts shift) {
+    public Attendance createAttendanceRecord(Employee employee, Shift shift) {
         String msgError = "Đã chấm công cho ca " + shift.getShiftName() + " hôm nay rồi.";
         LocalDate vietNam = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         LocalTime gioVietNam = LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        Boolean isAlreadyCheckedIn = attendanceDAO.isAlreadyCheckedIn(employees.getEmployeeId(), shift.getShiftId(), vietNam);
+        Boolean isAlreadyCheckedIn = attendanceRepository.isAlreadyCheckedIn(employee.getEmployeeId(), shift.getShiftId(), vietNam);
         if (isAlreadyCheckedIn) {
             throw new RuntimeException(msgError);
         }
@@ -69,7 +69,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             lateMinutes = (int) Duration.between(shift.getStartTime(), gioVietNam).toMinutes();
         }
         Attendance att = new Attendance();
-        att.setEmployee(employees);
+        att.setEmployee(employee);
         att.setShift(shift);
         att.setWorkDate(vietNam);
         att.setCheckIn(LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
@@ -77,7 +77,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         att.setLateMinutes(lateMinutes);
         att.setEarlyLeaveMinutes(null);
         att.setStatus(Attendance.AttendanceStatus.DRAFT);
-        return attendanceDAO.save(att);
+        return attendanceRepository.save(att);
     }
 
     @Override
@@ -86,21 +86,21 @@ public class AttendanceServiceImpl implements AttendanceService {
             att.setCheckOut(att.getShift().getEndTime());
             att.setEarlyLeaveMinutes(0);
             att.setStatus(Attendance.AttendanceStatus.PENDING);
-            return attendanceDAO.save(att);
+            return attendanceRepository.save(att);
         }
         LocalTime now = LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         att.setCheckOut(now);
-        Shifts shift = att.getShift();
+        Shift shift = att.getShift();
         Long minutesDiff = Duration.between(now, shift.getEndTime()).toMinutes();
         att.setEarlyLeaveMinutes((int) Math.max(0, minutesDiff));
         att.setStatus(Attendance.AttendanceStatus.APPROVED);
-        return attendanceDAO.save(att);
+        return attendanceRepository.save(att);
     }
 
     @Override
-    public Attendance findAttendanceToUpdate(Employees employee, Shifts shift) {
+    public Attendance findAttendanceToUpdate(Employee employee, Shift shift) {
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        Attendance att = attendanceDAO.findExistingAttendance(employee.getEmployeeId(), shift.getShiftId(), today).orElseThrow(() -> {
+        Attendance att = attendanceRepository.findExistingAttendance(employee.getEmployeeId(), shift.getShiftId(), today).orElseThrow(() -> {
             String notFoundMsg = "Bạn chưa chấm công ca " + shift.getShiftName() + " ngày " + today;
             return new RuntimeException(notFoundMsg);
         });
@@ -116,15 +116,15 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     @Override
-    public Attendance findPendingAutoCheckOut(Employees employee) {
+    public Attendance findPendingAutoCheckOut(Employee employee) {
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        return attendanceDAO.findPendingAttendance(employee.getEmployeeId(), today)
+        return attendanceRepository.findPendingAttendance(employee.getEmployeeId(), today)
                 .orElseThrow(() -> new RuntimeException("Bạn không có yêu cầu xác nhận công nào đang chờ xử lý."));
     }
 
     @Override
     public Attendance finalizeAndApproveCheckOut(Attendance att) {
         att.setStatus(Attendance.AttendanceStatus.APPROVED);
-        return attendanceDAO.save(att);
+        return attendanceRepository.save(att);
     }
 }

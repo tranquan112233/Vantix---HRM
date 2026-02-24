@@ -20,7 +20,7 @@ public class ContractAnnexes {
 
     @ManyToOne
     @JoinColumn(name = "contract_id", nullable = false)
-    private Contracts contract; // Hợp đồng gốc
+    private Contract contract; // Hợp đồng gốc
 
     @Column(name = "effective_date")
     private LocalDate effectiveDate; // Ngày hiệu lực

@@ -12,7 +12,7 @@ import java.time.LocalDate;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Salaries {
+public class Salarie {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "salary_id")
@@ -20,7 +20,7 @@ public class Salaries {
 
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
-    private Employees employees; // Nhân viên nhận lương
+    private Employee employee; // Nhân viên nhận lương
 
     @Column(name = "salary_month")
     private LocalDate salaryMonth; // Tháng/Năm tính lương

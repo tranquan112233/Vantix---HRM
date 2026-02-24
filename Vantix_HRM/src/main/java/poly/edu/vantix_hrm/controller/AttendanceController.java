@@ -4,8 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import poly.edu.vantix_hrm.entity.Attendance;
-import poly.edu.vantix_hrm.entity.Employees;
-import poly.edu.vantix_hrm.entity.Shifts;
+import poly.edu.vantix_hrm.entity.Employee;
+import poly.edu.vantix_hrm.entity.Shift;
 import poly.edu.vantix_hrm.service.AttendanceService;
 
 import java.time.LocalDate;
@@ -24,8 +24,8 @@ public class AttendanceController {
     @GetMapping("/getMonthlyAttendance")
     public ResponseEntity<List<Attendance>> getMonthlyAttendance(@RequestParam("employeeId") Integer employeeId, @RequestParam("Month") int Month, @RequestParam("Year") int Year) {
         LocalDate dateInput = LocalDate.of(Year, Month, 1);
-        Employees employees = attendanceService.isEmployeeValid(employeeId);
-        List<Attendance> result = attendanceService.getMonthlyAttendance(employees, dateInput);
+        Employee employee = attendanceService.isEmployeeValid(employeeId);
+        List<Attendance> result = attendanceService.getMonthlyAttendance(employee, dateInput);
         return ResponseEntity.ok(result);
     }
 
@@ -33,8 +33,8 @@ public class AttendanceController {
     public ResponseEntity<?> CheckIn(@RequestBody Integer employeeId) {
         try {
             LocalTime VietNam = LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-            Employees employee = attendanceService.isEmployeeValid(employeeId);
-            Shifts shift = attendanceService.getCurrentShift();
+            Employee employee = attendanceService.isEmployeeValid(employeeId);
+            Shift shift = attendanceService.getCurrentShift();
             Attendance attendance = attendanceService.createAttendanceRecord(employee, shift);
             return ResponseEntity.ok(attendance);
         } catch (RuntimeException e) {
@@ -47,8 +47,8 @@ public class AttendanceController {
     @PutMapping("/checkOutManual")
     public ResponseEntity<?> checkOutManual(@RequestBody Integer employeeId) {
         try {
-            Employees employee = attendanceService.isEmployeeValid(employeeId);
-            Shifts shift = attendanceService.getCurrentShift();
+            Employee employee = attendanceService.isEmployeeValid(employeeId);
+            Shift shift = attendanceService.getCurrentShift();
             Attendance attendance = attendanceService.findAttendanceToUpdate(employee, shift);
             Attendance putAttendance = attendanceService.updateAttendanceRecord(attendance, false);
             return ResponseEntity.ok(putAttendance);
@@ -62,7 +62,7 @@ public class AttendanceController {
     @PutMapping("/confirm-checkout")
     public ResponseEntity<?> confirmCheckOut(@RequestBody Integer employeeId) {
         try {
-            Employees employee = attendanceService.isEmployeeValid(employeeId);
+            Employee employee = attendanceService.isEmployeeValid(employeeId);
             Attendance att = attendanceService.findPendingAutoCheckOut(employee);
             checkTimeLimitForConfirmation(att);
             Attendance attendance = attendanceService.finalizeAndApproveCheckOut(att);

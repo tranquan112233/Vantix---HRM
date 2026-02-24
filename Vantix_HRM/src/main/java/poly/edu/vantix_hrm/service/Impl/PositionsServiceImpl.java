@@ -2,8 +2,8 @@ package poly.edu.vantix_hrm.service.Impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import poly.edu.vantix_hrm.dao.PositionsDAO;
-import poly.edu.vantix_hrm.entity.Positions;
+import poly.edu.vantix_hrm.repository.PositionsRepository;
+import poly.edu.vantix_hrm.entity.Position;
 import poly.edu.vantix_hrm.service.PositionsService;
 
 import java.util.List;
@@ -12,10 +12,10 @@ import java.util.List;
 public class PositionsServiceImpl implements PositionsService {
 
     @Autowired
-    private PositionsDAO positionsDAO;
+    private PositionsRepository positionsRepository;
 
     @Override
-    public List<Positions> getAllPositions() {
-        return positionsDAO.findAll();
+    public List<Position> getAllPositions() {
+        return positionsRepository.findAll();
     }
 }

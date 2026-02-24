@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Notifications {
+public class Notification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "notification_id")
@@ -19,7 +19,7 @@ public class Notifications {
 
     @ManyToOne
     @JoinColumn(name = "employee_id")
-    private Employees employee; // Người nhận (nếu gửi riêng)
+    private Employee employee; // Người nhận (nếu gửi riêng)
 
     @ManyToOne
     @JoinColumn(name = "role_id")
@@ -27,7 +27,7 @@ public class Notifications {
 
     @ManyToOne
     @JoinColumn(name = "position_id")
-    private Positions position; // Gửi theo chức vụ
+    private Position position; // Gửi theo chức vụ
 
     @Column(name = "title", length = 100)
     private String title; // Tiêu đề
@@ -40,7 +40,7 @@ public class Notifications {
 
     @ManyToOne
     @JoinColumn(name = "sender_id")
-    private Employees sender; // Người gửi
+    private Employee sender; // Người gửi
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now(); // Thời gian tạo
