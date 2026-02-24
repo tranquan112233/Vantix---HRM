@@ -3,8 +3,8 @@ package poly.edu.vantix_hrm.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import poly.edu.vantix_hrm.dto.LoginRequest;
-import poly.edu.vantix_hrm.dto.LoginResponse;
+import poly.edu.vantix_hrm.DTO.LoginRequest;
+import poly.edu.vantix_hrm.DTO.LoginResponse;
 import poly.edu.vantix_hrm.service.AuthService;
 
 @RestController
