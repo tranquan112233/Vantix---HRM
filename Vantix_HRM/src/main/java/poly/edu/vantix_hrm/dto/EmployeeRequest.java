@@ -39,16 +39,9 @@ public class EmployeeRequest {
     // Account info
     // ========================
 
-    @NotBlank(message = "Username không được để trống")
     private String username;
-
-    @NotBlank(message = "Email không được để trống")
     private String email;
-
-    @NotBlank(message = "Password không được để trống")
     private String password;
-
-    @NotNull(message = "Vui lòng chọn role")
     private Integer roleId;
 
 }
