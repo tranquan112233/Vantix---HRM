@@ -11,9 +11,9 @@ public interface ContractsService {
     // Lấy toàn bộ danh sách hợp đồng
     List<Contract> getAllContracts();
 
-    // lưu hợp đồng
+    // Lưu Contract
     Contract saveContract(Employee employee, Contract.Type type, String position, LocalDate startDate, BigDecimal baseSalary, Contract.ContractStatus status);
 
-    // kiểm tra mã nhân viên này đã có hd chưa
+    // Kiểm tra Contract của nhân viên
     void validateEmployeeContractEligibility(Integer employeeId);
 }
