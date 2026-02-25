@@ -188,9 +188,7 @@ const handleSubmit = async () => {
     endDate: form.value.endDate || null,
     baseSalary: Number(form.value.baseSalary),
     status: form.value.status,
-    employee: {
-      employeeId: Number(form.value.employeeId)
-    }
+    employeeId: Number(form.value.employeeId) // Đưa trực tiếp ra ngoài, bỏ object 'employee'
   };
 
   try {

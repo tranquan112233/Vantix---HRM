@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -29,7 +30,7 @@ public class Contract {
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate; // Ngày bắt đầu
 
-    @Column(name = "end_date", nullable = false)
+    @Column(name = "end_date")
     private LocalDate endDate; // Ngày kết thúc
 
     @Column(name = "position")
@@ -43,5 +44,6 @@ public class Contract {
     private ContractStatus status; // Trạng thái hợp đồng
 
     public enum Type {YEAR_1, YEAR_3, INDEFINITE}
-    public enum ContractStatus { ACTIVE, EXPIRED }
+
+    public enum ContractStatus {ACTIVE, EXPIRED}
 }
