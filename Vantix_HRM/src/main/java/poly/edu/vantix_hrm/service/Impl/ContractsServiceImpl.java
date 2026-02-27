@@ -51,4 +51,24 @@ public class ContractsServiceImpl implements ContractsService {
             case INDEFINITE -> null;
         };
     }
+
+    @Override
+    public Contract isContractValid(Integer contractId) {
+        String msgError = "Không tìm thấy hợp đồng (" + contractId + ") trên hệ thống.";
+        return contractsRepository.findById(contractId).orElseThrow(() -> new RuntimeException(msgError));
+    }
+
+    @Override
+    public void validateContractDeletionEligibility(Contract contract) {
+        if (contract.getStatus() == Contract.ContractStatus.ACTIVE) {
+            String msgError = "Không thể xóa hợp đồng có trạng thái ACTIVE";
+            throw new RuntimeException(msgError);
+        }
+    }
+
+    @Override
+    public void deleteContract(Integer contractId) {
+        contractsRepository.deleteById(contractId);
+    }
+
 }

@@ -17,4 +17,14 @@ public interface ContractsService {
 
     // Lấy endDate theo Type hợp đồng
     LocalDate calculateEndDateByType(LocalDate startDate, Contract.Type type);
+
+    // Kiểm tra contractId có tồn tại
+    Contract isContractValid(Integer contractId);
+
+    // Kiểm tra status của contract
+    void validateContractDeletionEligibility(Contract contract);
+
+    // Xóa contract
+    void deleteContract(Integer contractId);
+
 }

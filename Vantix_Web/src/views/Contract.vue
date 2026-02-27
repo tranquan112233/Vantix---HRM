@@ -14,6 +14,10 @@ const showModal = ref(false);
 const message = ref('');
 const messageType = ref('success');
 
+// 🌟 STATE CHO POPUP XÁC NHẬN XÓA
+const showDeleteConfirmModal = ref(false);
+const contractIdToDelete = ref(null);
+
 // 🌟 STATE BỘ LỌC ĐA TẦNG
 const currentFilter = ref('ALL');
 const searchQuery = ref('');
@@ -174,7 +178,6 @@ const openCreateModal = () => {
   showModal.value = true;
 };
 
-// 🌟 ĐÃ XÓA CODE DEMO TẠO MỚI, THAY BẰNG API THẬT
 const handleSubmit = async () => {
   if (!form.value.position.trim()) {
     alert("Vui lòng chọn hoặc nhập vị trí công việc!");
@@ -188,23 +191,18 @@ const handleSubmit = async () => {
     endDate: form.value.endDate || null,
     baseSalary: Number(form.value.baseSalary),
     status: form.value.status,
-    employeeId: Number(form.value.employeeId) // Đưa trực tiếp ra ngoài, bỏ object 'employee'
+    employeeId: Number(form.value.employeeId)
   };
 
   try {
     loading.value = true;
-
-    // GỌI API THÊM MỚI XUỐNG DATABASE
     await contractService.createContract(payload);
-
-    // NẾU THÊM THÀNH CÔNG -> GỌI LẠI API LẤY DANH SÁCH MỚI NHẤT
     await fetchContracts();
 
     showMessage('Tạo hợp đồng thành công!', 'success');
     showModal.value = false;
   } catch (error) {
     console.error("Lỗi khi tạo hợp đồng:", error);
-    // Bắt lỗi từ BE trả về (Ví dụ: ID nhân viên không tồn tại)
     const errorMsg = error.response?.data || 'Có lỗi xảy ra, vui lòng kiểm tra lại ID nhân viên!';
     showMessage(errorMsg, 'warning');
   } finally {
@@ -212,25 +210,36 @@ const handleSubmit = async () => {
   }
 };
 
-// 🌟 ĐÃ XÓA CODE DEMO XÓA, THAY BẰNG API THẬT
-const deleteContract = async (id) => {
-  if (confirm('Bạn có chắc chắn muốn xóa hợp đồng này? Chú ý: Hành động này không thể hoàn tác.')) {
-    try {
-      loading.value = true;
+// --- LOGIC XÓA HỢP ĐỒNG MỚI (CÓ POPUP) ---
 
-      // GỌI API XÓA DỮ LIỆU THẬT
-      await contractService.deleteContract(id);
+// Bước 1: Mở popup xác nhận
+const confirmDeleteContract = (id) => {
+  contractIdToDelete.value = id;
+  showDeleteConfirmModal.value = true;
+};
 
-      // LỌC BỎ HỢP ĐỒNG ĐÃ XÓA KHỎI UI MÀ KHÔNG CẦN TẢI LẠI TRANG
-      contracts.value = contracts.value.filter(c => c.contractId !== id);
+// Bước 2: Thực thi xóa khi nhấn "Đồng ý"
+const executeDeleteContract = async () => {
+  showDeleteConfirmModal.value = false; // Đóng popup
+  const id = contractIdToDelete.value;
 
-      showMessage('Đã xóa hợp đồng thành công.', 'success');
-    } catch (error) {
-      console.error("Lỗi khi xóa hợp đồng:", error);
-      showMessage('Lỗi: Không thể xóa hợp đồng này (có thể do có phụ lục liên kết).', 'warning');
-    } finally {
-      loading.value = false;
-    }
+  if (!id) return;
+
+  try {
+    loading.value = true;
+    const response = await contractService.deleteContract(id);
+
+    // Xóa thành công, cập nhật mảng
+    contracts.value = contracts.value.filter(c => c.contractId !== id);
+    showMessage(response.data || 'Đã xóa hợp đồng thành công.', 'success');
+
+  } catch (error) {
+    console.error("Lỗi khi xóa hợp đồng:", error);
+    const errorMsg = error.response?.data || 'Không thể xóa hợp đồng do lỗi hệ thống.';
+    showMessage(errorMsg, 'danger');
+  } finally {
+    loading.value = false;
+    contractIdToDelete.value = null; // Xóa ID tạm
   }
 };
 
@@ -364,7 +373,8 @@ onMounted(() => {
               <td class="text-center">
                 <div class="action-menu">
                   <button class="icon-btn" @click="viewAnnex(c.contractId)" title="Phụ lục">👁️</button>
-                  <button class="icon-btn delete" @click="deleteContract(c.contractId)" title="Xóa" :disabled="loading">
+                  <button class="icon-btn delete" @click="confirmDeleteContract(c.contractId)" title="Xóa"
+                          :disabled="loading">
                     🗑️
                   </button>
                 </div>
@@ -464,6 +474,21 @@ onMounted(() => {
         </form>
       </div>
     </div>
+
+    <div v-if="showDeleteConfirmModal" class="modal-overlay confirm-overlay">
+      <div class="modal-content confirm-modal">
+        <h3>Xác nhận Xóa?</h3>
+        <p>Bạn có chắc chắn muốn xóa hợp đồng <strong>#{{ contractIdToDelete }}</strong> này không? Hành động này không
+          thể hoàn tác.</p>
+        <div class="modal-actions confirm-actions">
+          <button class="btn-cancel" @click="showDeleteConfirmModal = false" :disabled="loading">Hủy bỏ</button>
+          <button class="btn-confirm-delete" @click="executeDeleteContract" :disabled="loading">
+            {{ loading ? 'Đang xóa...' : 'Đồng ý Xóa' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -1081,5 +1106,80 @@ label {
   color: #94a3b8;
   font-style: italic;
   text-align: center;
+}
+
+/* --- CUSTOM CONFIRM MODAL CHO XÓA --- */
+.confirm-overlay {
+  z-index: 1000;
+}
+
+.confirm-modal {
+  max-width: 400px;
+  text-align: center;
+  padding: 30px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.confirm-modal h3 {
+  font-size: 20px;
+  margin-bottom: 10px;
+  color: #0f172a;
+}
+
+.confirm-modal p {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.confirm-actions {
+  margin-top: 25px;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.btn-confirm-delete, .btn-cancel {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+}
+
+.btn-confirm-delete {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-confirm-delete:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.btn-confirm-delete:disabled {
+  background: #fca5a5;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+@keyframes popIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>

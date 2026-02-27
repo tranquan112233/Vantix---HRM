@@ -53,4 +53,18 @@ public class ContractsController {
             return ResponseEntity.internalServerError().body("Lỗi hệ thống khi lưu hợp đồng: " + e.getMessage());
         }
     }
+
+    @DeleteMapping("/deleteContract/{contractId}")
+    public ResponseEntity<?> deleteContract(@PathVariable Integer contractId) {
+        try {
+            Contract c = contractsService.isContractValid(contractId);
+            contractsService.validateContractDeletionEligibility(c);
+            contractsService.deleteContract(contractId);
+            return ResponseEntity.ok("Xóa hợp đồng thành công!");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống khi xóa hợp đồng: " + e.getMessage());
+        }
+    }
 }
