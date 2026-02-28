@@ -43,6 +43,13 @@ public class AuthService {
             throw new BusinessException("password","Wrong password");
         }
 
+        if (user.getStatus() == User.UserStatus.LOCKED) {
+            throw new BusinessException(
+                    "general",
+                    "Account is locked. Please contact admin."
+            );
+        }
+
         user.setLastLogin(LocalDateTime.now());
         userRepository.save(user);
         String token = jwtService.generateToken(user);
@@ -144,7 +151,7 @@ public class AuthService {
                 .equals(request.getConfirmPassword())) {
 
             throw new BusinessException(
-                    "password","Passwords do not match"
+                    "confirmPassword","Passwords do not match"
             );
         }
 

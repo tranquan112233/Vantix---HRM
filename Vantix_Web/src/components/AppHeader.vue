@@ -134,19 +134,18 @@
               <div class="text-muted small">{{ email }}</div>
             </li>
 
-            <!-- Admin Panel (Only if ADMIN role) -->
-            <li v-if="isAdmin">
-              <router-link to="/admin" class="dropdown-item profile-item">
-                <i class="bi bi-speedometer2 me-2"></i>
-                Admin Panel
-              </router-link>
-            </li>
-
             <!-- Profile -->
             <li>
               <router-link to="/profile" class="dropdown-item profile-item">
                 <i class="bi bi-person me-2"></i>
                 Profile
+              </router-link>
+            </li>
+
+            <li>
+              <router-link to="/settings" class="dropdown-item profile-item">
+                <i class="bi bi-gear me-2"></i>
+                Settings
               </router-link>
             </li>
 
@@ -194,10 +193,6 @@ const email = computed(() =>
 
 const firstLetter = computed(() =>
     username.value.charAt(0).toUpperCase()
-)
-
-const isAdmin = computed(() =>
-    user.value?.role?.includes("ADMIN")
 )
 
 /* ================= NOTIFICATIONS ================= */

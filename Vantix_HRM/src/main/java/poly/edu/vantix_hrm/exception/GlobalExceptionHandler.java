@@ -27,10 +27,20 @@ public class GlobalExceptionHandler {
         ex.getBindingResult()
                 .getFieldErrors()
                 .forEach(error -> {
-                    errors.putIfAbsent(
-                            error.getField(),
-                            error.getDefaultMessage()
-                    );
+
+                    String field = error.getField();
+                    String code = error.getCode(); // NotBlank, Size, ...
+
+                    // Nếu field chưa có lỗi -> put luôn
+                    if (!errors.containsKey(field)) {
+                        errors.put(field, error.getDefaultMessage());
+                    }
+
+                    // Nếu đã có lỗi nhưng lỗi hiện tại là NotBlank
+                    // -> ghi đè để ưu tiên NotBlank
+                    else if ("NotBlank".equals(code)) {
+                        errors.put(field, error.getDefaultMessage());
+                    }
                 });
 
         return ErrorResponse.builder()

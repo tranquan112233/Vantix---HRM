@@ -1,44 +1,26 @@
 import { createRouter, createWebHistory } from "vue-router"
 import { getUser } from "@/utils/jwtDecode"
 
-/*
-|--------------------------------------------------------------------------
-| IMPORT LAYOUT
-|--------------------------------------------------------------------------
-| AuthLayout: dùng cho các trang không cần đăng nhập
-| MainLayout: chứa Header + Sidebar, chỉ dùng cho user đã đăng nhập
-|--------------------------------------------------------------------------
-*/
+/* ================= LAYOUT ================= */
 import MainLayout from "@/layouts/MainLayout.vue"
 import AuthLayout from "@/layouts/AuthLayout.vue"
 
-/*
-|--------------------------------------------------------------------------
-| IMPORT VIEW
-|--------------------------------------------------------------------------
-*/
+/* ================= AUTH VIEWS ================= */
 import Login from "@/views/auth/Login.vue"
-import ResetPassword from "@/views/auth/ResetPassword.vue"
-import VerifyOtp from "@/views/auth/VerifyOtp.vue"
 import ForgotPassword from "@/views/auth/ForgotPassword.vue"
+import VerifyOtp from "@/views/auth/VerifyOtp.vue"
+import ResetPassword from "@/views/auth/ResetPassword.vue"
 
+/* ================= MAIN VIEWS ================= */
 import Dashboard from "@/views/main/Dashboard.vue"
-import RoleManagement from "@/views/main/RoleManagement.vue";
-import UserManagement from "@/views/main/UserManagement.vue";
+import UserManagement from "@/views/main/UserManagement.vue"
+import RoleManagement from "@/views/main/RoleManagement.vue"
+import Forbidden from "@/views/errors/Forbidden.vue"
 
-/*
-|--------------------------------------------------------------------------
-| ROUTE CONFIGURATION
-|--------------------------------------------------------------------------
-*/
+/* ================= ROUTES ================= */
 const routes = [
 
-    /*
-    |--------------------------------------------------------------------------
-    | AUTH LAYOUT
-    | Các route trong đây không yêu cầu đăng nhập
-    |--------------------------------------------------------------------------
-    */
+    /* ========= AUTH ========= */
     {
         path: "/auth",
         component: AuthLayout,
@@ -48,27 +30,13 @@ const routes = [
                 component: Login,
                 meta: { guestOnly: true }
             },
-            {
-                path: "forgot-password",
-                component: ForgotPassword
-            },
-            {
-                path: "verify-otp",
-                component: VerifyOtp
-            },
-            {
-                path: "reset-password",
-                component: ResetPassword
-            }
+            { path: "forgot-password", component: ForgotPassword },
+            { path: "verify-otp", component: VerifyOtp },
+            { path: "reset-password", component: ResetPassword }
         ]
     },
 
-    /*
-    |--------------------------------------------------------------------------
-    | MAIN LAYOUT
-    | Các route trong đây yêu cầu đăng nhập
-    |--------------------------------------------------------------------------
-    */
+    /* ========= MAIN ========= */
     {
         path: "/",
         component: MainLayout,
@@ -80,20 +48,24 @@ const routes = [
             },
             {
                 path: "users",
-                component: UserManagement
+                component: UserManagement,
+                meta: { roles: ["ADMIN"] }
             },
             {
                 path: "roles",
-                component: RoleManagement
+                component: RoleManagement,
+                meta: { roles: ["ADMIN"] }
             }
         ]
     },
 
-    /*
-    |--------------------------------------------------------------------------
-    | REDIRECT MẶC ĐỊNH VÀ 404
-    |--------------------------------------------------------------------------
-    */
+    /* ========= ERROR ========= */
+    {
+        path: "/403",
+        component: Forbidden
+    },
+
+    /* ========= DEFAULT ========= */
     {
         path: "/",
         redirect: "/dashboard"
@@ -109,62 +81,30 @@ const router = createRouter({
     routes
 })
 
-/*
-|--------------------------------------------------------------------------
-| ROUTE GUARD
-|--------------------------------------------------------------------------
-| Đây là guard kiểm tra JWT phía frontend.
-|
-| getUser():
-| - Lấy token từ localStorage
-| - Decode JWT
-| - Trả về payload nếu tồn tại
-| - Trả về null nếu không có token
-|
-| Lưu ý:
-| Guard này chỉ có tác dụng ở frontend.
-| Backend vẫn phải kiểm tra JWT bằng Spring Security.
-|--------------------------------------------------------------------------
-*/
+/* ================= ROUTE GUARD ================= */
 router.beforeEach((to) => {
 
     const user = getUser()
 
-    /*
-    |--------------------------------------------------------------------------
-    | Nếu route yêu cầu đăng nhập mà không có token
-    |--------------------------------------------------------------------------
-    */
-    if (to.meta.requiresAuth && !user) {
+    const requiresAuth = to.matched.some(r => r.meta.requiresAuth)
+    const guestOnly = to.matched.some(r => r.meta.guestOnly)
+    const roles = to.meta.roles
+
+    // 1️⃣ Cần login nhưng chưa login
+    if (requiresAuth && !user) {
         return { path: "/auth/login" }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Nếu đã đăng nhập mà truy cập trang chỉ dành cho khách
-    |--------------------------------------------------------------------------
-    */
-    if (to.meta.guestOnly && user) {
-        return { path: "/" }
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Kiểm tra role nếu route có yêu cầu role
-    |--------------------------------------------------------------------------
-    | Ví dụ:
-    | meta: { role: "ADMIN" }
-    |--------------------------------------------------------------------------
-    */
-    if (to.meta.role && user?.role !== to.meta.role) {
+    // 2️⃣ Đã login mà vào login
+    if (guestOnly && user) {
         return { path: "/dashboard" }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Cho phép điều hướng tiếp tục
-    |--------------------------------------------------------------------------
-    */
+    // 3️⃣ Kiểm tra role
+    if (roles && !roles.includes(user?.role)) {
+        return { path: "/403" }
+    }
+
     return true
 })
 

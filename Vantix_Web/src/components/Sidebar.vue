@@ -38,7 +38,7 @@
         <li v-for="item in items" :key="item.key">
 
           <!-- ================= ITEM KHÔNG CÓ SUB ================= -->
-          <RouterLink
+          <router-link
               v-if="!item.children"
               :to="item.to"
               custom
@@ -55,7 +55,7 @@
                 {{ item.label }}
               </span>
             </div>
-          </RouterLink>
+          </router-link>
 
           <!-- ================= ITEM CÓ SUB ================= -->
           <template v-else>
@@ -89,7 +89,7 @@
                     v-for="child in item.children"
                     :key="child.to"
                 >
-                  <RouterLink
+                  <router-link
                       :to="child.to"
                       custom
                       v-slot="{ navigate }"
@@ -101,7 +101,7 @@
                     >
                       {{ child.label }}
                     </div>
-                  </RouterLink>
+                  </router-link>
                 </li>
               </ul>
             </transition>
@@ -121,6 +121,9 @@
 import { reactive, computed, watch, ref } from "vue"
 import { useRoute } from "vue-router"
 import { menuItems } from "@/config/menu.config"
+import { getRole } from "@/utils/jwtDecode"
+
+const userRole = ref(getRole())
 
 /* ================= PROPS ================= */
 const props = defineProps({
@@ -147,7 +150,29 @@ const handleMouseLeave = () => {
 const groupedMenu = computed(() => {
   const groups = {}
 
-  menuItems.forEach(item => {
+  const filteredMenu = menuItems
+      .filter(item =>
+          !item.roles || item.roles.includes(userRole.value)
+      )
+      .map(item => {
+        if (item.children) {
+          const filteredChildren = item.children.filter(child =>
+              !child.roles || child.roles.includes(userRole.value)
+          )
+
+          // Nếu parent có children nhưng sau khi lọc rỗng thì ẩn luôn parent
+          if (filteredChildren.length === 0) {
+            return null
+          }
+
+          return { ...item, children: filteredChildren }
+        }
+
+        return item
+      })
+      .filter(Boolean)
+
+  filteredMenu.forEach(item => {
     if (!groups[item.section]) {
       groups[item.section] = []
     }
@@ -160,11 +185,13 @@ const groupedMenu = computed(() => {
 /* ================= SUBMENU STATE ================= */
 const open = reactive({})
 
-menuItems.forEach(item => {
-  if (item.children) {
-    open[item.key] = false
-  }
-})
+watch(groupedMenu, (newMenu) => {
+  Object.values(newMenu).flat().forEach(item => {
+    if (item.children) {
+      open[item.key] = false
+    }
+  })
+}, { immediate: true })
 
 /* ================= ACTIVE CHECK ================= */
 const isExactActive = (path) => {

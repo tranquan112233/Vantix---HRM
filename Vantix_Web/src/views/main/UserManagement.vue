@@ -280,6 +280,7 @@ import { useToast } from "@/composables/useToast"
 import { useSearch } from "@/composables/useSearch"
 import { useSort } from "@/composables/useSort"
 import { usePagination } from "@/composables/usePagination"
+import {useErrorHandler} from "@/composables/useErrorHandler.js";
 
 /* =====================================================
    STATE
@@ -291,7 +292,6 @@ const roleOptions = ref([])
 
 // UI State
 const loading = ref(false)
-const errors = ref({})
 const { showToast } = useToast()
 
 // Search + Pagination
@@ -301,6 +301,9 @@ const pageSize = ref(5)
 // Form + Mode
 const isEdit = ref(false)
 const form = ref(getDefaultForm())
+
+// Error
+const { errors, handleError } = useErrorHandler()
 
 // Bootstrap modal
 let modalInstance = null
@@ -453,25 +456,6 @@ async function unlockUser(id) {
 
 function closeModal() {
   modalInstance.hide()
-}
-
-/* =====================================================
-   ERROR HANDLER
-===================================================== */
-
-function handleError(err) {
-  const data = err.response?.data
-
-  if (!data) {
-    errors.value.general = "Server error"
-    return
-  }
-
-  if (data.validationErrors) {
-    errors.value = { ...data.validationErrors }
-  } else {
-    errors.value.general = data.message
-  }
 }
 
 /* =====================================================

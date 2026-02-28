@@ -180,6 +180,7 @@ import { useToast } from "@/composables/useToast"
 import { useSearch } from "@/composables/useSearch"
 import { useSort } from "@/composables/useSort"
 import { usePagination } from "@/composables/usePagination"
+import {useErrorHandler} from "@/composables/useErrorHandler.js";
 
 /* =====================================================
    STATE
@@ -190,9 +191,6 @@ const roles = ref([])
 
 // Loading khi gọi API
 const loading = ref(false)
-
-// Lỗi validate
-const errors = ref({})
 
 // Toast notification
 const { showToast } = useToast()
@@ -208,6 +206,9 @@ const form = ref({
   roleName: "",
   description: ""
 })
+
+// Error
+const { errors, handleError } = useErrorHandler()
 
 // Bootstrap modal instance
 let modalInstance = null
@@ -337,25 +338,6 @@ function closeModal() {
   modalInstance.hide()
 }
 
-/* =====================================================
-   ERROR HANDLER
-===================================================== */
-
-function handleError(err) {
-  const data = err.response?.data
-
-  if (!data) {
-    errors.value.general = "Server error"
-    return
-  }
-
-  // Lỗi validation backend trả về
-  if (data.validationErrors) {
-    errors.value = { ...data.validationErrors }
-  } else {
-    errors.value.general = data.message
-  }
-}
 </script>
 
 <style scoped>

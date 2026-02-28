@@ -1,40 +1,24 @@
 <template>
-
   <div class="w-75 m-auto">
-
     <div class="card border-0">
-
       <div class="card-body p-4">
 
-        <!-- TITLE -->
-        <h4 class="fw-bold mb-1">
-          Sign in
-        </h4>
-
+        <h4 class="fw-bold mb-1">Sign in</h4>
         <p class="text-muted small mb-4">
           Enter your email and password to sign in
         </p>
 
-
         <!-- GENERAL ERROR -->
-        <div
-            class="alert alert-danger py-2"
-            v-if="errors.general"
-        >
+        <div v-if="errors.general" class="alert alert-danger py-2">
           {{ errors.general }}
         </div>
-
 
         <form @submit.prevent="login">
 
           <!-- EMAIL -->
           <div class="mb-3">
-
             <label class="form-label fw-semibold">
-
-              Email
-              <span class="text-danger">*</span>
-
+              Email <span class="text-danger">*</span>
             </label>
 
             <input
@@ -43,23 +27,17 @@
                 class="form-control"
                 :class="{ 'is-invalid': errors.email }"
                 placeholder="info@gmail.com"
-            >
+            />
 
             <div class="invalid-feedback">
               {{ errors.email }}
             </div>
-
           </div>
-
 
           <!-- PASSWORD -->
           <div class="mb-3">
-
             <label class="form-label fw-semibold">
-
-              Password
-              <span class="text-danger">*</span>
-
+              Password <span class="text-danger">*</span>
             </label>
 
             <input
@@ -68,33 +46,24 @@
                 class="form-control"
                 :class="{ 'is-invalid': errors.password }"
                 placeholder="Enter your password"
-            >
+            />
 
             <div class="invalid-feedback">
               {{ errors.password }}
             </div>
-
           </div>
 
-
-          <!-- REMEMBER + FORGOT -->
           <div class="d-flex justify-content-between mb-3">
-
             <div class="form-check">
-
               <input
                   v-model="rememberMe"
                   type="checkbox"
                   class="form-check-input"
-                  id="rememberMe"
-              >
-
+              />
               <label class="form-check-label small">
                 Remember me
               </label>
-
             </div>
-
 
             <router-link
                 to="/auth/forgot-password"
@@ -102,170 +71,71 @@
             >
               Forgot password?
             </router-link>
-
           </div>
 
-
-          <!-- BUTTON -->
-          <button
-              class="btn btn-primary w-100"
-              :disabled="loading"
-          >
-
-            <span
-                v-if="loading"
-                class="spinner-border spinner-border-sm me-2"
-            ></span>
-
+          <button class="btn btn-primary w-100" :disabled="loading">
+            <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
             {{ loading ? "Signing in..." : "Sign in" }}
-
           </button>
-
 
         </form>
 
       </div>
-
     </div>
-
   </div>
-
 </template>
 
-
 <script setup>
-
 import { ref, watch, onMounted } from "vue"
 import { useRouter } from "vue-router"
-import AuthService from "@/services/auth.service.js"
+import AuthService from "@/services/auth.service"
+import { useErrorHandler } from "@/composables/useErrorHandler"
 
 const router = useRouter()
-
+const { errors, handleError } = useErrorHandler()
 
 const email = ref("")
 const password = ref("")
 const rememberMe = ref(false)
-
-const errors = ref({})
 const loading = ref(false)
 
-
-/* Load saved email */
+/* Load remember email */
 onMounted(() => {
-
-  const savedEmail =
-      localStorage.getItem("remember_email")
-
-  if (savedEmail) {
-
-    email.value = savedEmail
-    rememberMe.value = true
-
-  }
-
+  email.value = localStorage.getItem("remember_email") || ""
+  rememberMe.value = !!email.value
 })
 
+/* Clear field error */
+watch([email, password], () => errors.value = {})
 
-watch(email, () => {
-
-  delete errors.value.email
-  delete errors.value.general
-
-})
-
-watch(password, () => {
-
-  delete errors.value.password
-  delete errors.value.general
-
-})
-
-
+/* Login */
 const login = async () => {
-
-  errors.value = {}
   loading.value = true
+  errors.value = {}
 
   try {
+    const { data } = await AuthService.login(email.value, password.value)
+    AuthService.saveToken(data.token)
 
-    const res =
-        await AuthService.login(
-            email.value,
-            password.value
-        )
-
-    const token =
-        res.data.token
-
-    AuthService.saveToken(token)
-
-
-    if (rememberMe.value) {
-
-      localStorage.setItem(
-          "remember_email",
-          email.value
-      )
-
-    }
-    else {
-
-      localStorage.removeItem(
-          "remember_email"
-      )
-
-    }
+    rememberMe.value
+        ? localStorage.setItem("remember_email", email.value)
+        : localStorage.removeItem("remember_email")
 
     router.push("/home")
-
-  }
-  catch (err) {
-
-    const data =
-        err.response?.data
-
-    if (!data) {
-
-      errors.value.general =
-          "Server error"
-
-      return
-
-    }
-
-    if (data.validationErrors) {
-
-      errors.value =
-          { ...data.validationErrors }
-
-    }
-    else {
-
-      errors.value.general =
-          data.message
-
-    }
-
-  }
-  finally {
-
+  } catch (err) {
+    handleError(err)
+  } finally {
     loading.value = false
-
   }
-
 }
-
 </script>
 
-
 <style scoped>
-
-.form-control {
-  height: 45px;
-}
-
+.form-control,
 .btn {
   height: 45px;
+}
+.btn {
   font-weight: 600;
 }
 </style>
