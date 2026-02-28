@@ -27,4 +27,7 @@ public interface ContractsService {
     // Xóa contract
     void deleteContract(Integer contractId);
 
+    // Update lại trạng thái status
+    Contract updateContractStatus(Contract contract);
+
 }

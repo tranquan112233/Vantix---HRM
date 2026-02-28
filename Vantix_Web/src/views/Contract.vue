@@ -138,7 +138,6 @@ watch([() => form.value.startDate, () => form.value.type], ([newStart, newType])
   form.value.endDate = `${yyyy}-${mm}-${dd}`;
 });
 
-
 // --- METHODS CALL API THẬT ---
 const fetchContracts = async () => {
   loading.value = true;
@@ -210,8 +209,27 @@ const handleSubmit = async () => {
   }
 };
 
-// --- LOGIC XÓA HỢP ĐỒNG MỚI (CÓ POPUP) ---
+// --- LOGIC CẬP NHẬT TRẠNG THÁI HỢP ĐỒNG ---
+const toggleContractStatus = async (id) => {
+  try {
+    loading.value = true;
+    const response = await contractService.updateContractStatus(id);
 
+    // Gọi lại API fetch danh sách để table tự động cập nhật data mới nhất
+    await fetchContracts();
+
+    // Hiển thị thông báo thành công trả về từ Backend
+    showMessage(response.data || 'Cập nhật trạng thái thành công', 'success');
+  } catch (error) {
+    console.error("Lỗi khi cập nhật trạng thái:", error);
+    const errorMsg = error.response?.data || 'Không thể cập nhật trạng thái do lỗi hệ thống.';
+    showMessage(errorMsg, 'danger');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// --- LOGIC XÓA HỢP ĐỒNG MỚI (CÓ POPUP) ---
 // Bước 1: Mở popup xác nhận
 const confirmDeleteContract = (id) => {
   contractIdToDelete.value = id;
@@ -372,6 +390,10 @@ onMounted(() => {
                 }}</span></td>
               <td class="text-center">
                 <div class="action-menu">
+                  <button class="icon-btn" @click="toggleContractStatus(c.contractId)" title="Đổi trạng thái"
+                          :disabled="loading">
+                    🔄
+                  </button>
                   <button class="icon-btn" @click="viewAnnex(c.contractId)" title="Phụ lục">👁️</button>
                   <button class="icon-btn delete" @click="confirmDeleteContract(c.contractId)" title="Xóa"
                           :disabled="loading">

@@ -13,5 +13,9 @@ export default {
 
     deleteContract(id) {
         return api.delete(`${ENDPOINT}/deleteContract/${id}`);
+    },
+
+    updateContractStatus(id) {
+        return api.put(`${ENDPOINT}/updateContractStatus/${id}`);
     }
 }

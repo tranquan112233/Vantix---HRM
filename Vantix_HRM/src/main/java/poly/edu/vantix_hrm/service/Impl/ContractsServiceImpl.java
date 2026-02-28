@@ -7,6 +7,7 @@ import poly.edu.vantix_hrm.repository.ContractsRepository;
 import poly.edu.vantix_hrm.service.ContractsService;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -71,4 +72,25 @@ public class ContractsServiceImpl implements ContractsService {
         contractsRepository.deleteById(contractId);
     }
 
+    @Override
+    public Contract updateContractStatus(Contract c) {
+        if (c == null || c.getStatus() == null) {
+            return null;
+        }
+        if (c.getStatus() == Contract.ContractStatus.ACTIVE) {
+            c.setStatus(Contract.ContractStatus.EXPIRED);
+            return contractsRepository.save(c);
+        }
+        if (c.getStatus() == Contract.ContractStatus.EXPIRED) {
+            if (c.getType() != Contract.Type.INDEFINITE && c.getEndDate() != null) {
+                LocalDate currentDate = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+                if (currentDate.isAfter(c.getEndDate())) {
+                    throw new RuntimeException("Không thể khôi phục hợp đồng đã qua ngày kết thúc (" + c.getEndDate() + ").");
+                }
+            }
+            c.setStatus(Contract.ContractStatus.ACTIVE);
+            return contractsRepository.save(c);
+        }
+        return null;
+    }
 }

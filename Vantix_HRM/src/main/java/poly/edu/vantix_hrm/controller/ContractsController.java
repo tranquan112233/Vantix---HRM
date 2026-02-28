@@ -67,4 +67,21 @@ public class ContractsController {
             return ResponseEntity.internalServerError().body("Lỗi hệ thống khi xóa hợp đồng: " + e.getMessage());
         }
     }
+
+    @PutMapping("/updateContractStatus/{contractId}")
+    public ResponseEntity<?> updateContractStatus(@PathVariable Integer contractId) {
+        try {
+            Contract c = contractsService.isContractValid(contractId);
+            c = contractsService.updateContractStatus(c);
+            if (c == null) {
+                return ResponseEntity.badRequest().body("Dữ liệu trạng thái hợp đồng không hợp lệ!");
+            }
+            String msg = "Hợp đồng (" + c.getContractId() + ") được cập nhật trạng thái thành (" + c.getStatus() + ")";
+            return ResponseEntity.ok(msg);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống khi cập nhật status hợp đồng: " + e.getMessage());
+        }
+    }
 }
