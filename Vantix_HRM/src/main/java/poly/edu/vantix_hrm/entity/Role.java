@@ -1,24 +1,27 @@
 package poly.edu.vantix_hrm.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "roles")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+// Công dụng: Lưu vai trò người dùng (Admin, HR, Employee)
 public class Role {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "role_id")
-    private Integer id;
+    private Integer id; // ID vai trò
 
     @Column(name = "role_name", nullable = false, unique = true, length = 50)
-    @NotBlank(message = "Role name is required")
-    private String roleName;
+    private String roleName; // Tên vai trò
 
-    @Column(length = 255)
-    private String description;
+    @Column(name = "description", length = 255)
+    private String description; // Mô tả vai trò (Chứa các thông tin như quyền truy cập, v.v)
 }

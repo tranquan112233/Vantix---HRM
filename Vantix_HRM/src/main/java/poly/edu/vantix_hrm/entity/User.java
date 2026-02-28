@@ -1,54 +1,51 @@
 package poly.edu.vantix_hrm.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+// Công dụng: Tài khoản đăng nhập hệ thống
 public class User {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
-    private Integer id;
+    private Integer userId; // ID người dùng
 
-    @Column(nullable = false, unique = true, length = 50)
-    private String username;
+    @Column(name = "username", nullable = false, unique = true)
+    private String username; // Tên đăng nhập
 
-    @Column(unique = true, length = 100)
-    private String email;
+    @Column(name = "email", unique = true, nullable = false)
+    private String email; // Email đăng nhập / nhận thông báo
 
     @Column(name = "password_hash", nullable = false)
-    private String passwordHash;
+    private String passwordHash; // Mật khẩu đã mã hóa
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", nullable = false)
-    private Role role;
+    private Role role; // Vai trò người dùng
+
+    public enum UserStatus {ACTIVE, LOCKED} // Trạng thái (Hoạt động, Bị Khóa)
 
     @Enumerated(EnumType.STRING)
-    private UserStatus status = UserStatus.ACTIVE;
+    @Column(name = "status", nullable = false)
+    private UserStatus status = UserStatus.ACTIVE; // Trạng thái người dùng
 
     @Column(name = "last_login")
-    private LocalDateTime lastLogin;
+    private LocalDateTime lastLogin; // Lần đăng nhập gần nhất
 
-    @Column(updatable = false, name = "created_at")
-
-    private LocalDateTime createdAt;
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now(); // Ngày tạo
 
     @PrePersist
     protected void onCreate() {
-        if (status == null) {
-            status = UserStatus.ACTIVE;
-        }
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
-        }
+        createdAt = LocalDateTime.now();
     }
 
-    public enum UserStatus {
-        ACTIVE, // Hoạt động
-        LOCKED // Khóa
-    }
 }

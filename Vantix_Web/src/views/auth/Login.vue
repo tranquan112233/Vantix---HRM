@@ -1,105 +1,271 @@
 <template>
-  <div class="login-bg">
-    <img src="@/assets/img/removeBackgroundLogo.png" alt="Vantix HR" class="app-logo" />
 
-    <div class="auth-card">
-      <!-- LEFT -->
-      <div class="auth-left">
-        <h3 class="title">Chào mừng trở lại 👋</h3>
+  <div class="w-75 m-auto">
 
-        <p class="subtitle">
-          Rất vui khi được gặp lại bạn
+    <div class="card border-0">
+
+      <div class="card-body p-4">
+
+        <!-- TITLE -->
+        <h4 class="fw-bold mb-1">
+          Sign in
+        </h4>
+
+        <p class="text-muted small mb-4">
+          Enter your email and password to sign in
         </p>
+
+
+        <!-- GENERAL ERROR -->
+        <div
+            class="alert alert-danger py-2"
+            v-if="errors.general"
+        >
+          {{ errors.general }}
+        </div>
+
 
         <form @submit.prevent="login">
-          <div class="form-floating mb-3">
+
+          <!-- EMAIL -->
+          <div class="mb-3">
+
+            <label class="form-label fw-semibold">
+
+              Email
+              <span class="text-danger">*</span>
+
+            </label>
+
             <input
-                type="text"
+                v-model="email"
+                type="email"
                 class="form-control"
-                placeholder="Username"
-                v-model="form.username"
-                required
-            />
-            <label>Tên tài khoản</label>
+                :class="{ 'is-invalid': errors.email }"
+                placeholder="info@gmail.com"
+            >
+
+            <div class="invalid-feedback">
+              {{ errors.email }}
+            </div>
+
           </div>
 
-          <div class="form-floating mb-3">
+
+          <!-- PASSWORD -->
+          <div class="mb-3">
+
+            <label class="form-label fw-semibold">
+
+              Password
+              <span class="text-danger">*</span>
+
+            </label>
+
             <input
+                v-model="password"
                 type="password"
                 class="form-control"
-                placeholder="Password"
-                v-model="form.password"
-                required
-            />
-            <label>Mật khẩu</label>
+                :class="{ 'is-invalid': errors.password }"
+                placeholder="Enter your password"
+            >
+
+            <div class="invalid-feedback">
+              {{ errors.password }}
+            </div>
+
           </div>
 
-          <div class="d-flex justify-content-end mb-3">
-            <router-link to="/forgot-password" class="switch">
-              Quên mật khẩu?
+
+          <!-- REMEMBER + FORGOT -->
+          <div class="d-flex justify-content-between mb-3">
+
+            <div class="form-check">
+
+              <input
+                  v-model="rememberMe"
+                  type="checkbox"
+                  class="form-check-input"
+                  id="rememberMe"
+              >
+
+              <label class="form-check-label small">
+                Remember me
+              </label>
+
+            </div>
+
+
+            <router-link
+                to="/auth/forgot-password"
+                class="small text-decoration-none"
+            >
+              Forgot password?
             </router-link>
+
           </div>
 
-          <button class="btn-login" type="submit">
-            Đăng nhập
+
+          <!-- BUTTON -->
+          <button
+              class="btn btn-primary w-100"
+              :disabled="loading"
+          >
+
+            <span
+                v-if="loading"
+                class="spinner-border spinner-border-sm me-2"
+            ></span>
+
+            {{ loading ? "Signing in..." : "Sign in" }}
+
           </button>
 
-          <p v-if="error" class="text-danger mt-3 text-center">
-            {{ error }}
-          </p>
+
         </form>
 
-        <p class="trust-text">
-          🔒 Thông tin của bạn luôn được bảo mật
-        </p>
       </div>
 
-      <!-- RIGHT -->
-      <div class="auth-right">
-        <img :src="logo" alt="QR" />
-        <h4>Chào mừng bạn đến VANTIX</h4>
-        <p>Nền tảng quản lý nhân sự hiện đại</p>
-      </div>
     </div>
+
   </div>
+
 </template>
 
-<style scoped> .login-bg { min-height: 100vh; background-image: url("https://i.pinimg.com/1200x/76/a1/d5/76a1d5df2961390d07e44e640108addc.jpg"); background-size: cover; background-position: center; background-repeat: no-repeat; display: flex; align-items: center; justify-content: center; position: relative; } .app-logo { position: absolute; top: 0; left: 0; width: 120px; height: auto; z-index: 999; } .login-bg::before { content: ""; position: absolute; inset: 0; background: rgba(6, 12, 36, 0.65); } /* CARD (Discord style) */ .auth-card { position: relative; z-index: 1; width: 960px; max-width: 96%; display: flex; border-radius: 22px; overflow: hidden; background: rgba(16, 24, 52, 0.97); backdrop-filter: blur(14px); box-shadow: 0 35px 80px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(30, 136, 229, 0.18); color: #e3f2fd; } /* LEFT */ .auth-left { flex: 1; padding: 56px 64px; } .title { color: #1e88e5; font-size: 26px; font-weight: 600; } .subtitle { margin: 8px 0 32px; color: #b6ccff; font-size: 15px; } /* INPUT */ .form-floating .form-control { height: 56px; background: #0b132b; border: 1px solid #243b80; border-radius: 12px; color: #e3f2fd; } .form-floating .form-control:focus { background: #0b132b; border-color: #1e88e5; box-shadow: 0 0 0 0.18rem rgba(30, 136, 229, 0.35); } .form-floating label { color: #90caf9; } /* BUTTON */ .btn-login { width: 100%; height: 52px; border-radius: 12px; border: none; font-weight: 600; color: #fff; background: linear-gradient(135deg, #1e88e5, #1565c0); } .btn-login:hover { background: linear-gradient(135deg, #1565c0, #0d47a1); } /* TEXT */ .trust-text { margin-top: 18px; font-size: 13px; color: #90caf9; } .switch { margin-top: 16px; font-size: 14px; color: #9bbcff; } .switch a { color: #1e88e5; font-weight: 500; text-decoration: none; } .switch a:hover { text-decoration: underline; } /* RIGHT (QR) */ .auth-right { width: 340px; padding: 56px 40px; text-align: center; background: linear-gradient( 180deg, rgba(6, 12, 36, 0.95), rgba(2, 6, 23, 0.95) ); border-left: 1px solid rgba(30, 136, 229, 0.25); } .auth-right img { width: 180px; border-radius: 14px; margin-bottom: 20px; background: #fff; padding: 10px; } .auth-right h4 { color: #e3f2fd; margin-bottom: 8px; } .auth-right p { font-size: 14px; color: #b6ccff; } /* RESPONSIVE */ @media (max-width: 768px) { .auth-card { flex-direction: column; } .auth-right { display: none; } .auth-left { padding: 40px 28px; } } </style>
 
 <script setup>
-import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import AuthService from '@/services/auth.service'
 
-const router = useRouter()   // ← CỰC KỲ QUAN TRỌNG
-const error = ref(null)
+import { ref, watch, onMounted } from "vue"
+import { useRouter } from "vue-router"
+import AuthService from "@/services/auth.service.js"
 
-const form = reactive({
-  username: '',
-  password: ''
+const router = useRouter()
+
+
+const email = ref("")
+const password = ref("")
+const rememberMe = ref(false)
+
+const errors = ref({})
+const loading = ref(false)
+
+
+/* Load saved email */
+onMounted(() => {
+
+  const savedEmail =
+      localStorage.getItem("remember_email")
+
+  if (savedEmail) {
+
+    email.value = savedEmail
+    rememberMe.value = true
+
+  }
+
 })
 
+
+watch(email, () => {
+
+  delete errors.value.email
+  delete errors.value.general
+
+})
+
+watch(password, () => {
+
+  delete errors.value.password
+  delete errors.value.general
+
+})
+
+
 const login = async () => {
+
+  errors.value = {}
+  loading.value = true
+
   try {
-    const res = await AuthService.login(form)
 
-    localStorage.setItem('token', res.data.token)
-    localStorage.setItem(
-        'user',
-        JSON.stringify({
-          username: res.data.username,
-          role: res.data.role
-        })
-    )
+    const res =
+        await AuthService.login(
+            email.value,
+            password.value
+        )
 
-    // redirect theo role
-    if (res.data.role === 'ADMIN') {
-      router.push('/admin')
-    } else {
-      router.push('/home')
+    const token =
+        res.data.token
+
+    AuthService.saveToken(token)
+
+
+    if (rememberMe.value) {
+
+      localStorage.setItem(
+          "remember_email",
+          email.value
+      )
+
     }
-  } catch (e) {
-    error.value = e.response?.data?.message || 'Login thất bại'
+    else {
+
+      localStorage.removeItem(
+          "remember_email"
+      )
+
+    }
+
+    router.push("/home")
+
   }
+  catch (err) {
+
+    const data =
+        err.response?.data
+
+    if (!data) {
+
+      errors.value.general =
+          "Server error"
+
+      return
+
+    }
+
+    if (data.validationErrors) {
+
+      errors.value =
+          { ...data.validationErrors }
+
+    }
+    else {
+
+      errors.value.general =
+          data.message
+
+    }
+
+  }
+  finally {
+
+    loading.value = false
+
+  }
+
 }
+
 </script>
+
+
+<style scoped>
+
+.form-control {
+  height: 45px;
+}
+
+.btn {
+  height: 45px;
+  font-weight: 600;
+}
+</style>

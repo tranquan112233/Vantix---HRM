@@ -1,24 +1,48 @@
-import api from './axios.js'
+import api from "@/services/axios";
 
-export default {
-    login(data) {
-        return api.post('/auth/login', data)
-    },
+class AuthService {
 
-    forgotPassword(data) {
-        return api.post('/auth/forgot-password', data)
-    },
+    login(email, password) {
 
-    resetPassword(data) {
-        return api.post('/auth/reset-password', data)
-    },
+        return api.post("/auth/login", {
+            email: email,
+            password: password
+        });
+    }
 
     logout() {
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-    },
+        localStorage.removeItem("token");
+    }
 
-    getUser() {
-        return JSON.parse(localStorage.getItem('user'))
+    getToken() {
+        return localStorage.getItem("token");
+    }
+
+    saveToken(token) {
+        localStorage.setItem("token", token);
+    }
+
+    forgotPassword(email) {
+        return api.post(`/auth/forgot-password`,
+            { email }
+        )
+    }
+
+    verifyOtp(email, otp) {
+        return api.post(`/auth/verify-otp`,
+            {email, otp})
+    }
+
+    resetPassword(resetToken, newPassword, confirmPassword) {
+        return api.post(`auth/reset-password`,
+            {resetToken, newPassword, confirmPassword}
+        )
+
+    }
+
+    isLoggedIn() {
+        return !!this.getToken();
     }
 }
+
+export default new AuthService();
