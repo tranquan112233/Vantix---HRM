@@ -9,6 +9,7 @@ import Home from '@/views/user/Home.vue'
 import Profile from '@/views/user/Profile.vue'
 import ChangePassword from "@/views/user/ChangePassword.vue"
 import Attendance from "@/views/Attendance.vue"
+import LeaveRequest from "@/views/user/LeaveRequest.vue";
 
 // Admin pages
 import Dashboard from '@/views/admin/Dashboard.vue'
@@ -72,6 +73,11 @@ const routes = [
                 path: 'attendance',
                 name: 'attendance',
                 component: Attendance
+            },
+            {
+                path: 'leaverequest',
+                name: 'leaverequest',
+                component: LeaveRequest
             }
         ]
     },

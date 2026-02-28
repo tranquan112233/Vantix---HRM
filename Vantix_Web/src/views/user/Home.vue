@@ -45,7 +45,7 @@ const features = [
   {
     title: 'Nghỉ phép',
     icon: 'bi-calendar-check',
-    route: '/leave'
+    route: '/leaverequest'
   },
   {
     title: 'Thông báo',
