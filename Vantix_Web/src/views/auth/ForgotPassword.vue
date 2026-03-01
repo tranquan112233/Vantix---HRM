@@ -1,53 +1,104 @@
+<template>
+  <div class="w-75 m-auto">
+    <div class="card border-0">
+      <div class="card-body p-4">
+
+        <h4 class="fw-bold mb-1">Forgot Password</h4>
+        <p class="text-muted small mb-4">
+          Enter your email to receive OTP
+        </p>
+
+        <!-- ALERT -->
+        <div v-if="errors.general" class="alert alert-danger py-2">
+          {{ errors.general }}
+        </div>
+
+        <div v-if="success" class="alert alert-success py-2">
+          {{ success }}
+        </div>
+
+        <form @submit.prevent="submit">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email</label>
+
+            <input
+                v-model="email"
+                type="email"
+                class="form-control"
+                :class="{ 'is-invalid': errors.email }"
+            />
+
+            <div class="invalid-feedback">
+              {{ errors.email }}
+            </div>
+          </div>
+
+          <button class="btn btn-primary w-100" :disabled="loading">
+            <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
+            Send OTP
+          </button>
+
+        </form>
+
+        <div class="text-center mt-3">
+          <router-link to="/auth/login">
+            Back to login
+          </router-link>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</template>
+
 <script setup>
-import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import AuthService from '@/services/auth.service'
+import { ref, watch } from "vue"
+import { useRouter } from "vue-router"
+import AuthService from "@/services/auth.service"
+import { useErrorHandler } from "@/composables/useErrorHandler"
 
 const router = useRouter()
-const loading = ref(false)
-const error = ref(null)
-const info = ref(null)
+const { errors, handleError } = useErrorHandler()
 
-const form = reactive({
-  email: ''
-})
+const email = ref("")
+const success = ref("")
+const loading = ref(false)
+
+/* Clear error when typing */
+watch(email, () => errors.value = {})
 
 const submit = async () => {
-  error.value = null
-  info.value = null
   loading.value = true
+  success.value = ""
+  errors.value = {}
+
   try {
-    await AuthService.forgotPassword({ email: form.email })
-    info.value = 'Nếu email tồn tại, hệ thống đã gửi mã xác nhận.'
-    router.push({ name: 'reset-password', query: { email: form.email } })
-  } catch (e) {
-    error.value = e.response?.data?.message || 'Gửi mã thất bại'
+    await AuthService.forgotPassword(email.value)
+
+    success.value = "OTP sent to your email"
+
+    setTimeout(() => {
+      router.push({
+        path: "/auth/verify-otp",
+        query: { email: email.value }
+      })
+    }, 800)
+
+  } catch (err) {
+    handleError(err)
   } finally {
     loading.value = false
   }
 }
 </script>
 
-<template>
-  <div class="container py-5" style="max-width: 520px;">
-    <h3 class="mb-3">Quên mật khẩu</h3>
-
-    <div class="alert alert-info" v-if="info">{{ info }}</div>
-    <div class="alert alert-danger" v-if="error">{{ error }}</div>
-
-    <form @submit.prevent="submit">
-      <div class="mb-3">
-        <label class="form-label">Email</label>
-        <input v-model="form.email" type="email" class="form-control" required />
-      </div>
-
-      <button class="btn btn-primary w-100" :disabled="loading">
-        {{ loading ? 'Đang gửi...' : 'Gửi mã xác nhận' }}
-      </button>
-
-      <div class="mt-3 text-center">
-        <router-link to="/">Quay lại đăng nhập</router-link>
-      </div>
-    </form>
-  </div>
-</template>
+<style scoped>
+.form-control,
+.btn {
+  height: 45px;
+}
+.btn {
+  font-weight: 600;
+}
+</style>

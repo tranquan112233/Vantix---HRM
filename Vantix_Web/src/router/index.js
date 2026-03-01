@@ -1,167 +1,111 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from "vue-router"
+import { getUser } from "@/utils/jwtDecode"
 
-// Layouts
-import UserLayout from '@/layouts/UserLayout.vue'
-import AdminLayout from '@/layouts/AdminLayout.vue'
+/* ================= LAYOUT ================= */
+import MainLayout from "@/layouts/MainLayout.vue"
+import AuthLayout from "@/layouts/AuthLayout.vue"
 
-// User pages
-import Home from '@/views/user/Home.vue'
-import Profile from '@/views/user/Profile.vue'
-import ChangePassword from "@/views/user/ChangePassword.vue"
-import Attendance from "@/views/Attendance.vue"
-
-// Admin pages
-import Dashboard from '@/views/admin/Dashboard.vue'
-import UserManagement from '@/views/admin/UserManagement.vue'
-import DepartmentManagement from "@/views/admin/DepartmentManagement.vue"
-import EmployeeManagement from "@/views/admin/EmployeeManagement.vue"
-
-// Auth
-import Login from '@/views/auth/Login.vue'
+/* ================= AUTH VIEWS ================= */
+import Login from "@/views/auth/Login.vue"
 import ForgotPassword from "@/views/auth/ForgotPassword.vue"
+import VerifyOtp from "@/views/auth/VerifyOtp.vue"
 import ResetPassword from "@/views/auth/ResetPassword.vue"
 
+/* ================= MAIN VIEWS ================= */
+import Dashboard from "@/views/main/Dashboard.vue"
+import UserManagement from "@/views/main/UserManagement.vue"
+import RoleManagement from "@/views/main/RoleManagement.vue"
+import Forbidden from "@/views/errors/Forbidden.vue"
+
+/* ================= ROUTES ================= */
 const routes = [
 
-    // ================= AUTH =================
+    /* ========= AUTH ========= */
     {
-        path: '/login',
-        name: 'login',
-        component: Login,
-        meta: { public: true }
-    },
-    {
-        path: '/forgot-password',
-        name: 'forgot-password',
-        component: ForgotPassword,
-        meta: { public: true }
-    },
-    {
-        path: '/reset-password',
-        name: 'reset-password',
-        component: ResetPassword,
-        meta: { public: true }
+        path: "/auth",
+        component: AuthLayout,
+        children: [
+            {
+                path: "login",
+                component: Login,
+                meta: { guestOnly: true }
+            },
+            { path: "forgot-password", component: ForgotPassword },
+            { path: "verify-otp", component: VerifyOtp },
+            { path: "reset-password", component: ResetPassword }
+        ]
     },
 
-    // ================= USER =================
+    /* ========= MAIN ========= */
     {
-        path: '/',
-        component: UserLayout,
+        path: "/",
+        component: MainLayout,
         meta: { requiresAuth: true },
         children: [
             {
-                path: '',
-                redirect: '/home'
-            },
-            {
-                path: 'home',
-                name: 'home',
-                component: Home
-            },
-            {
-                path: 'profile',
-                name: 'profile',
-                component: Profile
-            },
-            {
-                path: 'change-password',
-                name: 'change-password',
-                component: ChangePassword
-            },
-            {
-                path: 'attendance',
-                name: 'attendance',
-                component: Attendance
-            }
-        ]
-    },
-
-    // ================= ADMIN =================
-    {
-        path: '/admin',
-        component: AdminLayout,
-        meta: { requiresAuth: true, role: 'ADMIN' },
-        children: [
-            {
-                path: '',
-                name: 'admin-dashboard',
+                path: "dashboard",
                 component: Dashboard
             },
             {
-                path: 'users',
-                name: 'admin-users',
-                component: UserManagement
+                path: "users",
+                component: UserManagement,
+                meta: { roles: ["ADMIN"] }
             },
             {
-                path: 'departments',
-                name: 'admin-departments',
-                component: DepartmentManagement
-            },
-            {
-                path: 'employees',
-                name: 'admin-employees',
-                component: EmployeeManagement
+                path: "roles",
+                component: RoleManagement,
+                meta: { roles: ["ADMIN"] }
             }
         ]
     },
 
-    // ================= NOT FOUND =================
+    /* ========= ERROR ========= */
     {
-        path: '/:pathMatch(.*)*',
-        redirect: '/home'
+        path: "/403",
+        component: Forbidden
+    },
+
+    /* ========= DEFAULT ========= */
+    {
+        path: "/",
+        redirect: "/dashboard"
+    },
+    {
+        path: "/:pathMatch(.*)*",
+        redirect: "/dashboard"
     }
 ]
 
 const router = createRouter({
-    history: createWebHistory(import.meta.env.BASE_URL),
+    history: createWebHistory(),
     routes
 })
 
+/* ================= ROUTE GUARD ================= */
+router.beforeEach((to) => {
 
-// ================= AUTH HELPER =================
-function getAuth() {
-    const token = localStorage.getItem('token')
-    const rawUser = localStorage.getItem('user')
+    const user = getUser()
 
-    if (!token || !rawUser) return null
+    const requiresAuth = to.matched.some(r => r.meta.requiresAuth)
+    const guestOnly = to.matched.some(r => r.meta.guestOnly)
+    const roles = to.meta.roles
 
-    try {
-        const user = JSON.parse(rawUser)
-        return {
-            token,
-            username: user.username,
-            role: user.role?.toUpperCase()
-        }
-    } catch {
-        return null
-    }
-}
-
-
-// ================= ROUTE GUARD =================
-router.beforeEach((to, from, next) => {
-    const auth = getAuth()
-    const isAuthenticated = !!auth
-
-    // Không login mà vào trang cần auth
-    if (to.meta.requiresAuth && !isAuthenticated) {
-        return next('/login')
+    // 1️⃣ Cần login nhưng chưa login
+    if (requiresAuth && !user) {
+        return { path: "/auth/login" }
     }
 
-    // Đã login mà vào login
-    if (to.meta.public && isAuthenticated) {
-        if (auth.role === 'ADMIN') {
-            return next('/admin')
-        }
-        return next('/home')
+    // 2️⃣ Đã login mà vào login
+    if (guestOnly && user) {
+        return { path: "/dashboard" }
     }
 
-    // Kiểm tra role ADMIN
-    if (to.meta.role === 'ADMIN' && auth?.role !== 'ADMIN') {
-        return next('/home')
+    // 3️⃣ Kiểm tra role
+    if (roles && !roles.includes(user?.role)) {
+        return { path: "/403" }
     }
 
-    next()
+    return true
 })
 
 export default router
