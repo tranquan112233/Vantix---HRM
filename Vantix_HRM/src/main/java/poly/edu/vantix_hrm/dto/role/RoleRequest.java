@@ -5,7 +5,7 @@ import lombok.*;
 
 @Getter
 @Setter
-public class CreateRoleRequest {
+public class RoleRequest {
 
     @NotBlank(message = "Role name is required")
     private String roleName;

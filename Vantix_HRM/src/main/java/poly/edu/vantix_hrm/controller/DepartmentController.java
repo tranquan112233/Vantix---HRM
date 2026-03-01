@@ -5,68 +5,68 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import poly.edu.vantix_hrm.dto.role.RoleRequest;
-import poly.edu.vantix_hrm.dto.role.RoleResponse;
-import poly.edu.vantix_hrm.service.RoleService;
+import poly.edu.vantix_hrm.dto.department.DepartmentRequest;
+import poly.edu.vantix_hrm.dto.department.DepartmentResponse;
+import poly.edu.vantix_hrm.service.DepartmentService;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/roles")
+@RequestMapping("/api/departments")
 @RequiredArgsConstructor
-public class RoleController {
+public class DepartmentController {
 
-    private final RoleService roleService;
+    private final DepartmentService departmentService;
 
     // =====================================================
-    // GET ALL ROLES
+    // GET ALL DEPARTMENTS
     // =====================================================
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<RoleResponse>> getAll() {
-        return ResponseEntity.ok(roleService.findAll());
+    public ResponseEntity<List<DepartmentResponse>> getAll() {
+        return ResponseEntity.ok(departmentService.findAll());
     }
 
     // =====================================================
-    // GET ROLE BY ID
+    // GET DEPARTMENT BY ID
     // =====================================================
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<RoleResponse> getById(
+    public ResponseEntity<DepartmentResponse> getById(
             @PathVariable Integer id
     ) {
-        return ResponseEntity.ok(roleService.findById(id));
+        return ResponseEntity.ok(departmentService.findById(id));
     }
 
     // =====================================================
-    // CREATE ROLE
+    // CREATE DEPARTMENT
     // =====================================================
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<RoleResponse> create(
-            @Valid @RequestBody RoleRequest request
+    public ResponseEntity<DepartmentResponse> create(
+            @Valid @RequestBody DepartmentRequest request
     ) {
-        return ResponseEntity.ok(roleService.create(request));
+        return ResponseEntity.ok(departmentService.create(request));
     }
 
     // =====================================================
-    // UPDATE ROLE
+    // UPDATE DEPARTMENT
     // =====================================================
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<RoleResponse> update(
+    public ResponseEntity<DepartmentResponse> update(
             @PathVariable Integer id,
-            @Valid @RequestBody RoleRequest request
+            @Valid @RequestBody DepartmentRequest request
     ) {
-        return ResponseEntity.ok(roleService.update(id, request));
+        return ResponseEntity.ok(departmentService.update(id, request));
     }
 
     // =====================================================
-    // DELETE ROLE
+    // DELETE DEPARTMENT
     // =====================================================
 
     @DeleteMapping("/{id}")
@@ -74,7 +74,7 @@ public class RoleController {
     public ResponseEntity<Void> delete(
             @PathVariable Integer id
     ) {
-        roleService.delete(id);
+        departmentService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

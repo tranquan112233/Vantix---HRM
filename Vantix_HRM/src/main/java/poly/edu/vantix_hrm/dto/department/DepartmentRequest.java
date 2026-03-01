@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class UpdateDepartmentRequest {
+public class DepartmentRequest {
 
     @NotBlank(message = "Department name is required")
     private String departmentName;

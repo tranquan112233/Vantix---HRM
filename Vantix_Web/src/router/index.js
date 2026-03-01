@@ -17,6 +17,8 @@ import UserManagement from "@/views/main/UserManagement.vue"
 import RoleManagement from "@/views/main/RoleManagement.vue"
 import Forbidden from "@/views/errors/Forbidden.vue"
 import DepartmentManagement from "@/views/main/DepartmentManagement.vue";
+import PositionManagement from "@/views/main/PositionManagement.vue";
+import EmployeeManagement from "@/views/main/EmployeeManagement.vue";
 
 /* ================= ROUTES ================= */
 const routes = [
@@ -60,6 +62,16 @@ const routes = [
             {
                 path: "departments",
                 component: DepartmentManagement,
+                meta: { roles: ["ADMIN"] }
+            },
+            {
+                path: "positions",
+                component: PositionManagement,
+                meta: { roles: ["ADMIN"] }
+            },
+            {
+                path: "employees",
+                component: EmployeeManagement,
                 meta: { roles: ["ADMIN"] }
             }
         ]

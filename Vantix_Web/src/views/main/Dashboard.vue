@@ -67,20 +67,45 @@
 <script setup>
 import { ref, onMounted } from "vue"
 import Chart from "chart.js/auto"
+import departmentService from "@/services/department.service.js"
 
 const lineChart = ref(null)
 const barChart = ref(null)
 const pieChart = ref(null)
 
-/* Fake Data (sau này thay bằng API) */
+/* Cards */
 const cards = ref([
   { title: "Total Employees", value: 320, icon: "bi bi-people" },
-  { title: "Departments", value: 6, icon: "bi bi-building" },
+  { title: "Departments", value: 0, icon: "bi bi-building" }, // 👈 sẽ update bằng API
   { title: "Active Employees", value: 280, icon: "bi bi-person-check" },
   { title: "Inactive Employees", value: 40, icon: "bi bi-person-x" }
 ])
 
+/* ================= FETCH DEPARTMENT COUNT ================= */
+async function fetchDepartmentCount() {
+  try {
+    const { data } = await departmentService.getAll()
+
+    // data là list departments
+    const count = data.length
+
+    // update card Departments
+    const departmentCard = cards.value.find(
+        c => c.title === "Departments"
+    )
+
+    if (departmentCard) {
+      departmentCard.value = count
+    }
+
+  } catch (err) {
+    console.error("Fetch department error:", err)
+  }
+}
+
 onMounted(() => {
+
+  fetchDepartmentCount() // 👈 gọi API
 
   /* LINE CHART */
   new Chart(lineChart.value, {

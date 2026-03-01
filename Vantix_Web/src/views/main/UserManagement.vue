@@ -171,7 +171,7 @@
     </div>
 
     <!-- MODAL -->
-    <div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal fade" data-bs-backdrop="static" id="userModal" tabindex="-1">
       <div class="modal-dialog">
         <div class="modal-content rounded-4 border-0 shadow">
 

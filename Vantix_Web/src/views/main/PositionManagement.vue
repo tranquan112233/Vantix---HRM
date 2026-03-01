@@ -7,17 +7,17 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
           <div>
             <h4 class="fw-bold mb-1">
-              <i class="bi bi-shield-lock me-2 text-primary"></i>
-              Role Management
+              <i class="bi bi-briefcase-fill me-2 text-primary"></i>
+              Position Management
             </h4>
             <small class="text-muted">
-              Manage system roles and permissions
+              Manage company positions
             </small>
           </div>
 
           <button class="btn btn-primary" @click="openAdd">
             <i class="bi bi-plus-lg"></i>
-            Add Role
+            Add Position
           </button>
         </div>
 
@@ -51,19 +51,14 @@
           <table class="table align-middle">
             <thead>
             <tr>
-              <th @click="sortBy('id')" class="sortable">
+              <th @click="sortBy('positionId')" class="sortable">
                 #
-                <i :class="getSortIcon('id')" class="ms-1"></i>
+                <i :class="getSortIcon('positionId')" class="ms-1"></i>
               </th>
 
-              <th @click="sortBy('name')" class="sortable">
-                Role
-                <i :class="getSortIcon('name')" class="ms-1"></i>
-              </th>
-
-              <th @click="sortBy('description')" class="sortable">
-                Description
-                <i :class="getSortIcon('description')" class="ms-1"></i>
+              <th @click="sortBy('positionName')" class="sortable">
+                Position Name
+                <i :class="getSortIcon('positionName')" class="ms-1"></i>
               </th>
 
               <th class="text-end">Action</th>
@@ -71,25 +66,24 @@
             </thead>
 
             <tbody>
-            <tr v-for="(role, index) in paginatedData" :key="role.id">
+            <tr v-for="(position, index) in paginatedData" :key="position.positionId">
               <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
-              <td class="fw-semibold">{{ role.roleName }}</td>
-              <td class="text-muted">{{ role.description }}</td>
+              <td class="fw-semibold">{{ position.positionName }}</td>
 
               <td class="text-end">
-                <button class="action-btn edit-btn" @click="openEdit(role)">
+                <button class="action-btn edit-btn" @click="openEdit(position)">
                   <i class="bi bi-pencil"></i>
                 </button>
 
-                <button class="action-btn delete-btn" @click="removeRole(role.id)">
+                <button class="action-btn delete-btn" @click="removePosition(position.positionId)">
                   <i class="bi bi-trash"></i>
                 </button>
               </td>
             </tr>
 
             <tr v-if="paginatedData.length === 0">
-              <td colspan="4" class="text-center text-muted py-4">
-                No roles found
+              <td colspan="3" class="text-center text-muted py-4">
+                No positions found
               </td>
             </tr>
             </tbody>
@@ -127,39 +121,35 @@
     </div>
 
     <!-- MODAL -->
-    <div class="modal fade" data-bs-backdrop="static" id="roleModal" tabindex="-1">
+    <div class="modal fade" data-bs-backdrop="static" id="positionModal" tabindex="-1">
       <div class="modal-dialog">
         <div class="modal-content rounded-4 border-0 shadow">
           <div class="modal-header">
             <h5 class="modal-title">
-              {{ isEdit ? "Edit Role" : "Create Role" }}
+              {{ isEdit ? "Edit Position" : "Create Position" }}
             </h5>
             <button type="button" class="btn-close" @click="closeModal"></button>
           </div>
 
           <div class="modal-body">
             <div class="mb-3">
-              <label class="form-label fw-semibold">Role Name</label>
-              <input type="text" class="form-control" :class="{ 'is-invalid': errors.roleName || errors.general }" v-model="form.roleName"
-                     placeholder="Enter role name"
+              <label class="form-label fw-semibold">Position Name</label>
+              <input
+                  type="text"
+                  class="form-control"
+                  :class="{ 'is-invalid': errors.positionName || errors.general }"
+                  v-model="form.positionName"
+                  placeholder="Enter position name"
               />
               <div class="invalid-feedback">
-                {{ errors.roleName || errors.general }}
-              </div>
-            </div>
-
-            <div>
-              <label class="form-label fw-semibold">Description</label>
-              <textarea class="form-control" :class="{ 'is-invalid': errors.description }" rows="2" v-model="form.description"></textarea>
-              <div class="invalid-feedback">
-                {{ errors.description }}
+                {{ errors.positionName || errors.general }}
               </div>
             </div>
           </div>
 
           <div class="modal-footer border-0">
             <button class="btn btn-light" @click="closeModal">Cancel</button>
-            <button class="btn btn-primary" @click="saveRole">
+            <button class="btn btn-primary" @click="savePosition">
               {{ isEdit ? "Update" : "Save" }}
             </button>
           </div>
@@ -171,61 +161,41 @@
 </template>
 
 <script setup>
-/* =====================================================
-   IMPORT
-===================================================== */
 import { ref, watch, onMounted } from "vue"
 import * as bootstrap from "bootstrap"
-import roleService from "@/services/role.service.js"
+import positionService from "@/services/position.service.js"
 
 import { useToast } from "@/composables/useToast"
 import { useSearch } from "@/composables/useSearch"
 import { useSort } from "@/composables/useSort"
 import { usePagination } from "@/composables/usePagination"
-import {useErrorHandler} from "@/composables/useErrorHandler.js";
+import { useErrorHandler } from "@/composables/useErrorHandler"
 
-/* =====================================================
-   STATE
-===================================================== */
-
-// Danh sách role
-const roles = ref([])
-
-// Loading khi gọi API
+const positions = ref([])
 const loading = ref(false)
 
-// Toast notification
 const { showToast } = useToast()
 
-// Search & pagination
 const search = ref("")
 const pageSize = ref(5)
 
-// Form + mode
 const isEdit = ref(false)
 const form = ref({
-  id: null,
-  roleName: "",
-  description: ""
+  positionId: null,
+  positionName: ""
 })
 
-// Error
 const { errors, handleError } = useErrorHandler()
 
-// Bootstrap modal instance
 let modalInstance = null
 
-/* =====================================================
-   FETCH DATA
-===================================================== */
-
-async function fetchRoles() {
+async function fetchPositions() {
   loading.value = true
   try {
-    const { data } = await roleService.getAll()
-    roles.value = data
+    const { data } = await positionService.getAll()
+    positions.value = data
   } catch (err) {
-    console.error("Fetch roles error:", err)
+    console.error(err)
   } finally {
     loading.value = false
   }
@@ -233,28 +203,19 @@ async function fetchRoles() {
 
 onMounted(() => {
   modalInstance = new bootstrap.Modal(
-      document.getElementById("roleModal")
+      document.getElementById("positionModal")
   )
-  fetchRoles()
+  fetchPositions()
 })
 
-/* =====================================================
-   SEARCH
-===================================================== */
+/* SEARCH */
+const { filteredData } = useSearch(positions, search)
 
-const { filteredData } = useSearch(roles, search)
-
-/* =====================================================
-   SORT
-===================================================== */
-
+/* SORT */
 const { sortedData, sortBy, getSortIcon } =
-    useSort(filteredData, "id")
+    useSort(filteredData, "positionId")
 
-/* =====================================================
-   PAGINATION
-===================================================== */
-
+/* PAGINATION */
 const {
   currentPage,
   totalPages,
@@ -266,87 +227,70 @@ const {
   prevPage
 } = usePagination(sortedData, pageSize)
 
-// Reset về trang 1 khi search thay đổi
 watch(search, () => (currentPage.value = 1))
 
-/* =====================================================
-   FORM HELPER
-===================================================== */
-
-// Reset form
 function resetForm() {
-  form.value = { id: null, roleName: "", description: "" }
+  form.value = { positionId: null, positionName: "" }
   errors.value = {}
 }
 
-// Xóa lỗi khi user nhập lại
 watch(form, () => (errors.value = {}), { deep: true })
 
-/* =====================================================
-   CRUD
-===================================================== */
-
-// Mở modal thêm mới
 function openAdd() {
   isEdit.value = false
   resetForm()
   modalInstance.show()
 }
 
-// Mở modal chỉnh sửa
-function openEdit(role) {
+function openEdit(position) {
   isEdit.value = true
-  form.value = { ...role }
+  form.value = { ...position }
   errors.value = {}
   modalInstance.show()
 }
 
-// Lưu role (create / update)
-async function saveRole() {
+async function savePosition() {
   errors.value = {}
 
   try {
     if (isEdit.value) {
-      await roleService.update(form.value.id, form.value)
-      showToast("Role updated successfully!", "success")
+      await positionService.update(form.value.positionId, form.value)
+      showToast("Position updated successfully!", "success")
     } else {
-      await roleService.create(form.value)
-      showToast("Role created successfully!", "success")
+      await positionService.create(form.value)
+      showToast("Position created successfully!", "success")
     }
 
     modalInstance.hide()
-    fetchRoles()
+    fetchPositions()
 
   } catch (err) {
     handleError(err)
   }
 }
 
-// Xóa role
-async function removeRole(id) {
+async function removePosition(id) {
   if (!confirm("Are you sure?")) return
 
   try {
-    await roleService.delete(id)
-    fetchRoles()
-    showToast("Role deleted successfully!", "success")
+    await positionService.delete(id)
+    fetchPositions()
+    showToast("Position deleted successfully!", "success")
   } catch (err) {
-    console.error("Delete error:", err)
+    console.error(err)
   }
 }
 
-// Đóng modal
 function closeModal() {
   modalInstance.hide()
 }
-
 </script>
 
 <style scoped>
 .sortable {
   cursor: pointer;
 }
-/* ACTION BUTTON BASE */
+
 .action-btn {
   border: none;
   background: transparent;
@@ -357,7 +301,6 @@ function closeModal() {
   box-shadow: none;
 }
 
-/* remove bootstrap focus */
 .action-btn:focus,
 .action-btn:active {
   outline: none;
@@ -365,7 +308,6 @@ function closeModal() {
   background: transparent;
 }
 
-/* EDIT */
 .edit-btn {
   color: #6c757d;
 }
@@ -375,7 +317,6 @@ function closeModal() {
   transform: scale(1.15);
 }
 
-/* DELETE */
 .delete-btn {
   color: #6c757d;
 }

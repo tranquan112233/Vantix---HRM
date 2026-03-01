@@ -30,7 +30,7 @@ public class RoleService {
         return mapToResponse(role);
     }
 
-    public RoleResponse create(CreateRoleRequest request) {
+    public RoleResponse create(RoleRequest request) {
 
         String roleName = request.getRoleName().trim().toUpperCase();
 
@@ -48,7 +48,7 @@ public class RoleService {
         return mapToResponse(role);
     }
 
-    public RoleResponse update(Integer id, UpdateRoleRequest request) {
+    public RoleResponse update(Integer id, RoleRequest request) {
 
         Role role = roleRepository.findById(id)
                 .orElseThrow(() ->

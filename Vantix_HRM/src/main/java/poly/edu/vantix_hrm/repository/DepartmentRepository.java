@@ -7,7 +7,9 @@ import poly.edu.vantix_hrm.entity.Department;
 import java.util.Optional;
 
 @Repository
-public interface DepartmentRespository extends JpaRepository<Department, Integer> {
+public interface DepartmentRepository extends JpaRepository<Department, Integer> {
+
+    boolean existsByDepartmentName(String departmentName);
 
     Optional<Department> findByDepartmentName(String departmentName);
 }
