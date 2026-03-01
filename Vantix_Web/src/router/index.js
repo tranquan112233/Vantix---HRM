@@ -6,7 +6,7 @@ import AdminLayout from '@/layouts/AdminLayout.vue'
 
 // User pages
 import Home from '@/views/user/Home.vue'
-import Profile from '@/views/user/Profile.vue'
+import Profile from "@/views/user/Profile.vue";
 import ChangePassword from "@/views/user/ChangePassword.vue"
 import Attendance from "@/views/Attendance.vue"
 import LeaveRequest from "@/views/user/LeaveRequest.vue";

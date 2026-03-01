@@ -6,9 +6,14 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import lombok.RequiredArgsConstructor;
+import poly.edu.vantix_hrm.security.JwtAuthenticationFilter;
 
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
+    private final JwtAuthenticationFilter jwtFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -17,11 +22,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())   // ❌ tắt csrf
                 .cors(cors -> {})               // ✅ bật cors
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/**",
+                                         "/avatars/**").permitAll()
+                        .requestMatchers("/api/profile/avatar").authenticated()
                         .requestMatchers("/api/leave-types/**").permitAll() // ✅ thêm dòng này
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form.disable()); // ❌ tắt form login mặc định
+
+        http.addFilterBefore(jwtFilter,
+                UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

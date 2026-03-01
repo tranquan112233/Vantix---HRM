@@ -70,6 +70,7 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthService from '@/services/auth.service'
+import authStore from '@/stores/authStore'
 
 const router = useRouter()   // ← CỰC KỲ QUAN TRỌNG
 const error = ref(null)
@@ -91,6 +92,12 @@ const login = async () => {
           role: res.data.role
         })
     )
+
+    // ⭐ load profile từ backend
+    await authStore.loadUser()
+
+    // lấy user từ store
+    const user = authStore.state.user
 
     // redirect theo role
     if (res.data.role === 'ADMIN') {

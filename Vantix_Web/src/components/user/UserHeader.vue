@@ -23,14 +23,14 @@
 
       <ul class="dropdown-menu dropdown-menu-end shadow">
         <li>
-          <router-link class="dropdown-item" to="/home/profile">
+          <router-link class="dropdown-item" to="/profile">
             <i class="bi bi-person-circle me-2"></i>
             Hồ sơ cá nhân
           </router-link>
         </li>
 
         <li>
-          <router-link class="dropdown-item" to="/home/change-password">
+          <router-link class="dropdown-item" to="/change-password">
             <i class="bi bi-key-fill me-2"></i>
             Đổi mật khẩu
           </router-link>
