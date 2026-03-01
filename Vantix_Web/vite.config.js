@@ -7,12 +7,12 @@ export default defineConfig({
   plugins: [vue()],
     resolve: {
         alias: {
-            '@': path.resolve(__dirname, './src')
+            '@': path.resolve(__dirname, 'src')
         }
     },
     server: {
-        proxy: {
-            '/api': 'http://localhost:8080'
-        }
+      proxy: {
+          '/api': 'http://localhost:8080'
+      }
     }
 })

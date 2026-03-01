@@ -1,37 +1,43 @@
-import api from "@/services/axios";
+import api from './axios.js'
 
-class userService {
-
-    // ================= GET ALL =================
+export default {
     getAll() {
-        return api.get("/users")
-    }
+        return api.get('/users')
+    },
 
-    // ================= GET BY ID =================
     getById(id) {
         return api.get(`/users/${id}`)
-    }
+    },
 
-    // ================= CREATE =================
     create(data) {
-        return api.post("/users", data)
-    }
+        return api.post('/users', data)
+    },
 
-    // ================= UPDATE =================
     update(id, data) {
         return api.put(`/users/${id}`, data)
-    }
+    },
 
-    // ================= LOCK =================
-    lock(id) {
-        return api.put(`/users/${id}/lock`)
-    }
+    toggleLock(id) {
+        return api.put(`/users/${id}/toggle-lock`)
+    },
 
-    // ================= UNLOCK =================
-    unlock(id) {
-        return api.put(`/users/${id}/unlock`)
-    }
+    delete(id) {
+        return api.delete(`/users/${id}`)
+    },
 
+    changePassword(data) {
+        return api.post('/account/change-password', data)
+    },
+
+    existsUsername(username) {
+        return api.get('/users/exists-username', {
+            params: { username }
+        })
+    },
+
+    existsEmail(email) {
+        return api.get('/users/exists-email', {
+            params: { email }
+        })
+    }
 }
-
-export default new userService();

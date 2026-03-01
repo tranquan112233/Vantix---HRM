@@ -1,35 +1,50 @@
-import { ref } from "vue"
+import { ref, computed } from 'vue'
 
-let id = 0
-const toasts = ref([])
+const toastRef = ref(null)
+const message = ref('')
+const type = ref('success')
+let toastInstance = null
 
 export function useToast() {
 
-    function showToast(message, type = "success", duration = 3000) {
-
-        const toastId = id++
-
-        const toast = {
-            id: toastId,
-            message,
-            type,
-            duration
-        }
-
-        toasts.value.push(toast)
-
-        setTimeout(() => {
-            removeToast(toastId)
-        }, duration)
+    const iconMap = {
+        success: 'bi bi-check-circle-fill',
+        danger: 'bi bi-x-circle-fill',
+        warning: 'bi bi-exclamation-triangle-fill',
+        info: 'bi bi-info-circle-fill'
     }
 
-    function removeToast(toastId) {
-        toasts.value = toasts.value.filter(t => t.id !== toastId)
+    const icon = computed(() => iconMap[type.value] || iconMap.success)
+
+    const showToast = (msg, t = 'success', delay = 3000) => {
+        message.value = msg
+        type.value = t
+
+        const el = toastRef.value
+        if (!el) return
+
+        el.classList.remove(
+            'text-bg-success',
+            'text-bg-danger',
+            'text-bg-warning',
+            'text-bg-info'
+        )
+        el.classList.add(`text-bg-${t}`)
+
+        if (!toastInstance) {
+            toastInstance = new window.bootstrap.Toast(el, {
+                delay,
+                autohide: true
+            })
+        }
+
+        toastInstance.show()
     }
 
     return {
-        toasts,
-        showToast,
-        removeToast
+        toastRef,
+        message,
+        icon,
+        showToast
     }
 }

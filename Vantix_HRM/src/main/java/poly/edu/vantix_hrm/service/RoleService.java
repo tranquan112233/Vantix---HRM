@@ -1,88 +1,68 @@
 package poly.edu.vantix_hrm.service;
 
-import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import poly.edu.vantix_hrm.dto.role.*;
+import org.springframework.web.server.ResponseStatusException;
 import poly.edu.vantix_hrm.entity.Role;
-import poly.edu.vantix_hrm.exception.BusinessException;
 import poly.edu.vantix_hrm.repository.RoleRepository;
 
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class RoleService {
 
     private final RoleRepository roleRepository;
 
-    public List<RoleResponse> findAll() {
-        return roleRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+    public RoleService(RoleRepository roleRepository) {
+        this.roleRepository = roleRepository;
     }
 
-    public RoleResponse findById(Integer id) {
-        Role role = roleRepository.findById(id)
+    // Lấy tất cả role
+    public List<Role> findAll() {
+        return roleRepository.findAll();
+    }
+
+    // Lấy role theo id
+    public Role findById(Integer id) {
+        return roleRepository.findById(id)
                 .orElseThrow(() ->
-                        new BusinessException("role","Role not found"));
-
-        return mapToResponse(role);
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND, "Role not found"
+                        ));
     }
 
-    public RoleResponse create(CreateRoleRequest request) {
+    // Tạo role
+    public Role create(Role role) {
 
-        String roleName = request.getRoleName().trim().toUpperCase();
-
-        if (roleRepository.existsByRoleName(roleName)) {
-            throw new BusinessException("role","Role name already exists");
+        if (roleRepository.existsByRoleName(role.getRoleName())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "Role name already exists"
+            );
         }
 
-        Role role = Role.builder()
-                .roleName(roleName)
-                .description(request.getDescription())
-                .build();
-
-        roleRepository.save(role);
-
-        return mapToResponse(role);
+        return roleRepository.save(role);
     }
 
-    public RoleResponse update(Integer id, UpdateRoleRequest request) {
+    // Update role
+    public Role update(Integer id, Role role) {
+        Role existing = findById(id);
 
-        Role role = roleRepository.findById(id)
-                .orElseThrow(() ->
-                        new BusinessException("role","Role not found"));
-
-        String roleName = request.getRoleName().trim().toUpperCase();
-
-        if (!role.getRoleName().equals(roleName)
-                && roleRepository.existsByRoleName(roleName)) {
-
-            throw new BusinessException("role","Role name already exists");
+        if (!existing.getRoleName().equals(role.getRoleName())
+                && roleRepository.existsByRoleName(role.getRoleName())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "Role name already exists"
+            );
         }
 
-        role.setRoleName(roleName);
-        role.setDescription(request.getDescription());
+        existing.setRoleName(role.getRoleName());
+        existing.setDescription(role.getDescription());
 
-        roleRepository.save(role);
-
-        return mapToResponse(role);
+        return roleRepository.save(existing);
     }
 
+    // Xóa role
     public void delete(Integer id) {
-        Role role = roleRepository.findById(id)
-                .orElseThrow(() ->
-                        new BusinessException("role","Role not found"));
-
+        Role role = findById(id);
         roleRepository.delete(role);
-    }
-
-    private RoleResponse mapToResponse(Role role) {
-        return RoleResponse.builder()
-                .id(role.getId())
-                .roleName(role.getRoleName())
-                .description(role.getDescription())
-                .build();
     }
 }

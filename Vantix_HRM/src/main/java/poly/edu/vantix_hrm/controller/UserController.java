@@ -1,48 +1,73 @@
 package poly.edu.vantix_hrm.controller;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import poly.edu.vantix_hrm.dto.user.*;
+import poly.edu.vantix_hrm.entity.User;
 import poly.edu.vantix_hrm.service.UserService;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
-@RequiredArgsConstructor
+@CrossOrigin("*")
 public class UserController {
 
     private final UserService userService;
 
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
     @GetMapping
-    public List<UserResponse> findAll() {
+    public List<User> getAll() {
         return userService.findAll();
     }
 
     @GetMapping("/{id}")
-    public UserResponse findById(@PathVariable Integer id) {
+    public User getById(@PathVariable Integer id) {
         return userService.findById(id);
     }
 
     @PostMapping
-    public UserResponse create(@Valid @RequestBody CreateUserRequest request) {
-        return userService.create(request);
+    public User create(@Valid @RequestBody User user) {
+        // ❗ Không cho client tự set status
+        user.setStatus(null);
+        user.setCreatedAt(null);
+        user.setLastLogin(null);
+
+        return userService.create(user);
     }
 
     @PutMapping("/{id}")
-    public UserResponse update(@PathVariable Integer id,
-                               @Valid @RequestBody UpdateUserRequest request) {
-        return userService.update(id, request);
+    public User update(
+            @PathVariable Integer id,
+            @Valid @RequestBody User user
+    ) {
+        // ❗ Không cho đổi status + password ở đây
+        user.setStatus(null);
+        user.setPasswordHash(null);
+
+        return userService.update(id, user);
     }
 
-    @PutMapping("/{id}/lock")
-    public void lock(@PathVariable Integer id) {
+    @PutMapping("/{id}/toggle-lock")
+    public void toggleLock(@PathVariable Integer id) {
         userService.lock(id);
     }
 
-    @PutMapping("/{id}/unlock")
-    public void unlock(@PathVariable Integer id) {
-        userService.unlock(id);
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Integer id) {
+        userService.delete(id);
+    }
+
+    @GetMapping("/exists-username")
+    public boolean existsUsername(@RequestParam String username) {
+        return userService.existsUsername(username);
+    }
+
+    @GetMapping("/exists-email")
+    public boolean existsEmail(@RequestParam String email) {
+        return userService.existsEmail(email);
     }
 }
+

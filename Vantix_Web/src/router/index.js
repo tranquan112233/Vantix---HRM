@@ -1,111 +1,167 @@
-import { createRouter, createWebHistory } from "vue-router"
-import { getUser } from "@/utils/jwtDecode"
+import { createRouter, createWebHistory } from 'vue-router'
 
-/* ================= LAYOUT ================= */
-import MainLayout from "@/layouts/MainLayout.vue"
-import AuthLayout from "@/layouts/AuthLayout.vue"
+// Layouts
+import UserLayout from '@/layouts/UserLayout.vue'
+import AdminLayout from '@/layouts/AdminLayout.vue'
 
-/* ================= AUTH VIEWS ================= */
-import Login from "@/views/auth/Login.vue"
+// User pages
+import Home from '@/views/user/Home.vue'
+import Profile from '@/views/user/Profile.vue'
+import ChangePassword from "@/views/user/ChangePassword.vue"
+import Attendance from "@/views/Attendance.vue"
+
+// Admin pages
+import Dashboard from '@/views/admin/Dashboard.vue'
+import UserManagement from '@/views/admin/UserManagement.vue'
+import DepartmentManagement from "@/views/admin/DepartmentManagement.vue"
+import EmployeeManagement from "@/views/admin/EmployeeManagement.vue"
+
+// Auth
+import Login from '@/views/auth/Login.vue'
 import ForgotPassword from "@/views/auth/ForgotPassword.vue"
-import VerifyOtp from "@/views/auth/VerifyOtp.vue"
 import ResetPassword from "@/views/auth/ResetPassword.vue"
 
-/* ================= MAIN VIEWS ================= */
-import Dashboard from "@/views/main/Dashboard.vue"
-import UserManagement from "@/views/main/UserManagement.vue"
-import RoleManagement from "@/views/main/RoleManagement.vue"
-import Forbidden from "@/views/errors/Forbidden.vue"
-
-/* ================= ROUTES ================= */
 const routes = [
 
-    /* ========= AUTH ========= */
+    // ================= AUTH =================
     {
-        path: "/auth",
-        component: AuthLayout,
-        children: [
-            {
-                path: "login",
-                component: Login,
-                meta: { guestOnly: true }
-            },
-            { path: "forgot-password", component: ForgotPassword },
-            { path: "verify-otp", component: VerifyOtp },
-            { path: "reset-password", component: ResetPassword }
-        ]
+        path: '/login',
+        name: 'login',
+        component: Login,
+        meta: { public: true }
+    },
+    {
+        path: '/forgot-password',
+        name: 'forgot-password',
+        component: ForgotPassword,
+        meta: { public: true }
+    },
+    {
+        path: '/reset-password',
+        name: 'reset-password',
+        component: ResetPassword,
+        meta: { public: true }
     },
 
-    /* ========= MAIN ========= */
+    // ================= USER =================
     {
-        path: "/",
-        component: MainLayout,
+        path: '/',
+        component: UserLayout,
         meta: { requiresAuth: true },
         children: [
             {
-                path: "dashboard",
-                component: Dashboard
+                path: '',
+                redirect: '/home'
             },
             {
-                path: "users",
-                component: UserManagement,
-                meta: { roles: ["ADMIN"] }
+                path: 'home',
+                name: 'home',
+                component: Home
             },
             {
-                path: "roles",
-                component: RoleManagement,
-                meta: { roles: ["ADMIN"] }
+                path: 'profile',
+                name: 'profile',
+                component: Profile
+            },
+            {
+                path: 'change-password',
+                name: 'change-password',
+                component: ChangePassword
+            },
+            {
+                path: 'attendance',
+                name: 'attendance',
+                component: Attendance
             }
         ]
     },
 
-    /* ========= ERROR ========= */
+    // ================= ADMIN =================
     {
-        path: "/403",
-        component: Forbidden
+        path: '/admin',
+        component: AdminLayout,
+        meta: { requiresAuth: true, role: 'ADMIN' },
+        children: [
+            {
+                path: '',
+                name: 'admin-dashboard',
+                component: Dashboard
+            },
+            {
+                path: 'users',
+                name: 'admin-users',
+                component: UserManagement
+            },
+            {
+                path: 'departments',
+                name: 'admin-departments',
+                component: DepartmentManagement
+            },
+            {
+                path: 'employees',
+                name: 'admin-employees',
+                component: EmployeeManagement
+            }
+        ]
     },
 
-    /* ========= DEFAULT ========= */
+    // ================= NOT FOUND =================
     {
-        path: "/",
-        redirect: "/dashboard"
-    },
-    {
-        path: "/:pathMatch(.*)*",
-        redirect: "/dashboard"
+        path: '/:pathMatch(.*)*',
+        redirect: '/home'
     }
 ]
 
 const router = createRouter({
-    history: createWebHistory(),
+    history: createWebHistory(import.meta.env.BASE_URL),
     routes
 })
 
-/* ================= ROUTE GUARD ================= */
-router.beforeEach((to) => {
 
-    const user = getUser()
+// ================= AUTH HELPER =================
+function getAuth() {
+    const token = localStorage.getItem('token')
+    const rawUser = localStorage.getItem('user')
 
-    const requiresAuth = to.matched.some(r => r.meta.requiresAuth)
-    const guestOnly = to.matched.some(r => r.meta.guestOnly)
-    const roles = to.meta.roles
+    if (!token || !rawUser) return null
 
-    // 1️⃣ Cần login nhưng chưa login
-    if (requiresAuth && !user) {
-        return { path: "/auth/login" }
+    try {
+        const user = JSON.parse(rawUser)
+        return {
+            token,
+            username: user.username,
+            role: user.role?.toUpperCase()
+        }
+    } catch {
+        return null
+    }
+}
+
+
+// ================= ROUTE GUARD =================
+router.beforeEach((to, from, next) => {
+    const auth = getAuth()
+    const isAuthenticated = !!auth
+
+    // Không login mà vào trang cần auth
+    if (to.meta.requiresAuth && !isAuthenticated) {
+        return next('/login')
     }
 
-    // 2️⃣ Đã login mà vào login
-    if (guestOnly && user) {
-        return { path: "/dashboard" }
+    // Đã login mà vào login
+    if (to.meta.public && isAuthenticated) {
+        if (auth.role === 'ADMIN') {
+            return next('/admin')
+        }
+        return next('/home')
     }
 
-    // 3️⃣ Kiểm tra role
-    if (roles && !roles.includes(user?.role)) {
-        return { path: "/403" }
+    // Kiểm tra role ADMIN
+    if (to.meta.role === 'ADMIN' && auth?.role !== 'ADMIN') {
+        return next('/home')
     }
 
-    return true
+    next()
 })
 
 export default router

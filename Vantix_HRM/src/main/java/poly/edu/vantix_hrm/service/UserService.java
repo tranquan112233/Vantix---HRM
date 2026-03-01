@@ -1,134 +1,148 @@
 package poly.edu.vantix_hrm.service;
 
-import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import poly.edu.vantix_hrm.dto.user.*;
-import poly.edu.vantix_hrm.entity.Role;
+import org.springframework.web.server.ResponseStatusException;
 import poly.edu.vantix_hrm.entity.User;
-import poly.edu.vantix_hrm.exception.BusinessException;
-import poly.edu.vantix_hrm.repository.RoleRepository;
 import poly.edu.vantix_hrm.repository.UserRepository;
 
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    /* ================= FIND ================= */
-
-    public List<UserResponse> findAll() {
-        return userRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+    public UserService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    public UserResponse findById(Integer id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("user","User not found"));
-
-        return mapToResponse(user);
+    // =========================
+    // GET ALL USERS
+    // =========================
+    public List<User> findAll() {
+        return userRepository.findAll();
     }
 
-    /* ================= CREATE ================= */
+    // =========================
+    // GET USER BY ID
+    // =========================
+    public User findById(Integer id) {
+        return userRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND, "User not found"
+                        ));
+    }
 
-    public UserResponse create(CreateUserRequest request) {
+    // =========================
+    // CREATE USER (BCrypt)
+    // =========================
+    public User create(User user) {
 
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new BusinessException("username","Username already exists");
+        if (userRepository.existsByUsername(user.getUsername())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "Username already exists"
+            );
         }
 
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException("email","Email already exists");
+        if (user.getEmail() != null &&
+                userRepository.existsByEmail(user.getEmail())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "Email already exists"
+            );
         }
 
-        Role role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new BusinessException("role","Role not found"));
-
-        User user = new User();
-        user.setUsername(request.getUsername().trim());
-        user.setEmail(request.getEmail().trim());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setRole(role);
+        // ❗ Không tin dữ liệu từ client
+        user.setId(null);
         user.setStatus(User.UserStatus.ACTIVE);
+        user.setCreatedAt(null);
+        user.setLastLogin(null);
 
-        userRepository.save(user);
+        // 🔐 BCrypt password
+        user.setPasswordHash(
+                passwordEncoder.encode(user.getPasswordHash())
+        );
 
-        return mapToResponse(user);
+        return userRepository.save(user);
     }
 
-    /* ================= UPDATE ================= */
+    // =========================
+    // UPDATE USER (KHÔNG ĐỔI PASSWORD, KHÔNG ĐỔI STATUS)
+    // =========================
+    public User update(Integer id, User user) {
+        User existing = findById(id);
 
-    public UserResponse update(Integer id, UpdateUserRequest request) {
-
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("user","User not found"));
-
-        if (!user.getUsername().equals(request.getUsername())
-                && userRepository.existsByUsername(request.getUsername())) {
-
-            throw new BusinessException("username","Username already exists");
+        if (!existing.getUsername().equals(user.getUsername())
+                && userRepository.existsByUsername(user.getUsername())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "Username already exists"
+            );
         }
 
-        if (!user.getEmail().equals(request.getEmail())
-                && userRepository.existsByEmail(request.getEmail())) {
-
-            throw new BusinessException("email","Email already exists");
+        if (user.getEmail() != null &&
+                !user.getEmail().equals(existing.getEmail())
+                && userRepository.existsByEmail(user.getEmail())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "Email already exists"
+            );
         }
 
-        Role role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new BusinessException("role","Role not found"));
+        existing.setUsername(user.getUsername());
+        existing.setEmail(user.getEmail());
+        existing.setRole(user.getRole());
 
-        user.setUsername(request.getUsername().trim());
-        user.setEmail(request.getEmail().trim());
-        user.setRole(role);
-        user.setStatus(request.getStatus());
+        // ❌ KHÔNG cho đổi password ở đây
+        // ❌ KHÔNG cho đổi status ở đây
 
-        if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        }
-
-        userRepository.save(user);
-
-        return mapToResponse(user);
+        return userRepository.save(existing);
     }
 
-    /* ================= LOCK ================= */
-
+    // =========================
+    // TOGGLE LOCK / UNLOCK USER
+    // =========================
     public void lock(Integer id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("user","User not found"));
+        User user = findById(id);
 
-        user.setStatus(User.UserStatus.LOCKED);
+        user.setStatus(
+                user.getStatus() == User.UserStatus.ACTIVE
+                        ? User.UserStatus.LOCKED
+                        : User.UserStatus.ACTIVE
+        );
+
         userRepository.save(user);
     }
 
-    public void unlock(Integer id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("user","User not found"));
+    // =========================
+    // CHANGE PASSWORD (BCrypt)
+    // =========================
+    public void changePassword(Integer id, String newPassword) {
+        User user = findById(id);
 
-        user.setStatus(User.UserStatus.ACTIVE);
+        user.setPasswordHash(
+                passwordEncoder.encode(newPassword)
+        );
+
         userRepository.save(user);
     }
 
-    /* ================= MAPPER ================= */
+    // =========================
+    // DELETE USER
+    // =========================
+    public void delete(Integer id) {
+        User user = findById(id);
+        userRepository.delete(user);
+    }
 
-    private UserResponse mapToResponse(User user) {
-        return UserResponse.builder()
-                .id(user.getUserId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .roleId(user.getRole().getId())
-                .roleName(user.getRole().getRoleName())
-                .status(user.getStatus().name())
-                .lastLogin(user.getLastLogin())
-                .createdAt(user.getCreatedAt())
-                .build();
+    public boolean existsUsername(String username) {
+        return userRepository.existsByUsername(username);
+    }
+
+    public boolean existsEmail(String email) {
+        return userRepository.existsByEmail(email);
     }
 }
