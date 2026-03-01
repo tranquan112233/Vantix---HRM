@@ -7,7 +7,7 @@ import lombok.Data;
 public class UpdateDepartmentRequest {
 
     @NotBlank(message = "Department name is required")
-    private String name;
+    private String departmentName;
 
     private String description;
 }
