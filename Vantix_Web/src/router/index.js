@@ -16,6 +16,7 @@ import Dashboard from "@/views/main/Dashboard.vue"
 import UserManagement from "@/views/main/UserManagement.vue"
 import RoleManagement from "@/views/main/RoleManagement.vue"
 import Forbidden from "@/views/errors/Forbidden.vue"
+import DepartmentManagement from "@/views/main/DepartmentManagement.vue";
 
 /* ================= ROUTES ================= */
 const routes = [
@@ -54,6 +55,11 @@ const routes = [
             {
                 path: "roles",
                 component: RoleManagement,
+                meta: { roles: ["ADMIN"] }
+            },
+            {
+                path: "departments",
+                component: DepartmentManagement,
                 meta: { roles: ["ADMIN"] }
             }
         ]

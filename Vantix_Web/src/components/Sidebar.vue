@@ -295,7 +295,6 @@ const toggle = (key) => {
   border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
-  font-weight: 500;
   color: #334155;
   margin-bottom: 3px;
   transition: 0.2s;
@@ -320,7 +319,6 @@ const toggle = (key) => {
   padding: 6px 10px;
   border-radius: 6px;
   font-size: 16px;
-  font-weight: 500;
   cursor: pointer;
   color: #475569;
   transition: 0.2s;

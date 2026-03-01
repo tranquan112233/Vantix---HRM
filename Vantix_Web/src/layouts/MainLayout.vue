@@ -15,8 +15,8 @@
 
       <!-- ================= PAGE CONTENT ================= -->
       <main class="content">
-        <router-view />
-      </main>
+      <router-view />
+    </main>
 
     </div>
   </div>

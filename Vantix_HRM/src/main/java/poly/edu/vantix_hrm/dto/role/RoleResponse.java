@@ -2,8 +2,7 @@ package poly.edu.vantix_hrm.dto.role;
 
 import lombok.*;
 
-@Getter
-@Setter
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder

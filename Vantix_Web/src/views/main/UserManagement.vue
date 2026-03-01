@@ -175,12 +175,12 @@
       <div class="modal-dialog">
         <div class="modal-content rounded-4 border-0 shadow">
 
-          <div class="modal-header bg-primary text-white">
+          <div class="modal-header">
             <h5 class="modal-title">
               {{ isEdit ? "Edit User" : "Create User" }}
             </h5>
             <button type="button"
-                    class="btn-close btn-close-white"
+                    class="btn-close"
                     @click="closeModal"></button>
           </div>
 
@@ -191,7 +191,9 @@
               <input type="text"
                      class="form-control"
                      :class="{ 'is-invalid': errors.username || errors.general }"
-                     v-model="form.username"/>
+                     v-model="form.username"
+                     placeholder="Enter username"
+              />
               <div class="invalid-feedback">
                 {{ errors.username || errors.general }}
               </div>
@@ -202,7 +204,9 @@
               <input type="email"
                      class="form-control"
                      :class="{ 'is-invalid': errors.email }"
-                     v-model="form.email"/>
+                     v-model="form.email"
+                     placeholder="Enter email"
+              />
               <div class="invalid-feedback">
                 {{ errors.email }}
               </div>
@@ -213,7 +217,9 @@
               <input type="password"
                      class="form-control"
                      :class="{ 'is-invalid': errors.password }"
-                     v-model="form.password"/>
+                     v-model="form.password"
+                     placeholder="Enter password"
+              />
               <div class="invalid-feedback">
                 {{ errors.password }}
               </div>
