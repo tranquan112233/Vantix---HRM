@@ -128,6 +128,7 @@ public class EmployeeService {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("employee","Employee not found"));
 
+        userRepository.delete(employee.getUser());
         employeeRepository.delete(employee);
     }
 
