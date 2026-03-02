@@ -6,6 +6,5 @@
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
-.idea/
 **/node_modules/
 Vantix_HRM/node_modules/

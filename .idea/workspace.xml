@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="f1d47218-c079-4b7e-895c-c51f3610d81f" name="Changes" comment="Thay đổi:&#10;- Alo Q à Q&#10;- Thêm chức năng tự động cập nhật status contract đã hết hạn ( ContractScheduler )" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CodeInsightWorkspaceSettings">
+    <option name="optimizeImportsOnTheFly" value="true" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Vue Composition API Component" />
+        <option value="JavaScript File" />
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="PUSH_AUTO_UPDATE" value="true" />
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="develop" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RESET_MODE" value="HARD" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;baohg07&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/tranquan112233/Vantix---HRM.git&quot;,
+    &quot;accountId&quot;: &quot;7defdcd6-152e-4b11-843b-23114f27b49a&quot;
+  }
+}</component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="mavenHomeTypeForPersistence" value="WRAPPER" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 2
+}</component>
+  <component name="ProjectId" id="390xDwXz8F9BruObz8pjbWtgQrB" />
+  <component name="ProjectLevelVcsManager">
+    <OptionsSetting value="false" id="Update" />
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Notification.DisplayName-DoNotAsk-DatabaseConfigFileWatcher.found&quot;: &quot;New/updated database configurations found&quot;,
+    &quot;Notification.DoNotAsk-DatabaseConfigFileWatcher.found&quot;: &quot;true&quot;,
+    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
+    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
+    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;Spring Boot.Unnamed.executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.VantixHrmApplication.executor&quot;: &quot;Run&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;deletionFromPopupRequiresConfirmation&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feature-Contract-ContractAnnexes&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/hagia/OneDrive/Documents/GitHub/Vantix---HRM&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;database.query.execution&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Program Files\\JetBrains\\IntelliJ IDEA 2025.3.1.1\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  },
+  &quot;keyToStringList&quot;: {
+    &quot;ChangesTree.GroupingKeys&quot;: [
+      &quot;directory&quot;,
+      &quot;module&quot;,
+      &quot;repository&quot;
+    ],
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;mysql&quot;,
+      &quot;mysql_aurora&quot;
+    ],
+    &quot;vue.recent.templates&quot;: [
+      &quot;Vue Composition API Component&quot;
+    ]
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\hagia\OneDrive\Documents\GitHub\Vantix---HRM\Vantix_Web\src" />
+    </key>
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="poly.edu.vantix_hrm.repository" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration default="true" type="JetRunConfigurationType">
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <option name="filePath" />
+      <method v="2" />
+    </configuration>
+    <configuration name="VantixHrmApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
+      <module name="Vantix_HRM" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="poly.edu.vantix_hrm.VantixHrmApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-26cb7f24e5b0-intellij.indexing.shared.core-IU-253.29346.240" />
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-IU-253.29346.240" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="f1d47218-c079-4b7e-895c-c51f3610d81f" name="Changes" comment="" />
+      <created>1769846677268</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1769846677268</updated>
+      <workItem from="1769846679404" duration="42000" />
+      <workItem from="1769846740018" duration="105000" />
+      <workItem from="1769846952378" duration="300000" />
+      <workItem from="1769847273607" duration="77000" />
+      <workItem from="1769847362931" duration="14544000" />
+      <workItem from="1769916211732" duration="868000" />
+      <workItem from="1769921910590" duration="18231000" />
+      <workItem from="1770016994225" duration="14605000" />
+      <workItem from="1770121445577" duration="6491000" />
+      <workItem from="1770186901253" duration="11798000" />
+      <workItem from="1770292431350" duration="11633000" />
+      <workItem from="1770388896400" duration="5578000" />
+      <workItem from="1770394598766" duration="2455000" />
+      <workItem from="1770436100436" duration="10944000" />
+      <workItem from="1770468642359" duration="9487000" />
+      <workItem from="1770562390787" duration="2603000" />
+      <workItem from="1770645923430" duration="2902000" />
+      <workItem from="1770823624500" duration="1187000" />
+      <workItem from="1770824836240" duration="5403000" />
+      <workItem from="1771107495726" duration="702000" />
+      <workItem from="1771642317394" duration="13201000" />
+      <workItem from="1771765415992" duration="4851000" />
+      <workItem from="1771846430888" duration="1491000" />
+      <workItem from="1771904149557" duration="9090000" />
+      <workItem from="1771941132814" duration="5521000" />
+      <workItem from="1771987208577" duration="9577000" />
+      <workItem from="1772010102082" duration="334000" />
+      <workItem from="1772010532879" duration="1694000" />
+      <workItem from="1772012255834" duration="74000" />
+      <workItem from="1772012359979" duration="5361000" />
+      <workItem from="1772024286185" duration="11392000" />
+      <workItem from="1772073869185" duration="2555000" />
+      <workItem from="1772163078016" duration="2008000" />
+      <workItem from="1772166126779" duration="17879000" />
+      <workItem from="1772255799950" duration="2694000" />
+      <workItem from="1772264847748" duration="1869000" />
+      <workItem from="1772276610674" duration="1957000" />
+      <workItem from="1772381196111" duration="2762000" />
+    </task>
+    <task id="LOCAL-00001" summary="Thêm private Gender gender = Gender.Other; trong entity Users">
+      <option name="closed" value="true" />
+      <created>1769847188459</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1769847188459</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Thêm private Gender gender = Gender.Other; trong entity Users">
+      <option name="closed" value="true" />
+      <created>1769847516298</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1769847516298</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Chỉnh sửa BE&#10;Xóa DAO &#10;Thêm Repository&#10;Xóa s của entity">
+      <option name="closed" value="true" />
+      <created>1771919952731</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1771919952731</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Cập nhật một chút&#10;Thêm function validateEmployeeContractEligibility">
+      <option name="closed" value="true" />
+      <created>1771949681512</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1771949681512</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Thay đổi BE:&#10;- xóa saveContract chuẩn bị viết lại&#10;- chuyển findByEmployee_EmployeeId thành query&#10;- viết lại validateEmployeeContractEligibility&#10;- tạo dto CreateContractRequest&#10;- thêm thư viện validation vào pom.xml">
+      <option name="closed" value="true" />
+      <created>1771999134403</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1771999134403</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Thay đổi:&#10;- Sửa axios.js mặc định dữ liệu giao tiếp với BE là json">
+      <option name="closed" value="true" />
+      <created>1772001416193</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1772001416193</updated>
+    </task>
+    <task id="LOCAL-00007" summary="Thay đổi:&#10;- Done chức năng Thêm mới hợp đồng saveContract&#10;- Viết thêm hàm calculateEndDateByType để lấy ngày end">
+      <option name="closed" value="true" />
+      <created>1772045095820</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1772045095820</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Thay đổi:&#10;- Hoàn thành chức năng delete contract&#10;- Thêm ui thông báo trước khi xóa">
+      <option name="closed" value="true" />
+      <created>1772183064080</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1772183064080</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Thay đổi:&#10;- Chào Q nhá,tôi là Bảo&#10;- done function updateContractStatus (chuyển từ ACTIVE -&gt; EXPIRED thì vô tư, còn chuyển từ EXPIRED -&gt; ACTIVE thì phải kiểm tra ngày end)&#10;- Chưa xong đâu đừng merge">
+      <option name="closed" value="true" />
+      <created>1772277341764</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1772277341764</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Thay đổi:&#10;- Alo Q à Q&#10;- Thêm chức năng tự động cập nhật status contract đã hết hạn">
+      <option name="closed" value="true" />
+      <created>1772278576203</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1772278576203</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="feature-Contract-ContractAnnexes" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Thêm private Gender gender = Gender.Other; trong entity Users" />
+    <MESSAGE value="Chỉnh sửa BE&#10;Xóa DAO &#10;Thêm Repository&#10;Xóa s của entity" />
+    <MESSAGE value="Cập nhật một chút&#10;Thêm function validateEmployeeContractEligibility" />
+    <MESSAGE value="Thay đổi BE:&#10;- xóa saveContract chuẩn bị viết lại&#10;- chuyển findByEmployee_EmployeeId thành query&#10;- viết lại validateEmployeeContractEligibility&#10;- tạo dto CreateContractRequest&#10;- thêm thư viện validation vào pom.xml" />
+    <MESSAGE value="Thay đổi:&#10;- Sửa axios.js mặc định dữ liệu giao tiếp với BE là json" />
+    <MESSAGE value="Thay đổi:&#10;- Done chức năng Thêm mới hợp đồng saveContract&#10;- Viết thêm hàm calculateEndDateByType để lấy ngày end" />
+    <MESSAGE value="Thay đổi:&#10;- Hoàn thành chức năng delete contract&#10;- Thêm ui thông báo trước khi xóa" />
+    <MESSAGE value="Thay đổi:&#10;- Chào Q nhá,tôi là Bảo&#10;- done function updateContractStatus (chuyển từ ACTIVE -&gt; EXPIRED thì vô tư, còn chuyển từ EXPIRED -&gt; ACTIVE thì phải kiểm tra ngày end)&#10;- Chưa xong đâu đừng merge" />
+    <MESSAGE value="Thay đổi:&#10;- Alo Q à Q&#10;- Thêm chức năng tự động cập nhật status contract đã hết hạn" />
+    <option name="LAST_COMMIT_MESSAGE" value="Thay đổi:&#10;- Alo Q à Q&#10;- Thêm chức năng tự động cập nhật status contract đã hết hạn" />
+  </component>
+</project>
