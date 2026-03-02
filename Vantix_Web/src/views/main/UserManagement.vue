@@ -385,7 +385,6 @@ watch(search, () => (currentPage.value = 1))
 // Default form
 function getDefaultForm() {
   return {
-    id: null,
     username: "",
     email: "",
     password: "",
