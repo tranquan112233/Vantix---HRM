@@ -83,7 +83,7 @@
             </thead>
 
             <tbody>
-            <tr v-for="(user, index) in paginatedData" :key="user.id">
+            <tr v-for="(user, index) in paginatedData" :key="user.userId">
               <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
               <td class="fw-semibold">{{ user.username }}</td>
               <td>{{ user.email }}</td>
@@ -117,13 +117,13 @@
 
                 <button v-if="user.status === 'ACTIVE'"
                         class="action-btn lock-btn"
-                        @click="lockUser(user.id)">
+                        @click="lockUser(user.userId)">
                   <i class="bi bi-lock"></i>
                 </button>
 
                 <button v-else
                         class="action-btn unlock-btn"
-                        @click="unlockUser(user.id)">
+                        @click="unlockUser(user.userId)">
                   <i class="bi bi-unlock"></i>
                 </button>
               </td>
@@ -229,13 +229,13 @@
               <label class="form-label fw-semibold">Role</label>
               <select class="form-select"
                       :class="{ 'is-invalid': errors.roleId }"
-                      v-model="form.roleId">
+                      v-model.number="form.roleId">
 
                 <option disabled value="">-- Select Role --</option>
 
                 <option v-for="r in roleOptions"
-                        :key="r.id"
-                        :value="r.id">
+                        :key="r.roleId"
+                        :value="r.roleId">
                   {{ r.roleName }}
                 </option>
               </select>
@@ -385,6 +385,7 @@ watch(search, () => (currentPage.value = 1))
 // Default form
 function getDefaultForm() {
   return {
+    userId: null,
     username: "",
     email: "",
     password: "",
@@ -414,7 +415,10 @@ function openAdd() {
 
 function openEdit(user) {
   isEdit.value = true
-  form.value = { ...user, password: "" }
+  form.value = {
+    ...user,
+    password: ""
+  }
   errors.value = {}
   modalInstance.show()
 }
@@ -424,7 +428,7 @@ async function saveUser() {
 
   try {
     if (isEdit.value) {
-      await userService.update(form.value.id, form.value)
+      await userService.update(form.value.userId, form.value)
       showToast("User updated successfully!", "success")
     } else {
       await userService.create(form.value)

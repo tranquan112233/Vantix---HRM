@@ -104,13 +104,31 @@
             <tr v-for="(emp, index) in paginatedData" :key="emp.employeeId">
               <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
               <td class="fw-semibold">{{ emp.fullName }}</td>
-              <td>{{ emp.gender }}</td>
+              <td>
+                <span class="badge"
+                :class="emp.gender === 'MALE' ? 'bg-primary' : emp.gender === 'FEMALE' ? 'bg-danger' : 'bg-warning'">
+                  {{ emp.gender }}
+                </span>
+              </td>
               <td>{{ emp.birthDate }}</td>
               <td>{{ emp.phone }}</td>
               <td>{{ emp.address }}</td>
-              <td>{{ emp.departmentName }}</td>
-              <td>{{ emp.positionName }}</td>
-              <td>{{ emp.workStatus }}</td>
+              <td>
+                <span class="badge bg-secondary">
+                  {{ emp.departmentName }}
+                </span>
+              </td>
+              <td>
+                <span class="badge bg-secondary">
+                  {{ emp.positionName }}
+                </span>
+              </td>
+              <td><span class="badge"
+                        :class="emp.workStatus === 'WORKING'
+                        ? 'bg-success'
+                        : 'bg-danger'">
+                  {{ emp.workStatus }}
+                </span></td>
 
               <td class="text-end">
                 <button class="action-btn edit-btn" @click="openEdit(emp)">
@@ -180,7 +198,7 @@
             <!-- CREATE MODE: USER INFO -->
             <template v-if="!isEdit">
 
-              <h6 class="fw-bold text-primary mb-3">User Information</h6>
+              <h6 class="fw-bold mb-3">User Information</h6>
 
               <div class="row">
 
@@ -189,7 +207,9 @@
                   <input type="text"
                          class="form-control"
                          v-model="form.username"
-                         :class="{ 'is-invalid': errors.username }" />
+                         :class="{ 'is-invalid': errors.username }"
+                         placeholder="Enter username"
+                  />
                   <div class="invalid-feedback">
                     {{ errors.username }}
                   </div>
@@ -200,7 +220,9 @@
                   <input type="text"
                          class="form-control"
                          v-model="form.email"
-                         :class="{ 'is-invalid': errors.email }" />
+                         :class="{ 'is-invalid': errors.email }"
+                         placeholder="Enter email"
+                  />
                   <div class="invalid-feedback">
                     {{ errors.email }}
                   </div>
@@ -211,7 +233,9 @@
                   <input type="password"
                          class="form-control"
                          v-model="form.password"
-                         :class="{ 'is-invalid': errors.password }" />
+                         :class="{ 'is-invalid': errors.password }"
+                         placeholder="Enter password"
+                  />
                   <div class="invalid-feedback">
                     {{ errors.password }}
                   </div>
@@ -222,7 +246,7 @@
                   <select class="form-select"
                           v-model="form.roleId"
                           :class="{ 'is-invalid': errors.roleId }">
-                    <option :value="null">Select Role</option>
+                    <option disabled value="">-- Select Role --</option>
                     <option v-for="r in roleOptions"
                             :key="r.roleId"
                             :value="r.roleId">
@@ -240,7 +264,7 @@
             </template>
 
             <!-- EMPLOYEE INFO -->
-            <h6 class="fw-bold text-success mb-3">Employee Information</h6>
+            <h6 class="fw-bold mb-3">Employee Information</h6>
 
             <div class="row">
 
@@ -249,7 +273,9 @@
                 <input type="text"
                        class="form-control"
                        v-model="form.fullName"
-                       :class="{ 'is-invalid': errors.fullName }"/>
+                       :class="{ 'is-invalid': errors.fullName }"
+                       placeholder="Enter full name"
+                />
                 <div class="invalid-feedback">{{ errors.fullName }}</div>
               </div>
 
@@ -258,9 +284,10 @@
                 <select class="form-select"
                         v-model="form.gender"
                         :class="{ 'is-invalid': errors.gender }">
-                  <option value="">Select</option>
+                  <option disabled value="">-- Select Gender --</option>
                   <option value="MALE">Male</option>
                   <option value="FEMALE">Female</option>
+                  <option value="OTHER">Other</option>
                 </select>
                 <div class="invalid-feedback">{{ errors.gender }}</div>
               </div>
@@ -279,7 +306,9 @@
                 <input type="text"
                        class="form-control"
                        v-model="form.phone"
-                       :class="{ 'is-invalid': errors.phone }"/>
+                       :class="{ 'is-invalid': errors.phone }"
+                       placeholder="Enter phone number"
+                />
                 <div class="invalid-feedback">{{ errors.phone }}</div>
               </div>
 
@@ -288,7 +317,9 @@
                 <input type="text"
                        class="form-control"
                        v-model="form.address"
-                       :class="{ 'is-invalid': errors.address }"/>
+                       :class="{ 'is-invalid': errors.address }"
+                       placeholder="Enter address"
+                />
                 <div class="invalid-feedback">{{ errors.address }}</div>
               </div>
 
@@ -297,7 +328,7 @@
                 <select class="form-select"
                         v-model="form.departmentId"
                         :class="{ 'is-invalid': errors.departmentId }">
-                  <option disabled value="">Select</option>
+                  <option disabled value="">-- Select Department --</option>
                   <option v-for="d in departmentOptions"
                           :key="d.departmentId"
                           :value="d.departmentId">
@@ -312,7 +343,7 @@
                 <select class="form-select"
                         v-model="form.positionId"
                         :class="{ 'is-invalid': errors.positionId }">
-                  <option disabled value="">Select</option>
+                  <option disabled value="">-- Select Position --</option>
                   <option v-for="p in positionOptions"
                           :key="p.positionId"
                           :value="p.positionId">
@@ -450,7 +481,7 @@ function getDefaultForm() {
     password: "",
     roleId: "",
     fullName: "",
-    gender: null,
+    gender: "MALE",
     birthDate: "",
     phone: "",
     address: "",
