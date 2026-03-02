@@ -82,10 +82,10 @@ export const menuItems = [
     // ================= ATTENDANCE =================
     {
         section: "Attendance & Leave",
-        key: "attendance",
-        label: "Attendance",
+        key: "attendances",
+        label: "Attendances",
         icon: "bi bi-calendar-check",
-        to: "/attendance",
+        to: "/attendances",
         roles: ["ADMIN", "HR", "EMPLOYEE"]
     },
     {

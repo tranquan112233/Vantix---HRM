@@ -20,6 +20,7 @@ import DepartmentManagement from "@/views/main/DepartmentManagement.vue";
 import PositionManagement from "@/views/main/PositionManagement.vue";
 import EmployeeManagement from "@/views/main/EmployeeManagement.vue";
 import Attendance from "../views/main/Attendance.vue";
+import Contract from "@/views/main/Contract.vue";
 /* ================= ROUTES ================= */
 const routes = [
 
@@ -75,8 +76,13 @@ const routes = [
                 meta: { roles: ["ADMIN"] }
             },
             {
-                path: "attendance",
+                path: "attendances",
                 component: Attendance,
+                meta: { roles: ["ADMIN"] }
+            },
+            {
+                path: "contracts",
+                component: Contract,
                 meta: { roles: ["ADMIN"] }
             }
 

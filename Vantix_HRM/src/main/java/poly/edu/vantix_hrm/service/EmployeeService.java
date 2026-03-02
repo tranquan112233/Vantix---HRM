@@ -150,4 +150,10 @@ public class EmployeeService {
                 .workStatus(employee.getWorkStatus())
                 .build();
     }
+
+    public Employee isEmployeeValid(Integer employeeId) {
+        String msgError = "Không tìm thấy nhân viên (" + employeeId + ") trên hệ thống.";
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(() -> new RuntimeException(msgError));
+        return employee;
+    }
 }
