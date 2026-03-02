@@ -2,8 +2,7 @@ package poly.edu.vantix_hrm.dto.employee;
 
 import lombok.Builder;
 import lombok.Data;
-import poly.edu.vantix_hrm.entity.Employee.Gender;
-import poly.edu.vantix_hrm.entity.Employee.WorkStatus;
+import poly.edu.vantix_hrm.entity.Employee;
 
 import java.time.LocalDate;
 
@@ -14,7 +13,7 @@ public class EmployeeResponse {
     private Integer employeeId;
 
     private String fullName;
-    private Gender gender;
+    private Employee.Gender gender;
     private LocalDate birthDate;
     private String phone;
     private String address;
@@ -25,5 +24,5 @@ public class EmployeeResponse {
     private Integer positionId;
     private String positionName;
 
-    private WorkStatus workStatus;
+    private Employee.WorkStatus workStatus;
 }

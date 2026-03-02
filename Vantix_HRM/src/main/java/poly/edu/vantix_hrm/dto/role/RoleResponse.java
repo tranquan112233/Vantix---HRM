@@ -8,7 +8,7 @@ import lombok.*;
 @Builder
 public class RoleResponse {
 
-    private Integer id;
+    private Integer roleId;
     private String roleName;
     private String description;
 }

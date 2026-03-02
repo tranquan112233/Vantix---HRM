@@ -9,7 +9,6 @@ import poly.edu.vantix_hrm.service.AuthService;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@CrossOrigin("*")
 public class AuthController {
 
     private final AuthService authService;

@@ -19,7 +19,6 @@ import Forbidden from "@/views/errors/Forbidden.vue"
 import DepartmentManagement from "@/views/main/DepartmentManagement.vue";
 import PositionManagement from "@/views/main/PositionManagement.vue";
 import EmployeeManagement from "@/views/main/EmployeeManagement.vue";
-
 /* ================= ROUTES ================= */
 const routes = [
 

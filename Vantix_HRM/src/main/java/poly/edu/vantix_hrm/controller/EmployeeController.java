@@ -1,9 +1,12 @@
 package poly.edu.vantix_hrm.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import poly.edu.vantix_hrm.dto.employee.EmployeeRequest;
+import poly.edu.vantix_hrm.dto.employee.EmployeeCreateRequest;
 import poly.edu.vantix_hrm.dto.employee.EmployeeResponse;
+import poly.edu.vantix_hrm.dto.employee.EmployeeUpdateRequest;
 import poly.edu.vantix_hrm.service.EmployeeService;
 
 import java.util.List;
@@ -11,34 +14,54 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/employees")
 @RequiredArgsConstructor
-@CrossOrigin
 public class EmployeeController {
 
     private final EmployeeService employeeService;
 
+    /* ================= FIND ALL ================= */
+
     @GetMapping
-    public List<EmployeeResponse> getAll() {
-        return employeeService.getAll();
+    public ResponseEntity<List<EmployeeResponse>> findAll() {
+
+        return ResponseEntity.ok(employeeService.findAll());
     }
+
+    /* ================= FIND BY ID ================= */
 
     @GetMapping("/{id}")
-    public EmployeeResponse getById(@PathVariable Integer id) {
-        return employeeService.getById(id);
+    public ResponseEntity<EmployeeResponse> findById(
+            @PathVariable Integer id) {
+
+        return ResponseEntity.ok(employeeService.findById(id));
     }
+
+    /* ================= CREATE ================= */
 
     @PostMapping
-    public EmployeeResponse create(@RequestBody EmployeeRequest request) {
-        return employeeService.create(request);
+    public ResponseEntity<EmployeeResponse> create(
+            @Valid @RequestBody EmployeeCreateRequest request) {
+
+        return ResponseEntity.ok(employeeService.create(request));
     }
+
+    /* ================= UPDATE ================= */
 
     @PutMapping("/{id}")
-    public EmployeeResponse update(@PathVariable Integer id,
-                                   @RequestBody EmployeeRequest request) {
-        return employeeService.update(id, request);
+    public ResponseEntity<EmployeeResponse> update(
+            @PathVariable Integer id,
+            @Valid @RequestBody EmployeeUpdateRequest request) {
+
+        return ResponseEntity.ok(employeeService.update(id, request));
     }
 
+    /* ================= DELETE ================= */
+
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Integer id) {
+    public ResponseEntity<Void> delete(
+            @PathVariable Integer id) {
+
         employeeService.delete(id);
+
+        return ResponseEntity.noContent().build();
     }
 }

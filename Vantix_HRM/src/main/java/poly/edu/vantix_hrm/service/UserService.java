@@ -121,10 +121,10 @@ public class UserService {
 
     private UserResponse mapToResponse(User user) {
         return UserResponse.builder()
-                .id(user.getUserId())
+                .userId(user.getUserId())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .roleId(user.getRole().getId())
+                .roleId(user.getRole().getRoleId())
                 .roleName(user.getRole().getRoleName())
                 .status(user.getStatus().name())
                 .lastLogin(user.getLastLogin())

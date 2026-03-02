@@ -80,7 +80,7 @@ public class RoleService {
 
     private RoleResponse mapToResponse(Role role) {
         return RoleResponse.builder()
-                .id(role.getId())
+                .roleId(role.getRoleId())
                 .roleName(role.getRoleName())
                 .description(role.getDescription())
                 .build();
