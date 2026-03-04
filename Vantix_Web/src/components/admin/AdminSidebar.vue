@@ -32,6 +32,12 @@
           Employees
         </RouterLink>
       </li>
+      <li class="nav-item">
+        <RouterLink to="/admin/leave" class="nav-link">
+          <i class="bi bi-diagram-3 me-2"></i>
+          LeaveManagement
+        </RouterLink>
+      </li>
 
       <!-- ===== HỆ THỐNG ===== -->
       <li class="sidebar-divider"></li>

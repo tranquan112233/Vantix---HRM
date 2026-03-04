@@ -16,6 +16,7 @@ import Dashboard from '@/views/admin/Dashboard.vue'
 import UserManagement from '@/views/admin/UserManagement.vue'
 import DepartmentManagement from "@/views/admin/DepartmentManagement.vue"
 import EmployeeManagement from "@/views/admin/EmployeeManagement.vue"
+import LeaveManagement from "@/views/admin/LeaveManagement.vue";
 
 // Auth
 import Login from '@/views/auth/Login.vue'
@@ -107,6 +108,11 @@ const routes = [
                 path: 'employees',
                 name: 'admin-employees',
                 component: EmployeeManagement
+            },
+            {
+                path: 'leave',
+                name: 'leavemanagement',
+                component: LeaveManagement
             }
         ]
     },

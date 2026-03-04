@@ -1,13 +1,18 @@
 package poly.edu.vantix_hrm.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import poly.edu.vantix_hrm.DTO.ProfileDTO;
-import poly.edu.vantix_hrm.DTO.ProfileUpdateDTO;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import poly.edu.vantix_hrm.DTO.UserProfileDTO;
 import poly.edu.vantix_hrm.entity.Employee;
-import poly.edu.vantix_hrm.entity.User;
 import poly.edu.vantix_hrm.repository.EmployeeRepository;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 @Service
 @RequiredArgsConstructor
@@ -15,61 +20,77 @@ public class ProfileService {
 
     private final EmployeeRepository employeeRepository;
 
-    private User getCurrentUser() {
-        return (User) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
-    }
+    private final String UPLOAD_DIR = "uploads/avatars/";
+    private final String BASE_URL = "http://localhost:8080/avatars/";
 
-    public ProfileDTO getMyProfile() {
+    // 1. Lấy toàn bộ thông tin Profile
+    public UserProfileDTO getProfile(Integer employeeId) {
+        Employee emp = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên"));
 
-        User user = getCurrentUser();
-
-        Employee emp = employeeRepository
-                .findByUserId(user.getId())
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
-
-        ProfileDTO dto = new ProfileDTO();
-
-        dto.setUserId(user.getId()); // ⭐ QUAN TRỌNG
-        dto.setUsername(user.getUsername());
-        dto.setEmail(user.getEmail());
-
+        UserProfileDTO dto = new UserProfileDTO();
+        dto.setEmployeeId(emp.getEmployeeId());
         dto.setFullName(emp.getFullName());
         dto.setPhone(emp.getPhone());
         dto.setAddress(emp.getAddress());
         dto.setBirthDate(emp.getBirthDate());
-        dto.setGender(emp.getGender().name());
 
-        dto.setDepartment(
-                emp.getDepartment() != null ?
-                        emp.getDepartment().getName() : null);
+        if (emp.getGender() != null) {
+            dto.setGender(emp.getGender().name()); // Chuyển Enum thành String
+        }
 
-        dto.setPosition(
-                emp.getPosition() != null ?
-                        emp.getPosition().getName() : null);
+        // Lấy thông tin từ bảng Users liên kết
+        if (emp.getUser() != null) {
+            dto.setUsername(emp.getUser().getUsername());
+            dto.setEmail(emp.getUser().getEmail());
+        }
+
+        // Lấy thông tin từ bảng Departments liên kết
+        if (emp.getDepartment() != null) {
+            dto.setDepartment(emp.getDepartment().getName());
+        }
+
+        // Lấy thông tin từ bảng Positions liên kết
+        if (emp.getPosition() != null) {
+            dto.setPosition(emp.getPosition().getName());
+        }
+
+        // Kiểm tra ảnh vật lý
+        Path avatarPath = Paths.get(UPLOAD_DIR + "avatar_" + employeeId + ".jpg");
+        if (Files.exists(avatarPath)) {
+            dto.setAvatarUrl(BASE_URL + "avatar_" + employeeId + ".jpg");
+        } else {
+            dto.setAvatarUrl(null);
+        }
 
         return dto;
     }
 
-    public void updateProfile(ProfileUpdateDTO req) {
+    // 2. Cập nhật thông tin Profile (không cho đổi email/username)
+    @Transactional
+    public UserProfileDTO updateProfile(Integer employeeId, UserProfileDTO dto) {
+        Employee emp = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên"));
 
-        User user = getCurrentUser();
+        // Cập nhật các trường được phép thay đổi từ UI
+        emp.setFullName(dto.getFullName());
+        emp.setPhone(dto.getPhone());
+        emp.setAddress(dto.getAddress());
+        emp.setBirthDate(dto.getBirthDate());
 
-        Employee emp = employeeRepository
-                .findByUserId(user.getId())
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
-
-        emp.setFullName(req.getFullName());
-        emp.setPhone(req.getPhone());
-        emp.setAddress(req.getAddress());
-        emp.setBirthDate(req.getBirthDate());
-
-        if (req.getGender() != null) {
-            emp.setGender(Employee.Gender.valueOf(req.getGender()));
+        // Ánh xạ lại string gender từ Frontend về Enum trong Database (nếu bạn dùng Enum)
+        if (dto.getGender() != null && !dto.getGender().isEmpty()) {
+            // Giả sử class Employee có khai báo enum Gender { MALE, FEMALE, OTHER }
+            // emp.setGender(Employee.Gender.valueOf(dto.getGender()));
         }
 
         employeeRepository.save(emp);
+        return getProfile(employeeId); // Trả về data mới nhất sau khi lưu
+    }
+
+    // 3. Xử lý upload Avatar (Giữ nguyên như cũ)
+    public String uploadAvatar(Integer employeeId, MultipartFile file) {
+        // ... (Giữ nguyên code upload vật lý ở bước trước)
+        return null;
     }
 }

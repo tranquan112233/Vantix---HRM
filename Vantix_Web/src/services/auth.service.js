@@ -14,10 +14,14 @@ export default {
     },
 
     logout() {
+        // Xóa sạch mọi thứ liên quan đến phiên đăng nhập cũ
         localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        localStorage.removeItem('employeeId') // Thêm dòng này để dọn dẹp profile
     },
 
     getUser() {
         return JSON.parse(localStorage.getItem('user'))
     }
+
 }

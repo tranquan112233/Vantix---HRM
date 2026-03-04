@@ -1,32 +1,27 @@
-import api from './axios.js'
+import api from './axios.js' // Đổi đường dẫn này cho khớp với file axios của bạn
 
-const leaveService = {
-
-    // Lấy tất cả đơn (Admin)
-    getAll() {
-        return api.get("/leaves");
-    },
-
-    // Lấy đơn theo nhân viên
-    getByEmployee(employeeId) {
-        return api.get(`/leaves/employee/${employeeId}`);
-    },
-
-    // Tạo đơn nghỉ
-    create(data) {
-        return api.post("/leaves", data);
-    },
-
-    // Duyệt đơn
-    approve(id, approverId) {
-        return api.put(`/leaves/approve/${id}?approverId=${approverId}`);
-    },
-
-    // Từ chối đơn
-    reject(id, approverId) {
-        return api.put(`/leaves/reject/${id}?approverId=${approverId}`);
+class LeaveService {
+    // 1. Gửi đơn xin nghỉ
+    createLeaveRequest(data) {
+        return api.post('/leaves', data)
     }
 
-};
+    // 2. Lấy danh sách đơn của nhân viên (Dành cho User)
+    getMyLeaveRequests(employeeId) {
+        return api.get(`/leaves/employee/${employeeId}`)
+    }
 
-export default leaveService;
+    // 3. Lấy danh sách đơn đang chờ duyệt (Dành cho Admin/HR)
+    getPendingRequests() {
+        return api.get('/leaves/pending')
+    }
+
+    // 4. Cập nhật trạng thái duyệt đơn (Dành cho Admin/HR)
+    updateLeaveStatus(leaveId, status, approverId) {
+        return api.put(`/leaves/${leaveId}/status`, null, {
+            params: { status, approverId }
+        })
+    }
+}
+
+export default new LeaveService()

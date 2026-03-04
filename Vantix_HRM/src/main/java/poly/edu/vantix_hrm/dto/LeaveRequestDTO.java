@@ -1,12 +1,10 @@
 package poly.edu.vantix_hrm.DTO;
 
 import lombok.Data;
-
 import java.time.LocalDate;
 
 @Data
 public class LeaveRequestDTO {
-
     private Integer employeeId;
     private Integer leaveTypeId;
     private LocalDate startDate;

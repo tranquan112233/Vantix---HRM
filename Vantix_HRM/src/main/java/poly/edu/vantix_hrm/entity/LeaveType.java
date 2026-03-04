@@ -10,13 +10,12 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LeaveType {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "leave_type_id")   // ⭐ QUAN TRỌNG
+    @Column(name = "leave_type_id")
     private Integer leaveTypeId;
 
-    @Column(name = "type_name")
+    @Column(name = "type_name", length = 50)
     private String typeName;
 
     @Column(name = "is_paid")

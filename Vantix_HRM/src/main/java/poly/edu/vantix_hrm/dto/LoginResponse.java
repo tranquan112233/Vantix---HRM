@@ -9,4 +9,6 @@ public class LoginResponse {
     private String token;
     private String username;
     private String role;
+    // BỔ SUNG TRƯỜNG NÀY VÀO DTO
+    private Integer employeeId;
 }

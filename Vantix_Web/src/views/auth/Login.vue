@@ -56,7 +56,7 @@
 
       <!-- RIGHT -->
       <div class="auth-right">
-        <img :src="logo" alt="QR" />
+<!--        <img :src="logo" alt="QR" />-->
         <h4>Chào mừng bạn đến VANTIX</h4>
         <p>Nền tảng quản lý nhân sự hiện đại</p>
       </div>
@@ -82,9 +82,20 @@ const form = reactive({
 
 const login = async () => {
   try {
-    const res = await AuthService.login(form)
+    console.log("1. Bắt đầu gửi form:", form)
 
+    // Gọi API login
+    const res = await AuthService.login(form)
+    console.log("2. API Login trả về:", res.data) // <--- XEM DÒNG NÀY TRONG CONSOLE
+
+    // Lưu token
     localStorage.setItem('token', res.data.token)
+
+    // Kiểm tra xem res.data có role hay không
+    if (!res.data.role) {
+      console.warn("Cảnh báo: Không tìm thấy 'role' trong res.data")
+    }
+
     localStorage.setItem(
         'user',
         JSON.stringify({
@@ -93,11 +104,9 @@ const login = async () => {
         })
     )
 
-    // ⭐ load profile từ backend
+    console.log("3. Bắt đầu loadUser...")
     await authStore.loadUser()
-
-    // lấy user từ store
-    const user = authStore.state.user
+    console.log("4. loadUser thành công!")
 
     // redirect theo role
     if (res.data.role === 'ADMIN') {
@@ -106,6 +115,8 @@ const login = async () => {
       router.push('/home')
     }
   } catch (e) {
+    // In toàn bộ lỗi ra để xem nó chết ở API login hay loadUser
+    console.error("Lỗi chặn tại catch:", e)
     error.value = e.response?.data?.message || 'Login thất bại'
   }
 }
