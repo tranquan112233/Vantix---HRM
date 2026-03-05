@@ -128,7 +128,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import ProfileService from '@/services/profileservice.service.js' // Đảm bảo đường dẫn đúng
+import ProfileService from '@/services/profileservice.service.js'
 
 // State
 const loading = ref(true)
@@ -138,41 +138,35 @@ const fileInput = ref(null)
 const defaultAvatar = 'https://via.placeholder.com/150'
 const avatarUrl = ref(defaultAvatar)
 
-// Lấy employeeId đã lưu lúc đăng nhập
-const employeeId = localStorage.getItem('employeeId')
+// Tạo biến lưu ID để dùng khi upload ảnh hoặc update thông tin
+const currentEmployeeId = ref(null)
 
 // Object chứa dữ liệu form
 const profile = reactive({
-  username: '',
-  email: '',
-  fullName: '',
-  phone: '',
-  address: '',
-  birthDate: '',
-  gender: 'OTHER',
-  department: '',
-  position: '',
-  avatarUrl: ''
+  username: '', email: '', fullName: '', phone: '',
+  address: '', birthDate: '', gender: 'OTHER',
+  department: '', position: '', avatarUrl: ''
 })
 
-// 1. Load dữ liệu từ Backend
+// 1. Load dữ liệu từ Backend bằng Token (không cần truyền ID)
 const loadProfile = async () => {
-  if (!employeeId) {
-    alert('Vui lòng đăng nhập lại!')
-    return
-  }
-
   try {
     loading.value = true
-    const res = await ProfileService.getProfile(employeeId)
+
+    // Gọi API /me
+    const res = await ProfileService.getMyProfile()
 
     // Đổ dữ liệu từ API vào object profile
     Object.assign(profile, res.data)
+
+    // Gán ID lấy được vào biến để dùng cho các hàm bên dưới
+    currentEmployeeId.value = res.data.employeeId
 
     // Xử lý ảnh đại diện
     avatarUrl.value = res.data.avatarUrl || defaultAvatar
   } catch (error) {
     console.error("Lỗi lấy thông tin:", error)
+    alert('Không thể tải hồ sơ. Vui lòng đăng nhập lại!')
   } finally {
     loading.value = false
   }
@@ -186,10 +180,11 @@ const openFilePicker = () => {
 // 3. Upload file ảnh
 const uploadAvatar = async (event) => {
   const file = event.target.files[0]
-  if (!file) return
+  if (!file || !currentEmployeeId.value) return
 
   try {
-    const res = await ProfileService.uploadAvatar(employeeId, file)
+    // Truyền currentEmployeeId.value vào API
+    const res = await ProfileService.uploadAvatar(currentEmployeeId.value, file)
     avatarUrl.value = res.data // Cập nhật ảnh ngay lập tức
     alert('Cập nhật ảnh đại diện thành công!')
   } catch (error) {
@@ -207,9 +202,11 @@ const setDefaultAvatar = () => {
 
 // 4. Lưu thông tin Profile
 const updateProfile = async () => {
+  if (!currentEmployeeId.value) return;
+
   try {
-    // Gọi API cập nhật thông tin
-    await ProfileService.updateContactInfo(employeeId, profile)
+    // Truyền currentEmployeeId.value vào API thay vì để trống
+    await ProfileService.updateContactInfo(currentEmployeeId.value, profile)
 
     success.value = true
     setTimeout(() => {

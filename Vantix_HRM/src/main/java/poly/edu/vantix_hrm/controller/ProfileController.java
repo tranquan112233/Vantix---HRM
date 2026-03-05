@@ -7,6 +7,8 @@ import org.springframework.web.multipart.MultipartFile;
 import poly.edu.vantix_hrm.DTO.UserProfileDTO;
 import poly.edu.vantix_hrm.service.ProfileService;
 
+import java.security.Principal; // NHỚ IMPORT THÊM CÁI NÀY
+
 @RestController
 @RequestMapping("/api/profile")
 @RequiredArgsConstructor
@@ -15,12 +17,25 @@ public class ProfileController {
 
     private final ProfileService profileService;
 
+    // =================================================================
+    // API MỚI: Lấy Profile bằng Token (Frontend gọi cái này lúc load trang)
+    // =================================================================
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileDTO> getMyProfile(Principal principal) {
+        // principal.getName() sẽ tự động lấy username lưu trong JWT Token
+        String username = principal.getName();
+        UserProfileDTO profile = profileService.getMyProfile(username);
+        return ResponseEntity.ok(profile);
+    }
+
+    // =================================================================
+    // CÁC API CŨ (Giữ lại để Update và Upload Ảnh)
+    // =================================================================
     @GetMapping("/{employeeId}")
     public ResponseEntity<UserProfileDTO> getProfile(@PathVariable Integer employeeId) {
         return ResponseEntity.ok(profileService.getProfile(employeeId));
     }
 
-    // SỬA Ở ĐÂY: Đổi đường dẫn và gọi method updateProfile
     @PutMapping("/{employeeId}")
     public ResponseEntity<UserProfileDTO> updateProfile(
             @PathVariable Integer employeeId,

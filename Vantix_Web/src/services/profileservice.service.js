@@ -1,10 +1,9 @@
 import api from './axios.js'
 
 class ProfileService {
-    getProfile(employeeId) {
-        return api.get(`/profile/${employeeId}`)
+    getMyProfile() {
+        return api.get('/profile/me')
     }
-
     // Đổi tên hàm và đường dẫn cho khớp với Backend
     updateContactInfo(employeeId, data) {
         return api.put(`/profile/${employeeId}`, data)
@@ -18,6 +17,7 @@ class ProfileService {
             headers: { 'Content-Type': 'multipart/form-data' }
         })
     }
+
 }
 
 export default new ProfileService()
