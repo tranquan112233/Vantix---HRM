@@ -1,53 +1,74 @@
 package poly.edu.vantix_hrm.controller;
 
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import poly.edu.vantix_hrm.DTO.UserProfileDTO;
+import poly.edu.vantix_hrm.DTO.ProfileDTO;
 import poly.edu.vantix_hrm.service.ProfileService;
 
-import java.security.Principal; // NHỚ IMPORT THÊM CÁI NÀY
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/profile")
-@RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin("*")
 public class ProfileController {
 
-    private final ProfileService profileService;
+    @Autowired
+    private ProfileService profileService;
 
-    // =================================================================
-    // API MỚI: Lấy Profile bằng Token (Frontend gọi cái này lúc load trang)
-    // =================================================================
     @GetMapping("/me")
-    public ResponseEntity<UserProfileDTO> getMyProfile(Principal principal) {
-        // principal.getName() sẽ tự động lấy username lưu trong JWT Token
-        String username = principal.getName();
-        UserProfileDTO profile = profileService.getMyProfile(username);
+    public ResponseEntity<ProfileDTO> getMyProfile(Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build(); // Báo lỗi 401 nếu chưa đăng nhập
+        }
+
+        String currentUsername = principal.getName();
+        ProfileDTO profile = profileService.getProfileByUsername(currentUsername);
+
         return ResponseEntity.ok(profile);
     }
 
-    // =================================================================
-    // CÁC API CŨ (Giữ lại để Update và Upload Ảnh)
-    // =================================================================
-    @GetMapping("/{employeeId}")
-    public ResponseEntity<UserProfileDTO> getProfile(@PathVariable Integer employeeId) {
-        return ResponseEntity.ok(profileService.getProfile(employeeId));
-    }
+    @PostMapping("/avatar")
+    public ResponseEntity<?> uploadAvatar(@RequestParam("file") MultipartFile file, Principal principal) {
+        if (principal == null) return ResponseEntity.status(401).build();
 
-    @PutMapping("/{employeeId}")
-    public ResponseEntity<UserProfileDTO> updateProfile(
-            @PathVariable Integer employeeId,
-            @RequestBody UserProfileDTO dto) {
-        return ResponseEntity.ok(profileService.updateProfile(employeeId, dto));
-    }
+        try {
+            String username = principal.getName();
+            String uploadDir = "uploads/avatars/";
+            File dir = new File(uploadDir);
+            if (!dir.exists()) dir.mkdirs();
 
-    @PostMapping("/{employeeId}/avatar")
-    public ResponseEntity<String> uploadAvatar(
-            @PathVariable Integer employeeId,
-            @RequestParam("file") MultipartFile file) {
-        String avatarUrl = profileService.uploadAvatar(employeeId, file);
-        return ResponseEntity.ok(avatarUrl);
+            // 1. Tìm và xóa ảnh cũ của user này (để tránh rác nếu họ đổi từ .jpg sang .png)
+            File[] existingFiles = dir.listFiles((d, name) -> name.startsWith(username + "."));
+            if (existingFiles != null) {
+                for (File f : existingFiles) {
+                    f.delete();
+                }
+            }
+
+            // 2. Lấy đuôi file mới (.jpg, .png, ...)
+            String originalFilename = file.getOriginalFilename();
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+
+            // 3. Lưu file với tên: username.extension (VD: admin.jpg)
+            String newFilename = username + extension;
+            Path filePath = Paths.get(uploadDir + newFilename);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            String fileUrl = "/uploads/avatars/" + newFilename;
+            return ResponseEntity.ok().body("{\"message\": \"Upload thành công\", \"url\": \"" + fileUrl + "\"}");
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi: " + e.getMessage());
+        }
     }
 }

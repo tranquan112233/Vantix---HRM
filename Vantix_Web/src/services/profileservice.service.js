@@ -2,7 +2,7 @@ import api from './axios.js'
 
 class ProfileService {
     getMyProfile() {
-        return api.get('/profile/me')
+        return apiClient.get('/profile/me');
     }
     // Đổi tên hàm và đường dẫn cho khớp với Backend
     updateContactInfo(employeeId, data) {
