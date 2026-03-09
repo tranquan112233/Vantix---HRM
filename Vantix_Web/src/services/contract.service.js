@@ -1,21 +1,19 @@
 import api from "@/services/axios";
 
-const ENDPOINT = '/contracts';
-
 export default {
-    getAllContracts() {
-        return api.get(`${ENDPOINT}/getAllContracts`);
+    getAll() {
+        return api.get(`/contracts`);
     },
 
-    createContract(data) {
-        return api.post(`${ENDPOINT}/postContract`, data);
+    create(data) {
+        return api.post("/contracts", data);
     },
 
-    deleteContract(id) {
-        return api.delete(`${ENDPOINT}/deleteContract/${id}`);
+    update(id, data) {
+        return api.put(`/contracts/${id}`, data);
     },
 
-    updateContractStatus(id) {
-        return api.put(`${ENDPOINT}/updateContractStatus/${id}`);
+    delete(id) {
+        return api.delete(`/contracts/${id}`);
     }
 }

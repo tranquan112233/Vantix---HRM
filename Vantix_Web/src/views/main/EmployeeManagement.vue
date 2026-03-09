@@ -353,6 +353,18 @@
                 <div class="invalid-feedback">{{ errors.positionId }}</div>
               </div>
 
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Status</label>
+                <select class="form-select"
+                        v-model="form.workStatus"
+                        :class="{ 'is-invalid': errors.workStatus }">
+                  <option disabled value="">-- Select Status --</option>
+                  <option value="WORKING">WORKING</option>
+                  <option value="RESIGNED">RESIGNED</option>
+                </select>
+                <div class="invalid-feedback">{{ errors.workStatus }}</div>
+              </div>
+
             </div>
 
           </div>

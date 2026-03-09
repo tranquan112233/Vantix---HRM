@@ -23,7 +23,6 @@
     <!-- ===== CHARTS ===== -->
     <div class="row g-4">
 
-      <!-- LINE -->
       <div class="col-md-6">
         <div class="card shadow-sm border-0">
           <div class="card-body">
@@ -35,7 +34,6 @@
         </div>
       </div>
 
-      <!-- BAR -->
       <div class="col-md-6">
         <div class="card shadow-sm border-0">
           <div class="card-body">
@@ -47,7 +45,6 @@
         </div>
       </div>
 
-      <!-- PIE -->
       <div class="col-md-6">
         <div class="card shadow-sm border-0">
           <div class="card-body">
@@ -67,54 +64,119 @@
 <script setup>
 import { ref, onMounted } from "vue"
 import Chart from "chart.js/auto"
-import departmentService from "@/services/department.service.js"
+
+import departmentService from "@/services/department.service"
+import employeeService from "@/services/employee.service"
 
 const lineChart = ref(null)
 const barChart = ref(null)
 const pieChart = ref(null)
 
-/* Cards */
+const departments = ref([])
+const employees = ref([])
+
+/* ===== CARDS ===== */
+
 const cards = ref([
-  { title: "Total Employees", value: 320, icon: "bi bi-people" },
-  { title: "Departments", value: 0, icon: "bi bi-building" }, // 👈 sẽ update bằng API
-  { title: "Active Employees", value: 280, icon: "bi bi-person-check" },
-  { title: "Inactive Employees", value: 40, icon: "bi bi-person-x" }
+  { title: "Total Employees", value: 0, icon: "bi bi-people" },
+  { title: "Departments", value: 0, icon: "bi bi-building" },
+  { title: "Active Employees", value: 0, icon: "bi bi-person-check" },
+  { title: "Inactive Employees", value: 0, icon: "bi bi-person-x" }
 ])
 
-/* ================= FETCH DEPARTMENT COUNT ================= */
-async function fetchDepartmentCount() {
+/* ===== FETCH DATA ===== */
+
+async function fetchData() {
   try {
-    const { data } = await departmentService.getAll()
 
-    // data là list departments
-    const count = data.length
+    const deptRes = await departmentService.getAll()
+    const empRes = await employeeService.getAll()
 
-    // update card Departments
-    const departmentCard = cards.value.find(
-        c => c.title === "Departments"
-    )
+    departments.value = deptRes.data
+    employees.value = empRes.data
 
-    if (departmentCard) {
-      departmentCard.value = count
-    }
+    updateCards()
+    createCharts()
 
   } catch (err) {
-    console.error("Fetch department error:", err)
+    console.error("Dashboard load error:", err)
   }
 }
 
-onMounted(() => {
+/* ===== UPDATE CARDS ===== */
 
-  fetchDepartmentCount() // 👈 gọi API
+function updateCards() {
 
-  /* LINE CHART */
+  const totalEmployees = employees.value.length
+
+  const activeEmployees = employees.value.filter(
+      e => e.workStatus === "WORKING"
+  ).length
+
+  const inactiveEmployees = employees.value.filter(
+      e => e.workStatus === "RESIGNED"
+  ).length
+
+  cards.value.find(c => c.title === "Total Employees").value = totalEmployees
+  cards.value.find(c => c.title === "Departments").value = departments.value.length
+  cards.value.find(c => c.title === "Active Employees").value = activeEmployees
+  cards.value.find(c => c.title === "Inactive Employees").value = inactiveEmployees
+}
+
+/* ===== CREATE CHARTS ===== */
+
+function createCharts() {
+
+  /* ===== BAR CHART (EMPLOYEE BY DEPARTMENT) ===== */
+
+  const departmentNames = departments.value.map(d => d.departmentName)
+
+  const employeeCounts = departments.value.map(dep => {
+    return employees.value.filter(
+        e => e.departmentId === dep.departmentId
+    ).length
+  })
+
+  new Chart(barChart.value, {
+    type: "bar",
+    data: {
+      labels: departmentNames,
+      datasets: [{
+        label: "Employees",
+        data: employeeCounts,
+        borderWidth: 1
+      }]
+    },
+    options: { responsive: true }
+  })
+
+
+  /* ===== PIE CHART ===== */
+
+  const working = employees.value.filter(e => e.workStatus === "WORKING").length
+  const resigned = employees.value.filter(e => e.workStatus === "RESIGNED").length
+
+  new Chart(pieChart.value, {
+    type: "pie",
+    data: {
+      labels: ["Working", "Resigned"],
+      datasets: [{
+        data: [working, resigned]
+      }]
+    },
+    options: { responsive: true }
+  })
+
+
+  /* ===== LINE CHART ===== */
+
   new Chart(lineChart.value, {
     type: "line",
     data: {
       labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
       datasets: [{
         label: "Employees",
-        data: [200, 220, 250, 270, 300, 320],
+        data: [10, 20, 30, 50, 70, employees.value.length],
         borderWidth: 2,
         fill: false
       }]
@@ -122,33 +184,14 @@ onMounted(() => {
     options: { responsive: true }
   })
 
-  /* BAR CHART */
-  new Chart(barChart.value, {
-    type: "bar",
-    data: {
-      labels: ["HR", "IT", "Finance", "Marketing", "Sales", "Admin"],
-      datasets: [{
-        label: "Employees",
-        data: [40, 90, 50, 60, 70, 10],
-        borderWidth: 1
-      }]
-    },
-    options: { responsive: true }
-  })
+}
 
-  /* PIE CHART */
-  new Chart(pieChart.value, {
-    type: "pie",
-    data: {
-      labels: ["Active", "Inactive"],
-      datasets: [{
-        data: [280, 40]
-      }]
-    },
-    options: { responsive: true }
-  })
+/* ===== MOUNT ===== */
 
+onMounted(() => {
+  fetchData()
 })
+
 </script>
 
 <style scoped>

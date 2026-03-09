@@ -142,7 +142,7 @@ watch([() => form.value.startDate, () => form.value.type], ([newStart, newType])
 const fetchContracts = async () => {
   loading.value = true;
   try {
-    const response = await contractService.getAllContracts();
+    const response = await contractService.getAll();
     contracts.value = response.data;
   } catch (error) {
     console.error("Lỗi API Contracts:", error);
@@ -153,7 +153,7 @@ const fetchContracts = async () => {
 
 const fetchPositions = async () => {
   try {
-    const response = await positionsService.getAllPositions();
+    const response = await positionsService.getAll();
     dbPositions.value = response.data;
   } catch (error) {
     console.error("Lỗi API Positions:", error);
@@ -195,7 +195,7 @@ const handleSubmit = async () => {
 
   try {
     loading.value = true;
-    await contractService.createContract(payload);
+    await contractService.create(payload);
     await fetchContracts();
 
     showMessage('Tạo hợp đồng thành công!', 'success');
@@ -213,7 +213,7 @@ const handleSubmit = async () => {
 const toggleContractStatus = async (id) => {
   try {
     loading.value = true;
-    const response = await contractService.updateContractStatus(id);
+    const response = await contractService.update(id);
 
     // Gọi lại API fetch danh sách để table tự động cập nhật data mới nhất
     await fetchContracts();
@@ -245,7 +245,7 @@ const executeDeleteContract = async () => {
 
   try {
     loading.value = true;
-    const response = await contractService.deleteContract(id);
+    const response = await contractService.delete(id);
 
     // Xóa thành công, cập nhật mảng
     contracts.value = contracts.value.filter(c => c.contractId !== id);
