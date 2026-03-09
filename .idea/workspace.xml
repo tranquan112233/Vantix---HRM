@@ -206,6 +206,7 @@
       <workItem from="1772442380464" duration="2857000" />
       <workItem from="1772762243191" duration="2000" />
       <workItem from="1772962207010" duration="78000" />
+      <workItem from="1773056631785" duration="793000" />
     </task>
     <task id="LOCAL-00001" summary="Thêm private Gender gender = Gender.Other; trong entity Users">
       <option name="closed" value="true" />
