@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f1d47218-c079-4b7e-895c-c51f3610d81f" name="Changes" comment="Thay đổi:&#10;- Alo Q à Q&#10;- Thêm chức năng tự động cập nhật status contract đã hết hạn ( ContractScheduler )" />
+    <list default="true" id="f1d47218-c079-4b7e-895c-c51f3610d81f" name="Changes" comment="Thay đổi:&#10;- Alo Q à Q&#10;- Thêm chức năng tự động cập nhật status contract đã hết hạn ( ContractScheduler )">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -201,6 +203,9 @@
       <workItem from="1772276610674" duration="1957000" />
       <workItem from="1772381196111" duration="2762000" />
       <workItem from="1772442134228" duration="120000" />
+      <workItem from="1772442380464" duration="2857000" />
+      <workItem from="1772762243191" duration="2000" />
+      <workItem from="1772962207010" duration="78000" />
     </task>
     <task id="LOCAL-00001" summary="Thêm private Gender gender = Gender.Other; trong entity Users">
       <option name="closed" value="true" />
