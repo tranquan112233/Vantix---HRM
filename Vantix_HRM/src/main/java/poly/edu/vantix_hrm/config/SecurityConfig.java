@@ -31,6 +31,8 @@ public class SecurityConfig {
                         .permitAll()
                         .anyRequest()
                         .authenticated()
+                        .requestMatchers("/api/profile/avatar").authenticated()
+                        .requestMatchers("/api/leave-types/**").permitAll()
                 )
 
                 .addFilterBefore(
