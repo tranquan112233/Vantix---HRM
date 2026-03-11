@@ -5,12 +5,12 @@ import lombok.Data;
 import poly.edu.vantix_hrm.entity.Employee;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 public class EmployeeCreateRequest {
 
     // ================= USER =================
-
     @NotBlank(message = "Username is required")
     private String username;
 
@@ -23,10 +23,9 @@ public class EmployeeCreateRequest {
     private String password;
 
     @NotNull(message = "Role is required")
-    private Integer roleId;
+    private List<Integer> roleIds;
 
     // ================= EMPLOYEE =================
-
     @NotBlank(message = "Full name is required")
     private String fullName;
 

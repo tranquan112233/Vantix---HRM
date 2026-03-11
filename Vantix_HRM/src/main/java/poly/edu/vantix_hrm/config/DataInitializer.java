@@ -10,6 +10,9 @@ import poly.edu.vantix_hrm.entity.User;
 import poly.edu.vantix_hrm.repository.RoleRepository;
 import poly.edu.vantix_hrm.repository.UserRepository;
 
+import java.util.HashSet;
+import java.util.List;
+
 @Configuration
 @RequiredArgsConstructor
 public class DataInitializer {
@@ -38,7 +41,10 @@ public class DataInitializer {
                 admin.setPasswordHash(
                         passwordEncoder.encode("123456")
                 );
-                admin.setRole(adminRole);
+
+                // CẬP NHẬT ĐA QUYỀN: Bọc adminRole vào trong HashSet
+                admin.setRoles(new HashSet<>(List.of(adminRole)));
+
                 admin.setStatus(User.UserStatus.ACTIVE);
 
                 userRepository.save(admin);

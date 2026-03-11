@@ -3,7 +3,6 @@
     <div class="card shadow rounded border-0">
       <div class="card-body p-4">
 
-        <!-- HEADER -->
         <div class="d-flex justify-content-between align-items-center mb-4">
           <div>
             <h4 class="fw-bold mb-1">
@@ -21,7 +20,6 @@
           </button>
         </div>
 
-        <!-- SEARCH + PAGE SIZE -->
         <div class="d-flex justify-content-between align-items-center mb-4">
           <div class="input-group w-25">
             <span class="input-group-text bg-white border-end-0">
@@ -46,7 +44,6 @@
           </div>
         </div>
 
-        <!-- TABLE -->
         <div class="table-responsive">
           <table class="table align-middle">
             <thead>
@@ -106,7 +103,7 @@
               <td class="fw-semibold">{{ emp.fullName }}</td>
               <td>
                 <span class="badge"
-                :class="emp.gender === 'MALE' ? 'bg-primary' : emp.gender === 'FEMALE' ? 'bg-danger' : 'bg-warning'">
+                      :class="emp.gender === 'MALE' ? 'bg-primary' : emp.gender === 'FEMALE' ? 'bg-danger' : 'bg-warning'">
                   {{ emp.gender }}
                 </span>
               </td>
@@ -151,7 +148,6 @@
           </table>
         </div>
 
-        <!-- PAGINATION -->
         <div class="d-flex justify-content-between align-items-center mt-4">
           <div class="text-muted small">
             Showing {{ startItem }} - {{ endItem }}
@@ -181,7 +177,6 @@
       </div>
     </div>
 
-    <!-- MODAL -->
     <div class="modal fade" data-bs-backdrop="static" id="employeeModal" tabindex="-1">
       <div class="modal-dialog modal-lg">
         <div class="modal-content rounded-4 border-0 shadow">
@@ -195,7 +190,6 @@
 
           <div class="modal-body">
 
-            <!-- CREATE MODE: USER INFO -->
             <template v-if="!isEdit">
 
               <h6 class="fw-bold mb-3">User Information</h6>
@@ -242,19 +236,23 @@
                 </div>
 
                 <div class="col-md-6 mb-3">
-                  <label class="form-label">Role</label>
-                  <select class="form-select"
-                          v-model="form.roleId"
-                          :class="{ 'is-invalid': errors.roleId }">
-                    <option disabled value="">-- Select Role --</option>
-                    <option v-for="r in roleOptions"
-                            :key="r.roleId"
-                            :value="r.roleId">
-                      {{ r.roleName }}
-                    </option>
-                  </select>
-                  <div class="invalid-feedback">
-                    {{ errors.roleId }}
+                  <label class="form-label d-block">Roles</label>
+                  <div>
+                    <div class="form-check form-check-inline"
+                         v-for="r in roleOptions"
+                         :key="r.roleId">
+                      <input class="form-check-input"
+                             type="checkbox"
+                             :id="'emp-role-' + r.roleId"
+                             :value="r.roleId"
+                             v-model="form.roleIds">
+                      <label class="form-check-label" :for="'emp-role-' + r.roleId">
+                        {{ r.roleName }}
+                      </label>
+                    </div>
+                  </div>
+                  <div class="invalid-feedback d-block" v-if="errors.roleIds || errors.roles">
+                    {{ errors.roleIds || errors.roles }}
                   </div>
                 </div>
 
@@ -263,7 +261,6 @@
               <hr/>
             </template>
 
-            <!-- EMPLOYEE INFO -->
             <h6 class="fw-bold mb-3">Employee Information</h6>
 
             <div class="row">
@@ -486,12 +483,13 @@ const {
 
 watch(search, () => (currentPage.value = 1))
 
+// CẬP NHẬT: Đổi roleId: "" thành roleIds: []
 function getDefaultForm() {
   return {
     username: "",
     email: "",
     password: "",
-    roleId: "",
+    roleIds: [],
     fullName: "",
     gender: "MALE",
     birthDate: "",

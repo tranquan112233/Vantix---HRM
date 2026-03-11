@@ -3,7 +3,6 @@
     <div class="card shadow rounded border-0">
       <div class="card-body p-4">
 
-        <!-- HEADER -->
         <div class="d-flex justify-content-between align-items-center mb-4">
           <div>
             <h4 class="fw-bold mb-1">
@@ -21,7 +20,6 @@
           </button>
         </div>
 
-        <!-- SEARCH + PAGE SIZE -->
         <div class="d-flex justify-content-between align-items-center mb-4">
           <div class="input-group w-25">
             <span class="input-group-text bg-white border-end-0">
@@ -47,7 +45,6 @@
           </div>
         </div>
 
-        <!-- TABLE -->
         <div class="table-responsive">
           <table class="table align-middle">
             <thead>
@@ -67,9 +64,7 @@
                 <i :class="getSortIcon('email')" class="ms-1"></i>
               </th>
 
-              <th @click="sortBy('roleName')" class="sortable">Role
-                <i :class="getSortIcon('lastLogin')" class="ms-1"></i>
-              </th>
+              <th>Roles</th>
 
               <th @click="sortBy('lastLogin')" class="sortable">
                 Last Login
@@ -87,9 +82,10 @@
               <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
               <td class="fw-semibold">{{ user.username }}</td>
               <td>{{ user.email }}</td>
+
               <td>
-                <span class="badge bg-primary">
-                  {{ user.roleName }}
+                <span v-for="role in user.roleNames" :key="role" class="badge bg-primary me-1 mb-1">
+                  {{ role }}
                 </span>
               </td>
 
@@ -139,7 +135,6 @@
           </table>
         </div>
 
-        <!-- PAGINATION -->
         <div class="d-flex justify-content-between align-items-center mt-4">
           <div class="text-muted small">
             Showing {{ startItem }} - {{ endItem }}
@@ -170,7 +165,6 @@
       </div>
     </div>
 
-    <!-- MODAL -->
     <div class="modal fade" data-bs-backdrop="static" id="userModal" tabindex="-1">
       <div class="modal-dialog">
         <div class="modal-content rounded-4 border-0 shadow">
@@ -226,22 +220,23 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label fw-semibold">Role</label>
-              <select class="form-select"
-                      :class="{ 'is-invalid': errors.roleId }"
-                      v-model.number="form.roleId">
-
-                <option disabled value="">-- Select Role --</option>
-
-                <option v-for="r in roleOptions"
-                        :key="r.roleId"
-                        :value="r.roleId">
-                  {{ r.roleName }}
-                </option>
-              </select>
-
-              <div class="invalid-feedback">
-                {{ errors.roleId }}
+              <label class="form-label fw-semibold">Roles</label>
+              <div>
+                <div class="form-check form-check-inline"
+                     v-for="r in roleOptions"
+                     :key="r.roleId">
+                  <input class="form-check-input"
+                         type="checkbox"
+                         :id="'role-' + r.roleId"
+                         :value="r.roleId"
+                         v-model="form.roleIds">
+                  <label class="form-check-label" :for="'role-' + r.roleId">
+                    {{ r.roleName }}
+                  </label>
+                </div>
+              </div>
+              <div class="invalid-feedback d-block" v-if="errors.roleIds || errors.roles">
+                {{ errors.roleIds || errors.roles }}
               </div>
             </div>
 
@@ -286,7 +281,7 @@ import { useToast } from "@/composables/useToast"
 import { useSearch } from "@/composables/useSearch"
 import { useSort } from "@/composables/useSort"
 import { usePagination } from "@/composables/usePagination"
-import {useErrorHandler} from "@/composables/useErrorHandler.js";
+import { useErrorHandler } from "@/composables/useErrorHandler.js";
 
 /* =====================================================
    STATE
@@ -382,14 +377,14 @@ watch(search, () => (currentPage.value = 1))
    FORM HELPER
 ===================================================== */
 
-// Default form
+// Default form (Cập nhật roleId -> mảng roleIds)
 function getDefaultForm() {
   return {
     userId: null,
     username: "",
     email: "",
     password: "",
-    roleId: "",
+    roleIds: [], // Dùng mảng rỗng cho đa quyền
     status: "ACTIVE"
   }
 }
@@ -417,6 +412,7 @@ function openEdit(user) {
   isEdit.value = true
   form.value = {
     ...user,
+    roleIds: [...(user.roleIds || [])], // Copy mảng roleIds để ko mutate data gốc
     password: ""
   }
   errors.value = {}

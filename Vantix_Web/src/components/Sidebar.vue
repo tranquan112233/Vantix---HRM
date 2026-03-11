@@ -121,9 +121,13 @@
 import { reactive, computed, watch, ref } from "vue"
 import { useRoute } from "vue-router"
 import { menuItems } from "@/config/menu.config"
-import { getRole } from "@/utils/jwtDecode"
 
-const userRole = ref(getRole())
+// CẬP NHẬT ĐA QUYỀN: Import getUser thay vì getRole (Vì hồi nãy mình thấy bạn xài getUser ở Router)
+import { getUser } from "@/utils/jwtDecode"
+
+// Lấy thông tin User và mảng roles
+const user = getUser()
+const userRoles = ref(user?.roles || []) // Mảng chứa các quyền (Ví dụ: ['ROLE_ADMIN', 'ROLE_HR'])
 
 /* ================= PROPS ================= */
 const props = defineProps({
@@ -147,20 +151,27 @@ const handleMouseLeave = () => {
 }
 
 /* ================= GROUP MENU BY SECTION ================= */
+
+// Hàm tiện ích: Kiểm tra xem User có ít nhất 1 quyền nằm trong mảng requiredRoles không
+// (Có xử lý cả trường hợp Backend có 'ROLE_' mà Frontend không ghi)
+const hasPermission = (requiredRoles) => {
+  if (!requiredRoles || requiredRoles.length === 0) return true; // Không yêu cầu quyền thì ai cũng thấy
+  return requiredRoles.some(reqRole =>
+      userRoles.value.includes(reqRole) || userRoles.value.includes(`ROLE_${reqRole}`)
+  );
+}
+
 const groupedMenu = computed(() => {
   const groups = {}
 
   const filteredMenu = menuItems
-      .filter(item =>
-          !item.roles || item.roles.includes(userRole.value)
-      )
+      // Dùng hàm hasPermission để kiểm tra
+      .filter(item => hasPermission(item.roles))
       .map(item => {
         if (item.children) {
-          const filteredChildren = item.children.filter(child =>
-              !child.roles || child.roles.includes(userRole.value)
-          )
+          // Lọc children cũng dùng hasPermission
+          const filteredChildren = item.children.filter(child => hasPermission(child.roles))
 
-          // Nếu parent có children nhưng sau khi lọc rỗng thì ẩn luôn parent
           if (filteredChildren.length === 0) {
             return null
           }

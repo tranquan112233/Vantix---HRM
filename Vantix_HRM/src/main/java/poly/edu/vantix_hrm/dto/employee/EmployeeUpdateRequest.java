@@ -9,6 +9,7 @@ import java.time.LocalDate;
 @Data
 public class EmployeeUpdateRequest {
 
+
     @NotBlank(message = "Full name is required")
     private String fullName;
 

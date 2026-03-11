@@ -21,6 +21,8 @@ import PositionManagement from "@/views/main/PositionManagement.vue";
 import EmployeeManagement from "@/views/main/EmployeeManagement.vue";
 import Attendance from "../views/main/Attendance.vue";
 import Contract from "@/views/main/Contract.vue";
+import LeaveManagement from "@/views/main/LeaveManagement.vue";
+import LeaveRequest from "@/views/user/LeaveRequest.vue";
 /* ================= ROUTES ================= */
 const routes = [
 
@@ -84,6 +86,16 @@ const routes = [
                 path: "contracts",
                 component: Contract,
                 meta: { roles: ["ADMIN"] }
+            },
+            {
+                path: "leave",
+                component: LeaveManagement,
+                meta: { roles: ["ADMIN"] }
+            },
+            {
+                path: "leaves",
+                component: LeaveRequest,
+                meta: { roles: ["EMPLOYEE"] }
             }
 
         ]
@@ -130,9 +142,20 @@ router.beforeEach((to) => {
         return { path: "/dashboard" }
     }
 
-    // 3️⃣ Kiểm tra role
-    if (roles && !roles.includes(user?.role)) {
-        return { path: "/403" }
+    // 3️⃣ Kiểm tra role (ĐÃ NÂNG CẤP ĐA QUYỀN)
+    if (roles && user) {
+        // Lấy mảng quyền từ payload của Token (Backend trả về biến "roles")
+        const userRoles = user.roles || []
+
+        // Kiểm tra xem User có ít nhất 1 quyền nằm trong danh sách yêu cầu của Route không
+        // Xử lý luôn trường hợp Backend có tiền tố "ROLE_" mà Frontend thì không ghi
+        const hasPermission = roles.some(requiredRole =>
+            userRoles.includes(requiredRole) || userRoles.includes(`ROLE_${requiredRole}`)
+        )
+
+        if (!hasPermission) {
+            return { path: "/403" } // Không có quyền thì đá sang trang Forbidden
+        }
     }
 
     return true

@@ -2,9 +2,12 @@ package poly.edu.vantix_hrm.dto.user;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import poly.edu.vantix_hrm.entity.User;
+
+import java.util.List;
 
 @Data
 public class UpdateUserRequest {
@@ -18,8 +21,9 @@ public class UpdateUserRequest {
 
     private String password; // optional
 
-    @NotNull(message = "Please select role")
-    private Integer roleId;
+    // Đổi từ Integer roleId -> List<Integer> roleIds
+    @NotEmpty(message = "Please select at least one role")
+    private List<Integer> roleIds;
 
     @NotNull(message = "Status is required")
     private User.UserStatus status;

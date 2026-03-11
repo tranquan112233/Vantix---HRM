@@ -11,6 +11,7 @@ import poly.edu.vantix_hrm.entity.*;
 import poly.edu.vantix_hrm.exception.BusinessException;
 import poly.edu.vantix_hrm.repository.*;
 
+import java.util.HashSet;
 import java.util.List;
 
 @Service
@@ -54,8 +55,11 @@ public class EmployeeService {
             throw new BusinessException("email","Email already exists");
         }
 
-        Role role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new BusinessException("role","Role not found"));
+        // CẬP NHẬT ĐA QUYỀN: Tìm danh sách Role thay vì 1 Role
+        List<Role> roles = roleRepository.findAllById(request.getRoleIds());
+        if (roles.isEmpty() || roles.size() != request.getRoleIds().size()) {
+            throw new BusinessException("role", "One or more roles not found or invalid");
+        }
 
         Department department = departmentRepository.findById(request.getDepartmentId())
                 .orElseThrow(() -> new BusinessException("department","Department not found"));
@@ -68,8 +72,11 @@ public class EmployeeService {
         user.setUsername(request.getUsername().trim());
         user.setEmail(request.getEmail().trim());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setRole(role);
+
+        // Gán mảng quyền vào cho User
+        user.setRoles(new HashSet<>(roles));
         user.setStatus(User.UserStatus.ACTIVE);
+
 
         userRepository.save(user);
 
@@ -106,6 +113,8 @@ public class EmployeeService {
 
         Position position = positionRepository.findById(request.getPositionId())
                 .orElseThrow(() -> new BusinessException("position","Position not found"));
+
+
 
         employee.setFullName(request.getFullName().trim());
         employee.setGender(request.getGender());

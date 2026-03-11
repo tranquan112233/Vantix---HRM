@@ -10,6 +10,7 @@ import poly.edu.vantix_hrm.exception.BusinessException;
 import poly.edu.vantix_hrm.repository.RoleRepository;
 import poly.edu.vantix_hrm.repository.UserRepository;
 
+import java.util.HashSet;
 import java.util.List;
 
 @Service
@@ -48,14 +49,21 @@ public class UserService {
             throw new BusinessException("email","Email already exists");
         }
 
-        Role role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new BusinessException("role","Role not found"));
+        // Lấy danh sách Roles từ DB dựa vào List<Integer> roleIds
+        List<Role> roles = roleRepository.findAllById(request.getRoleIds());
+
+        // Kiểm tra xem số lượng quyền tìm thấy có khớp với số lượng gửi lên không
+        if (roles.isEmpty() || roles.size() != request.getRoleIds().size()) {
+            throw new BusinessException("role", "One or more roles not found or invalid");
+        }
 
         User user = new User();
         user.setUsername(request.getUsername().trim());
         user.setEmail(request.getEmail().trim());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setRole(role);
+
+        // Gán danh sách quyền (Dùng HashSet để bỏ vào thuộc tính Set<Role> của Entity)
+        user.setRoles(new HashSet<>(roles));
         user.setStatus(User.UserStatus.ACTIVE);
 
         userRepository.save(user);
@@ -82,12 +90,17 @@ public class UserService {
             throw new BusinessException("email","Email already exists");
         }
 
-        Role role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new BusinessException("role","Role not found"));
+        // Lấy danh sách Roles từ DB để cập nhật
+        List<Role> roles = roleRepository.findAllById(request.getRoleIds());
+
+        if (roles.isEmpty() || roles.size() != request.getRoleIds().size()) {
+            throw new BusinessException("role", "One or more roles not found or invalid");
+        }
 
         user.setUsername(request.getUsername().trim());
         user.setEmail(request.getEmail().trim());
-        user.setRole(role);
+        // Cập nhật lại danh sách quyền
+        user.setRoles(new HashSet<>(roles));
         user.setStatus(request.getStatus());
 
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
@@ -120,12 +133,17 @@ public class UserService {
     /* ================= MAPPER ================= */
 
     private UserResponse mapToResponse(User user) {
+
+        // Trích xuất list ID và list Tên quyền từ Set<Role> của User
+        List<Integer> roleIds = user.getRoles().stream().map(Role::getRoleId).toList();
+        List<String> roleNames = user.getRoles().stream().map(Role::getRoleName).toList();
+
         return UserResponse.builder()
                 .userId(user.getUserId())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .roleId(user.getRole().getRoleId())
-                .roleName(user.getRole().getRoleName())
+                .roleIds(roleIds)      // Map mảng ID
+                .roleNames(roleNames)  // Map mảng Tên quyền
                 .status(user.getStatus().name())
                 .lastLogin(user.getLastLogin())
                 .createdAt(user.getCreatedAt())
