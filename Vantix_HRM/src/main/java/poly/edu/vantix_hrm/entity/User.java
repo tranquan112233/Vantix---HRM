@@ -41,9 +41,8 @@ public class User {
 
     public enum UserStatus {ACTIVE, LOCKED} // Trạng thái (Hoạt động, Bị Khóa)
 
-    // LƯU Ý: Thêm dòng này vào Entity User
-    @Column(name = "disabled_menus")
-    private String disabledMenus; // Lưu danh sách menu bị chặn (ngăn cách bằng dấu phẩy)
+    @Column(name = "permissions", columnDefinition = "TEXT")
+    private String permissions; // Lưu dạng "dashboard,attendances,leaves"
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)

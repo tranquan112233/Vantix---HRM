@@ -11,8 +11,11 @@ import poly.edu.vantix_hrm.entity.*;
 import poly.edu.vantix_hrm.exception.BusinessException;
 import poly.edu.vantix_hrm.repository.*;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,10 +39,8 @@ public class EmployeeService {
     }
 
     public EmployeeResponse findById(Integer id) {
-
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("employee","Employee not found"));
-
         return mapToResponse(employee);
     }
 
@@ -55,7 +56,6 @@ public class EmployeeService {
             throw new BusinessException("email","Email already exists");
         }
 
-        // CẬP NHẬT ĐA QUYỀN: Tìm danh sách Role thay vì 1 Role
         List<Role> roles = roleRepository.findAllById(request.getRoleIds());
         if (roles.isEmpty() || roles.size() != request.getRoleIds().size()) {
             throw new BusinessException("role", "One or more roles not found or invalid");
@@ -67,20 +67,24 @@ public class EmployeeService {
         Position position = positionRepository.findById(request.getPositionId())
                 .orElseThrow(() -> new BusinessException("position","Position not found"));
 
-        /* CREATE USER */
+        /* 1. CREATE USER */
         User user = new User();
         user.setUsername(request.getUsername().trim());
         user.setEmail(request.getEmail().trim());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-
-        // Gán mảng quyền vào cho User
         user.setRoles(new HashSet<>(roles));
         user.setStatus(User.UserStatus.ACTIVE);
 
+        // Nối mảng quyền thành chuỗi lưu vào Cột Permissions của USER
+        if (request.getPermissions() != null && !request.getPermissions().isEmpty()) {
+            user.setPermissions(String.join(",", request.getPermissions()));
+        } else {
+            user.setPermissions("");
+        }
 
         userRepository.save(user);
 
-        /* CREATE EMPLOYEE */
+        /* 2. CREATE EMPLOYEE */
         Employee employee = new Employee();
         employee.setUser(user);
         employee.setFullName(request.getFullName().trim());
@@ -114,8 +118,26 @@ public class EmployeeService {
         Position position = positionRepository.findById(request.getPositionId())
                 .orElseThrow(() -> new BusinessException("position","Position not found"));
 
+        List<Role> roles = roleRepository.findAllById(request.getRoleIds());
+        if (roles.isEmpty() || roles.size() != request.getRoleIds().size()) {
+            throw new BusinessException("role", "One or more roles not found or invalid");
+        }
 
+        /* 1. UPDATE USER */
+        User user = employee.getUser();
+        user.setEmail(request.getEmail().trim());
+        user.setRoles(new HashSet<>(roles));
 
+        // Cập nhật lại chuỗi Permissions cho USER
+        if (request.getPermissions() != null && !request.getPermissions().isEmpty()) {
+            user.setPermissions(String.join(",", request.getPermissions()));
+        } else {
+            user.setPermissions("");
+        }
+
+        userRepository.save(user);
+
+        /* 2. UPDATE EMPLOYEE */
         employee.setFullName(request.getFullName().trim());
         employee.setGender(request.getGender());
         employee.setBirthDate(request.getBirthDate());
@@ -133,7 +155,6 @@ public class EmployeeService {
     /* ================= DELETE ================= */
 
     public void delete(Integer id) {
-
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("employee","Employee not found"));
 
@@ -145,8 +166,29 @@ public class EmployeeService {
 
     private EmployeeResponse mapToResponse(Employee employee) {
 
+        // Lấy danh sách RoleIds
+        List<Integer> roleIds = new ArrayList<>();
+        if (employee.getUser() != null && employee.getUser().getRoles() != null) {
+            roleIds = employee.getUser().getRoles().stream()
+                    .map(Role::getRoleId)
+                    .collect(Collectors.toList());
+        }
+
+        // Cắt chuỗi quyền (permissions) từ DB thành mảng List<String> cho Vue.js đọc
+        List<String> permissionList = new ArrayList<>();
+        if (employee.getUser() != null && employee.getUser().getPermissions() != null
+                && !employee.getUser().getPermissions().trim().isEmpty()) {
+            permissionList = Arrays.asList(employee.getUser().getPermissions().split(","));
+        }
+
         return EmployeeResponse.builder()
                 .employeeId(employee.getEmployeeId())
+                // TRẢ VỀ DỮ LIỆU USER ĐỂ FORM VUE CÓ CÁI HIỂN THỊ
+                .username(employee.getUser() != null ? employee.getUser().getUsername() : null)
+                .email(employee.getUser() != null ? employee.getUser().getEmail() : null)
+                .roleIds(roleIds)
+                .permissions(permissionList) // 🔥 Ném mảng quyền lên cho Frontend đây
+                // DỮ LIỆU EMPLOYEE
                 .fullName(employee.getFullName())
                 .gender(employee.getGender())
                 .birthDate(employee.getBirthDate())

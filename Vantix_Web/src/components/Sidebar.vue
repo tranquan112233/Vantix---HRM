@@ -122,13 +122,22 @@ import { reactive, computed, watch, ref } from "vue"
 import { useRoute } from "vue-router"
 import { menuItems } from "@/config/menu.config"
 
-// CẬP NHẬT ĐA QUYỀN: Import getUser thay vì getRole (Vì hồi nãy mình thấy bạn xài getUser ở Router)
+// Import getUser để lấy Token đã được giải mã
 import { getUser } from "@/utils/jwtDecode"
 
-// Lấy thông tin User và mảng roles
+// Lấy thông tin User, mảng roles và mảng permissions ĐỘNG
+// Lấy thông tin User, mảng roles và mảng permissions ĐỘNG
 const user = getUser()
-const userRoles = ref(user?.roles || []) // Mảng chứa các quyền (Ví dụ: ['ROLE_ADMIN', 'ROLE_HR'])
+const userRoles = ref(user?.roles || [])
+const userPermissions = ref(user?.permissions || [])
 
+// 🔥 THÊM 3 DÒNG NÀY VÀO ĐỂ BẮT BỆNH:
+console.log("=== KIỂM TRA SIDEBAR ===");
+console.log("Toàn bộ thông tin User trong Token:", user);
+console.log("Mảng quyền (Permissions):", userPermissions.value);
+
+// Kiểm tra xem có phải ADMIN không
+const isAdmin = userRoles.value.includes('ADMIN') || userRoles.value.includes('ROLE_ADMIN')
 /* ================= PROPS ================= */
 const props = defineProps({
   collapsed: Boolean
@@ -152,25 +161,37 @@ const handleMouseLeave = () => {
 
 /* ================= GROUP MENU BY SECTION ================= */
 
-// Hàm tiện ích: Kiểm tra xem User có ít nhất 1 quyền nằm trong mảng requiredRoles không
-// (Có xử lý cả trường hợp Backend có 'ROLE_' mà Frontend không ghi)
-const hasPermission = (requiredRoles) => {
-  if (!requiredRoles || requiredRoles.length === 0) return true; // Không yêu cầu quyền thì ai cũng thấy
-  return requiredRoles.some(reqRole =>
-      userRoles.value.includes(reqRole) || userRoles.value.includes(`ROLE_${reqRole}`)
-  );
+// 🔥 Hàm check quyền ĐỘNG dựa vào Permission của Role
+const hasDynamicPermission = (item) => {
+  // 1. Admin thì hiển nhiên thấy hết
+  if (isAdmin) return true;
+
+  // 2. Kiểm tra xem bản thân cái menu này có được tích quyền không
+  const hasSelfPermission = item.key && userPermissions.value.includes(item.key);
+
+  // 3. Nếu đây là Menu Cha (có children), kiểm tra xem có thằng Menu Con nào được tích không
+  // Chỉ cần 1 thằng con được tích -> BẮT BUỘC phải hiện Menu Cha lên
+  let hasChildPermission = false;
+  if (item.children && item.children.length > 0) {
+    hasChildPermission = item.children.some(child =>
+        child.key && userPermissions.value.includes(child.key)
+    );
+  }
+
+  // Kết luận: Cho phép hiện nếu bản thân nó có quyền, HOẶC con của nó có quyền
+  return hasSelfPermission || hasChildPermission;
 }
 
 const groupedMenu = computed(() => {
   const groups = {}
 
   const filteredMenu = menuItems
-      // Dùng hàm hasPermission để kiểm tra
-      .filter(item => hasPermission(item.roles))
+      // Dùng hàm hasDynamicPermission để kiểm tra
+      .filter(item => hasDynamicPermission(item))
       .map(item => {
         if (item.children) {
-          // Lọc children cũng dùng hasPermission
-          const filteredChildren = item.children.filter(child => hasPermission(child.roles))
+          // Lọc children cũng dùng hasDynamicPermission
+          const filteredChildren = item.children.filter(child => hasDynamicPermission(child))
 
           if (filteredChildren.length === 0) {
             return null

@@ -6,32 +6,28 @@ export const menuItems = [
         key: "dashboard",
         label: "Dashboard",
         icon: "bi bi-grid",
-        to: "/dashboard",
-        roles: ["ADMIN", "HR", "EMPLOYEE"]
+        to: "/dashboard"
     },
-
 
     // ================= USER & ACCESS =================
     {
         section: "User & Access",
-        key: "users",
+        key: "users_access", // Key của menu cha
         label: "Users",
         icon: "bi bi-person",
-        roles: ["ADMIN"],
         children: [
             {
+                key: "users", // PHẢI CÓ KEY ĐỂ LƯU VÀO DB
                 label: "User List",
-                to: "/users",
-                roles: ["ADMIN"]
+                to: "/users"
             },
             {
+                key: "roles", // PHẢI CÓ KEY ĐỂ LƯU VÀO DB
                 label: "Roles",
-                to: "/roles",
-                roles: ["ADMIN"]
+                to: "/roles"
             }
         ]
     },
-
 
     // ================= ORGANIZATION =================
     {
@@ -39,18 +35,15 @@ export const menuItems = [
         key: "departments",
         label: "Departments",
         icon: "bi bi-diagram-3",
-        to: "/departments",
-        roles: ["ADMIN", "HR"]
+        to: "/departments"
     },
     {
         section: "Organization",
         key: "positions",
         label: "Positions",
         icon: "bi bi-award",
-        to: "/positions",
-        roles: ["ADMIN", "HR"]
+        to: "/positions"
     },
-
 
     // ================= EMPLOYEE MANAGEMENT =================
     {
@@ -58,69 +51,59 @@ export const menuItems = [
         key: "employees",
         label: "Employees",
         icon: "bi bi-people",
-        to: "/employees",
-        roles: ["ADMIN", "HR"]
+        to: "/employees"
     },
     {
         section: "Employee Management",
         key: "contracts",
         label: "Contracts",
         icon: "bi bi-file-earmark-text",
-        to: "/contracts",
-        roles: ["ADMIN", "HR"]
+        to: "/contracts"
     },
     {
         section: "Employee Management",
         key: "contract_annex",
         label: "Contract Annexes",
         icon: "bi bi-file-earmark-plus",
-        to: "/contract-annexes",
-        roles: ["ADMIN", "HR"]
+        to: "/contract-annexes"
     },
 
-
-    // ================= ATTENDANCE =================
+    // ================= ATTENDANCE & LEAVE =================
     {
         section: "Attendance & Leave",
         key: "attendances",
         label: "Attendances",
         icon: "bi bi-calendar-check",
-        to: "/attendances",
-        roles: ["ADMIN", "HR", "EMPLOYEE"]
+        to: "/attendances"
     },
     {
         section: "Attendance & Leave",
         key: "shifts",
         label: "Shifts",
         icon: "bi bi-clock",
-        to: "/shifts",
-        roles: ["ADMIN", "HR"]
+        to: "/shifts"
     },
     {
         section: "Attendance & Leave",
-        key: "leave_requests",
-        label: "Leave Requests",
+        key: "leave", // Tách riêng key cho trang duyệt phép của HR
+        label: "Leave Approvals (HR)",
         icon: "bi bi-calendar-x",
-        to: "/leave",
-        roles: ["ADMIN", "HR"]
+        to: "/leave"
     },
     {
         section: "Attendance & Leave",
-        key: "leave_requests",
-        label: "Leave Requests",
+        key: "leaves", // Tách riêng key cho trang xin phép của cá nhân
+        label: "My Leave Requests",
         icon: "bi bi-calendar-x",
-        to: "/leaves",
-        roles: ["EMPLOYEE"]
+        to: "/leaves"
     },
     {
         section: "Attendance & Leave",
         key: "leave_types",
         label: "Leave Types",
         icon: "bi bi-list-check",
-        to: "/leave-types",
-        roles: ["ADMIN", "HR"]
+        to: "/leave-types"
     },
-
 
     // ================= PAYROLL =================
     {
@@ -128,10 +111,8 @@ export const menuItems = [
         key: "salaries",
         label: "Salaries",
         icon: "bi bi-cash-stack",
-        to: "/salaries",
-        roles: ["ADMIN", "HR"]
+        to: "/salaries"
     },
-
 
     // ================= SYSTEM =================
     {
@@ -139,7 +120,6 @@ export const menuItems = [
         key: "notifications",
         label: "Notifications",
         icon: "bi bi-bell",
-        to: "/notifications",
-        roles: ["ADMIN", "HR", "EMPLOYEE"]
+        to: "/notifications"
     }
 ]

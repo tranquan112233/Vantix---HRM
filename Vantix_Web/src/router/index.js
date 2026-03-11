@@ -23,19 +23,15 @@ import Attendance from "../views/main/Attendance.vue";
 import Contract from "@/views/main/Contract.vue";
 import LeaveManagement from "@/views/main/LeaveManagement.vue";
 import LeaveRequest from "@/views/user/LeaveRequest.vue";
+
 /* ================= ROUTES ================= */
 const routes = [
-
     /* ========= AUTH ========= */
     {
         path: "/auth",
         component: AuthLayout,
         children: [
-            {
-                path: "login",
-                component: Login,
-                meta: { guestOnly: true }
-            },
+            { path: "login", component: Login, meta: { guestOnly: true } },
             { path: "forgot-password", component: ForgotPassword },
             { path: "verify-otp", component: VerifyOtp },
             { path: "reset-password", component: ResetPassword }
@@ -51,71 +47,62 @@ const routes = [
             {
                 path: "dashboard",
                 component: Dashboard
+                // Dashboard thường ai cũng xem được nên không cần lock
             },
             {
                 path: "users",
                 component: UserManagement,
-                meta: { roles: ["ADMIN"] }
+                meta: { permission: "users" } // Yêu cầu có permission 'users'
             },
             {
                 path: "roles",
                 component: RoleManagement,
-                meta: { roles: ["ADMIN"] }
+                meta: { permission: "roles" }
             },
             {
                 path: "departments",
                 component: DepartmentManagement,
-                meta: { roles: ["ADMIN"] }
+                meta: { permission: "departments" }
             },
             {
                 path: "positions",
                 component: PositionManagement,
-                meta: { roles: ["ADMIN"] }
+                meta: { permission: "positions" }
             },
             {
                 path: "employees",
                 component: EmployeeManagement,
-                meta: { roles: ["ADMIN"] }
+                meta: { permission: "employees" }
             },
             {
                 path: "attendances",
                 component: Attendance,
-                meta: { roles: ["ADMIN"] }
+                meta: { permission: "attendances" }
             },
             {
                 path: "contracts",
                 component: Contract,
-                meta: { roles: ["ADMIN"] }
+                meta: { permission: "contracts" }
             },
             {
                 path: "leave",
                 component: LeaveManagement,
-                meta: { roles: ["ADMIN"] }
+                meta: { permission: "leave" }
             },
             {
                 path: "leaves",
                 component: LeaveRequest,
-                meta: { roles: ["EMPLOYEE"] }
+                meta: { permission: "leaves" }
             }
-
         ]
     },
 
     /* ========= ERROR ========= */
-    {
-        path: "/403",
-        component: Forbidden
-    },
+    { path: "/403", component: Forbidden },
 
     /* ========= DEFAULT ========= */
-    {
-        path: "/",
-        redirect: "/dashboard"
-    },
-    {
-        path: "/:pathMatch(.*)*",
-        redirect: "/dashboard"
-    }
+    { path: "/", redirect: "/dashboard" },
+    { path: "/:pathMatch(.*)*", redirect: "/dashboard" }
 ]
 
 const router = createRouter({
@@ -125,36 +112,50 @@ const router = createRouter({
 
 /* ================= ROUTE GUARD ================= */
 router.beforeEach((to) => {
-
     const user = getUser()
 
     const requiresAuth = to.matched.some(r => r.meta.requiresAuth)
     const guestOnly = to.matched.some(r => r.meta.guestOnly)
-    const roles = to.meta.roles
 
     // 1️⃣ Cần login nhưng chưa login
     if (requiresAuth && !user) {
         return { path: "/auth/login" }
     }
 
-    // 2️⃣ Đã login mà vào login
+    // 2️⃣ Đã login mà vào trang login/auth
     if (guestOnly && user) {
         return { path: "/dashboard" }
     }
 
-    // 3️⃣ Kiểm tra role (ĐÃ NÂNG CẤP ĐA QUYỀN)
-    if (roles && user) {
-        // Lấy mảng quyền từ payload của Token (Backend trả về biến "roles")
+    // 3️⃣ KIỂM TRA QUYỀN ĐỘNG (DYNAMIC PERMISSIONS)
+    if (user && to.meta.permission) {
         const userRoles = user.roles || []
+        const userPermissions = user.permissions || []
 
-        // Kiểm tra xem User có ít nhất 1 quyền nằm trong danh sách yêu cầu của Route không
-        // Xử lý luôn trường hợp Backend có tiền tố "ROLE_" mà Frontend thì không ghi
-        const hasPermission = roles.some(requiredRole =>
-            userRoles.includes(requiredRole) || userRoles.includes(`ROLE_${requiredRole}`)
-        )
+        // ADMIN là chúa tể, cho qua hết
+        const isAdmin = userRoles.includes("ADMIN") || userRoles.includes("ROLE_ADMIN")
 
-        if (!hasPermission) {
-            return { path: "/403" } // Không có quyền thì đá sang trang Forbidden
+        if (!isAdmin) {
+            // Nếu không phải ADMIN, kiểm tra xem key permission có nằm trong mảng của User không
+            const hasPermission = userPermissions.includes(to.meta.permission)
+
+            if (!hasPermission) {
+                console.warn(`🔒 Truy cập bị từ chối. Cần quyền: ${to.meta.permission}`)
+                return { path: "/403" } // Đá ra chuồng gà
+            }
+        }
+    }
+
+    // (Giữ lại logic cũ phòng trường hợp bạn cấu hình meta: { roles: [...] })
+    if (user && to.meta.roles) {
+        const userRoles = user.roles || []
+        const isAdmin = userRoles.includes("ADMIN") || userRoles.includes("ROLE_ADMIN")
+
+        if (!isAdmin) {
+            const hasRole = to.meta.roles.some(requiredRole =>
+                userRoles.includes(requiredRole) || userRoles.includes(`ROLE_${requiredRole}`)
+            )
+            if (!hasRole) return { path: "/403" }
         }
     }
 

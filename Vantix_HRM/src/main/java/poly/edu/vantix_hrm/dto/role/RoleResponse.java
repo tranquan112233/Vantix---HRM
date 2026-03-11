@@ -2,6 +2,8 @@ package poly.edu.vantix_hrm.dto.role;
 
 import lombok.*;
 
+import java.util.List;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

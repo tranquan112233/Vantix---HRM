@@ -48,5 +48,8 @@ public class EmployeeCreateRequest {
     @NotNull(message = "Position is required")
     private Integer positionId;
 
+    // Thêm dòng này để nhận danh sách quyền từ Frontend
+    private List<String> permissions;
+
     private Employee.WorkStatus workStatus = Employee.WorkStatus.WORKING;
 }
