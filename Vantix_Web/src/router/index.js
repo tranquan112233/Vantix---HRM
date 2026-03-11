@@ -21,6 +21,8 @@ import PositionManagement from "@/views/main/PositionManagement.vue";
 import EmployeeManagement from "@/views/main/EmployeeManagement.vue";
 import Attendance from "../views/main/Attendance.vue";
 import Contract from "@/views/main/Contract.vue";
+import LeaveManagement from "@/views/main/LeaveManagement.vue";
+import LeaveRequest from "@/views/main/LeaveRequest.vue";
 /* ================= ROUTES ================= */
 const routes = [
 
@@ -83,6 +85,16 @@ const routes = [
             {
                 path: "contracts",
                 component: Contract,
+                meta: { roles: ["ADMIN"] }
+            },
+            {
+                path: "leaves",
+                component: LeaveManagement,
+                meta: { roles: ["ADMIN"] }
+            },
+            {
+                path: "leave-request",
+                component: LeaveRequest,
                 meta: { roles: ["ADMIN"] }
             }
 

@@ -101,7 +101,15 @@ export const menuItems = [
         key: "leave_requests",
         label: "Leave Requests",
         icon: "bi bi-calendar-x",
-        to: "/leave-requests",
+        to: "/leave-request",
+        roles: ["ADMIN", "HR", "EMPLOYEE"]
+    },
+    {
+        section: "Attendance & Leave",
+        key: "leave_requests",
+        label: "Leave Requests Manager",
+        icon: "bi bi-calendar-x",
+        to: "/leaves",
         roles: ["ADMIN", "HR", "EMPLOYEE"]
     },
     {
