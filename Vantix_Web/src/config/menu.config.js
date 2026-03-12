@@ -82,6 +82,14 @@ export const menuItems = [
     // ================= ATTENDANCE =================
     {
         section: "Attendance & Leave",
+        key: "schedules",
+        label: "Schedules",
+        icon: "bi bi-calendar-check",
+        to: "/schedules",
+        roles: ["ADMIN", "HR", "EMPLOYEE"]
+    },
+    {
+        section: "Attendance & Leave",
         key: "attendances",
         label: "Attendances",
         icon: "bi bi-calendar-check",

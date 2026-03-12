@@ -1,5 +1,5 @@
-import { createRouter, createWebHistory } from "vue-router"
-import { getUser } from "@/utils/jwtDecode"
+import {createRouter, createWebHistory} from "vue-router"
+import {getUser} from "@/utils/jwtDecode"
 
 /* ================= LAYOUT ================= */
 import MainLayout from "@/layouts/MainLayout.vue"
@@ -23,104 +23,63 @@ import Attendance from "../views/main/Attendance.vue";
 import Contract from "@/views/main/Contract.vue";
 import LeaveManagement from "@/views/main/LeaveManagement.vue";
 import LeaveRequest from "@/views/main/LeaveRequest.vue";
+import Schedules from "@/views/Schedules.vue";
 /* ================= ROUTES ================= */
 const routes = [
 
     /* ========= AUTH ========= */
     {
-        path: "/auth",
-        component: AuthLayout,
-        children: [
-            {
-                path: "login",
-                component: Login,
-                meta: { guestOnly: true }
-            },
-            { path: "forgot-password", component: ForgotPassword },
-            { path: "verify-otp", component: VerifyOtp },
-            { path: "reset-password", component: ResetPassword }
-        ]
+        path: "/auth", component: AuthLayout, children: [{
+            path: "login", component: Login, meta: {guestOnly: true}
+        }, {path: "forgot-password", component: ForgotPassword}, {
+            path: "verify-otp",
+            component: VerifyOtp
+        }, {path: "reset-password", component: ResetPassword}]
     },
 
     /* ========= MAIN ========= */
     {
-        path: "/",
-        component: MainLayout,
-        meta: { requiresAuth: true },
-        children: [
-            {
-                path: "dashboard",
-                component: Dashboard
-            },
-            {
-                path: "users",
-                component: UserManagement,
-                meta: { roles: ["ADMIN"] }
-            },
-            {
-                path: "roles",
-                component: RoleManagement,
-                meta: { roles: ["ADMIN"] }
-            },
-            {
-                path: "departments",
-                component: DepartmentManagement,
-                meta: { roles: ["ADMIN"] }
-            },
-            {
-                path: "positions",
-                component: PositionManagement,
-                meta: { roles: ["ADMIN"] }
-            },
-            {
-                path: "employees",
-                component: EmployeeManagement,
-                meta: { roles: ["ADMIN"] }
-            },
-            {
-                path: "attendances",
-                component: Attendance,
-                meta: { roles: ["ADMIN"] }
-            },
-            {
-                path: "contracts",
-                component: Contract,
-                meta: { roles: ["ADMIN"] }
-            },
-            {
-                path: "leaves",
-                component: LeaveManagement,
-                meta: { roles: ["ADMIN"] }
-            },
-            {
-                path: "leave-request",
-                component: LeaveRequest,
-                meta: { roles: ["ADMIN"] }
-            }
+        path: "/", component: MainLayout, meta: {requiresAuth: true}, children: [{
+            path: "dashboard", component: Dashboard
+        }, {
+            path: "users", component: UserManagement, meta: {roles: ["ADMIN"]}
+        }, {
+            path: "roles", component: RoleManagement, meta: {roles: ["ADMIN"]}
+        }, {
+            path: "departments", component: DepartmentManagement, meta: {roles: ["ADMIN"]}
+        }, {
+            path: "positions", component: PositionManagement, meta: {roles: ["ADMIN"]}
+        }, {
+            path: "employees", component: EmployeeManagement, meta: {roles: ["ADMIN"]}
+        }, {
+            path: "attendances", component: Attendance, meta: {roles: ["ADMIN"]}
+        }, {
+            path: "contracts", component: Contract, meta: {roles: ["ADMIN"]}
+        }, {
+            path: "leaves", component: LeaveManagement, meta: {roles: ["ADMIN"]}
+        }, {
+            path: "leave-request", component: LeaveRequest, meta: {roles: ["ADMIN"]}
+        }, {
+            path: "schedules", component: Schedules, meta: {roles: ["ADMIN"]}
+        },
 
         ]
     },
 
     /* ========= ERROR ========= */
     {
-        path: "/403",
-        component: Forbidden
+        path: "/403", component: Forbidden
     },
 
     /* ========= DEFAULT ========= */
     {
-        path: "/",
-        redirect: "/dashboard"
-    },
-    {
-        path: "/:pathMatch(.*)*",
-        redirect: "/dashboard"
-    }
-]
+        path: "/", redirect: "/dashboard"
+    }, {
+        path: "/:pathMatch(.*)*", redirect: "/dashboard"
+    }]
 
 const router = createRouter({
-    history: createWebHistory(),
-    routes
+    history: createWebHistory(), routes
 })
 
 /* ================= ROUTE GUARD ================= */
@@ -134,17 +93,17 @@ router.beforeEach((to) => {
 
     // 1️⃣ Cần login nhưng chưa login
     if (requiresAuth && !user) {
-        return { path: "/auth/login" }
+        return {path: "/auth/login"}
     }
 
     // 2️⃣ Đã login mà vào login
     if (guestOnly && user) {
-        return { path: "/dashboard" }
+        return {path: "/dashboard"}
     }
 
     // 3️⃣ Kiểm tra role
     if (roles && !roles.includes(user?.role)) {
-        return { path: "/403" }
+        return {path: "/403"}
     }
 
     return true
