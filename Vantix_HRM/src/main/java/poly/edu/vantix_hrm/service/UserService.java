@@ -10,7 +10,8 @@ import poly.edu.vantix_hrm.exception.BusinessException;
 import poly.edu.vantix_hrm.repository.RoleRepository;
 import poly.edu.vantix_hrm.repository.UserRepository;
 
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -49,22 +50,25 @@ public class UserService {
             throw new BusinessException("email","Email already exists");
         }
 
-        // Lấy danh sách Roles từ DB dựa vào List<Integer> roleIds
-        List<Role> roles = roleRepository.findAllById(request.getRoleIds());
-
-        // Kiểm tra xem số lượng quyền tìm thấy có khớp với số lượng gửi lên không
-        if (roles.isEmpty() || roles.size() != request.getRoleIds().size()) {
-            throw new BusinessException("role", "One or more roles not found or invalid");
-        }
+        // Lấy 1 Role duy nhất từ DB
+        Role role = roleRepository.findById(request.getRoleId())
+                .orElseThrow(() -> new BusinessException("role", "Role not found"));
 
         User user = new User();
         user.setUsername(request.getUsername().trim());
         user.setEmail(request.getEmail().trim());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
 
-        // Gán danh sách quyền (Dùng HashSet để bỏ vào thuộc tính Set<Role> của Entity)
-        user.setRoles(new HashSet<>(roles));
+        // Gán 1 Role
+        user.setRole(role);
         user.setStatus(User.UserStatus.ACTIVE);
+
+        // Nối mảng quyền thành chuỗi lưu vào Cột Permissions
+        if (request.getPermissions() != null && !request.getPermissions().isEmpty()) {
+            user.setPermissions(String.join(",", request.getPermissions()));
+        } else {
+            user.setPermissions("");
+        }
 
         userRepository.save(user);
 
@@ -90,18 +94,23 @@ public class UserService {
             throw new BusinessException("email","Email already exists");
         }
 
-        // Lấy danh sách Roles từ DB để cập nhật
-        List<Role> roles = roleRepository.findAllById(request.getRoleIds());
-
-        if (roles.isEmpty() || roles.size() != request.getRoleIds().size()) {
-            throw new BusinessException("role", "One or more roles not found or invalid");
-        }
+        // Lấy 1 Role từ DB để cập nhật
+        Role role = roleRepository.findById(request.getRoleId())
+                .orElseThrow(() -> new BusinessException("role", "Role not found"));
 
         user.setUsername(request.getUsername().trim());
         user.setEmail(request.getEmail().trim());
-        // Cập nhật lại danh sách quyền
-        user.setRoles(new HashSet<>(roles));
+
+        // Cập nhật lại 1 Role
+        user.setRole(role);
         user.setStatus(request.getStatus());
+
+        // Cập nhật lại chuỗi Permissions
+        if (request.getPermissions() != null && !request.getPermissions().isEmpty()) {
+            user.setPermissions(String.join(",", request.getPermissions()));
+        } else {
+            user.setPermissions("");
+        }
 
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
@@ -134,16 +143,23 @@ public class UserService {
 
     private UserResponse mapToResponse(User user) {
 
-        // Trích xuất list ID và list Tên quyền từ Set<Role> của User
-        List<Integer> roleIds = user.getRoles().stream().map(Role::getRoleId).toList();
-        List<String> roleNames = user.getRoles().stream().map(Role::getRoleName).toList();
+        // Lấy thông tin 1 Role
+        Integer roleId = user.getRole() != null ? user.getRole().getRoleId() : null;
+        String roleName = user.getRole() != null ? user.getRole().getRoleName() : null;
+
+        // Cắt chuỗi quyền (permissions) từ DB thành mảng List<String> cho Vue.js đọc
+        List<String> permissionList = new ArrayList<>();
+        if (user.getPermissions() != null && !user.getPermissions().trim().isEmpty()) {
+            permissionList = Arrays.asList(user.getPermissions().split(","));
+        }
 
         return UserResponse.builder()
                 .userId(user.getUserId())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .roleIds(roleIds)      // Map mảng ID
-                .roleNames(roleNames)  // Map mảng Tên quyền
+                .roleId(roleId)            // Trả về 1 ID Role
+                .roleName(roleName)        // Trả về 1 Tên Role
+                .permissions(permissionList) // Trả về mảng quyền riêng
                 .status(user.getStatus().name())
                 .lastLogin(user.getLastLogin())
                 .createdAt(user.getCreatedAt())

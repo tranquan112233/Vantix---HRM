@@ -19,7 +19,7 @@ public class EmployeeUpdateRequest {
     private String email;
 
     @NotNull(message = "Role is required")
-    private List<Integer> roleIds;
+    private Integer roleId;
 
     // Danh sách quyền cho riêng User này
     private List<String> permissions;

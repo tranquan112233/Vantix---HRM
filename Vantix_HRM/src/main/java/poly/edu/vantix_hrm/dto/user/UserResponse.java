@@ -15,12 +15,15 @@ public class UserResponse {
     private String email;
 
     // Trả về danh sách ID quyền để Frontend bind vào ô select/checkbox lúc Edit
-    private List<Integer> roleIds;
+    private Integer roleId;
 
     // Trả về danh sách tên quyền để Frontend hiển thị lên Table cho đẹp
-    private List<String> roleNames;
+    private String roleName;
 
     private String status;
     private LocalDateTime lastLogin;
     private LocalDateTime createdAt;
+
+    private List<String> permissions;
+
 }

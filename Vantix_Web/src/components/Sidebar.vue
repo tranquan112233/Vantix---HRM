@@ -121,136 +121,75 @@
 import { reactive, computed, watch, ref } from "vue"
 import { useRoute } from "vue-router"
 import { menuItems } from "@/config/menu.config"
-
-// Import getUser để lấy Token đã được giải mã
 import { getUser } from "@/utils/jwtDecode"
 
-// Lấy thông tin User, mảng roles và mảng permissions ĐỘNG
-// Lấy thông tin User, mảng roles và mảng permissions ĐỘNG
 const user = getUser()
 const userRoles = ref(user?.roles || [])
 const userPermissions = ref(user?.permissions || [])
 
-// 🔥 THÊM 3 DÒNG NÀY VÀO ĐỂ BẮT BỆNH:
-console.log("=== KIỂM TRA SIDEBAR ===");
-console.log("Toàn bộ thông tin User trong Token:", user);
-console.log("Mảng quyền (Permissions):", userPermissions.value);
-
-// Kiểm tra xem có phải ADMIN không
+// Phân loại Role
 const isAdmin = userRoles.value.includes('ADMIN') || userRoles.value.includes('ROLE_ADMIN')
-/* ================= PROPS ================= */
-const props = defineProps({
-  collapsed: Boolean
-})
+const isHR = userRoles.value.includes('HR') || userRoles.value.includes('ROLE_HR')
 
-/* ================= ROUTE ================= */
+const props = defineProps({ collapsed: Boolean })
 const route = useRoute()
-
-/* ================= HOVER STATE ================= */
 const isHovering = ref(false)
 
-const handleMouseEnter = () => {
-  if (props.collapsed) {
-    isHovering.value = true
-  }
-}
+const handleMouseEnter = () => { if (props.collapsed) isHovering.value = true }
+const handleMouseLeave = () => { isHovering.value = false }
 
-const handleMouseLeave = () => {
-  isHovering.value = false
-}
-
-/* ================= GROUP MENU BY SECTION ================= */
-
-// 🔥 Hàm check quyền ĐỘNG dựa vào Permission của Role
+// 🔥 HÀM CHECK QUYỀN ĐÃ FIX: SOI THEO KEY, KHÔNG SOI THEO SECTION
 const hasDynamicPermission = (item) => {
-  // 1. Admin thì hiển nhiên thấy hết
   if (isAdmin) return true;
 
-  // 2. Kiểm tra xem bản thân cái menu này có được tích quyền không
-  const hasSelfPermission = item.key && userPermissions.value.includes(item.key);
-
-  // 3. Nếu đây là Menu Cha (có children), kiểm tra xem có thằng Menu Con nào được tích không
-  // Chỉ cần 1 thằng con được tích -> BẮT BUỘC phải hiện Menu Cha lên
-  let hasChildPermission = false;
   if (item.children && item.children.length > 0) {
-    hasChildPermission = item.children.some(child =>
-        child.key && userPermissions.value.includes(child.key)
-    );
+    return item.children.some(child => hasDynamicPermission(child));
   }
 
-  // Kết luận: Cho phép hiện nếu bản thân nó có quyền, HOẶC con của nó có quyền
-  return hasSelfPermission || hasChildPermission;
+  const reqPerm = item.key;
+  const employeeZone = ['dashboard', 'attendances', 'my-leaves', 'shifts', 'profile'];
+  const hrZone = ['departments', 'positions', 'employees', 'contracts', 'contract-annexes', 'leave-approvals', 'leave-types', 'salaries', 'notifications'];
+
+  if (employeeZone.includes(reqPerm)) return true;
+  if (hrZone.includes(reqPerm) && isHR) return true;
+
+  return userPermissions.value.includes(reqPerm);
 }
 
 const groupedMenu = computed(() => {
   const groups = {}
-
   const filteredMenu = menuItems
-      // Dùng hàm hasDynamicPermission để kiểm tra
       .filter(item => hasDynamicPermission(item))
       .map(item => {
         if (item.children) {
-          // Lọc children cũng dùng hasDynamicPermission
           const filteredChildren = item.children.filter(child => hasDynamicPermission(child))
-
-          if (filteredChildren.length === 0) {
-            return null
-          }
-
+          if (filteredChildren.length === 0) return null
           return { ...item, children: filteredChildren }
         }
-
         return item
       })
       .filter(Boolean)
 
   filteredMenu.forEach(item => {
-    if (!groups[item.section]) {
-      groups[item.section] = []
-    }
+    if (!groups[item.section]) groups[item.section] = []
     groups[item.section].push(item)
   })
-
   return groups
 })
 
-/* ================= SUBMENU STATE ================= */
 const open = reactive({})
-
 watch(groupedMenu, (newMenu) => {
-  Object.values(newMenu).flat().forEach(item => {
-    if (item.children) {
-      open[item.key] = false
-    }
-  })
+  Object.values(newMenu).flat().forEach(item => { if (item.children) open[item.key] = false })
 }, { immediate: true })
 
-/* ================= ACTIVE CHECK ================= */
-const isExactActive = (path) => {
-  return route.path === path ||
-      route.path.startsWith(path + "/")
-}
+const isExactActive = (path) => route.path === path || route.path.startsWith(path + "/")
+const isParentActive = (item) => item.children?.some(child => isExactActive(child.to))
 
-const isParentActive = (item) => {
-  return item.children?.some(child =>
-      route.path === child.to ||
-      route.path.startsWith(child.to + "/")
-  )
-}
-
-/* ================= AUTO OPEN PARENT WHEN ACTIVE ================= */
 watch(route, () => {
-  menuItems.forEach(item => {
-    if (item.children && isParentActive(item)) {
-      open[item.key] = true
-    }
-  })
+  menuItems.forEach(item => { if (item.children && isParentActive(item)) open[item.key] = true })
 }, { immediate: true })
 
-/* ================= TOGGLE SUBMENU ================= */
-const toggle = (key) => {
-  open[key] = !open[key]
-}
+const toggle = (key) => { open[key] = !open[key] }
 </script>
 
 <style scoped>

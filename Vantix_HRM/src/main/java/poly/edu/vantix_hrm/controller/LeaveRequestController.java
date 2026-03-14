@@ -27,10 +27,9 @@ public class LeaveRequestController {
     }
 
     // API: Xem lịch sử đơn của nhân viên đang đăng nhập
-    @GetMapping("/employee/{employeeId}")
-    public ResponseEntity<List<LeaveResponseDTO>> getMyLeaveRequests(@PathVariable Integer employeeId) {
-        List<LeaveResponseDTO> requests = leaveRequestService.getLeaveRequestsByEmployee(employeeId);
-        return ResponseEntity.ok(requests);
+    @GetMapping("/my-requests")
+    public ResponseEntity<List<LeaveResponseDTO>> getMyRequests() {
+        return ResponseEntity.ok(leaveRequestService.getMyLeaveRequests());
     }
 
     // API: Xem danh sách đơn cần duyệt (Dành cho HR/Admin)
@@ -45,9 +44,8 @@ public class LeaveRequestController {
     @PutMapping("/{leaveId}/status")
     public ResponseEntity<LeaveResponseDTO> updateStatus(
             @PathVariable Integer leaveId,
-            @RequestParam LeaveStatus status,
-            @RequestParam Integer approverId) {
-        LeaveResponseDTO updatedRequest = leaveRequestService.updateLeaveStatus(leaveId, status, approverId);
+            @RequestParam LeaveStatus status) {
+        LeaveResponseDTO updatedRequest = leaveRequestService.updateLeaveStatus(leaveId, status);
         return ResponseEntity.ok(updatedRequest);
     }
 }

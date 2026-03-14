@@ -23,8 +23,10 @@ public class UpdateUserRequest {
 
     // Đổi từ Integer roleId -> List<Integer> roleIds
     @NotEmpty(message = "Please select at least one role")
-    private List<Integer> roleIds;
+    private Integer roleId;
 
     @NotNull(message = "Status is required")
     private User.UserStatus status;
+
+    private List<String> permissions;
 }

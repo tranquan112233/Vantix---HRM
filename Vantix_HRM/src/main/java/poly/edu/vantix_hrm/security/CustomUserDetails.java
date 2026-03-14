@@ -7,8 +7,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import poly.edu.vantix_hrm.entity.User;
 
 import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Collections;
 
 @RequiredArgsConstructor
 public class CustomUserDetails implements UserDetails {
@@ -17,11 +16,10 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Lặp qua danh sách các quyền (Set<Role>) của User
-        // và biến nó thành danh sách SimpleGrantedAuthority cho Spring Security
-        return user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.getRoleName()))
-                .collect(Collectors.toList());
+        // 🔥 ĐƠN QUYỀN: Lấy 1 Role duy nhất và bọc nó vào danh sách SimpleGrantedAuthority
+        return Collections.singletonList(
+                new SimpleGrantedAuthority(user.getRole().getRoleName())
+        );
     }
 
     @Override
@@ -38,10 +36,8 @@ public class CustomUserDetails implements UserDetails {
         return user.getUsername();
     }
 
-    // Đã đổi từ getRole() -> getRoles() trả về List<String> thay vì 1 String
-    public List<String> getRoles() {
-        return user.getRoles().stream()
-                .map(role -> role.getRoleName())
-                .collect(Collectors.toList());
+    // 🔥 ĐƠN QUYỀN: Trả về 1 String chứa Tên Role thay vì 1 Mảng (List)
+    public String getRoleName() {
+        return user.getRole().getRoleName();
     }
 }

@@ -21,6 +21,10 @@ class EmployeeService {
     delete(id) {
         return api.delete(`/employees/${id}`);
     }
+
+    getMyProfile() {
+        return api.get('/employees/my-profile')
+    }
 }
 
 export default new EmployeeService();

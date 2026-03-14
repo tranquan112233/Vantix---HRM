@@ -10,9 +10,6 @@ import poly.edu.vantix_hrm.entity.User;
 import poly.edu.vantix_hrm.repository.RoleRepository;
 import poly.edu.vantix_hrm.repository.UserRepository;
 
-import java.util.HashSet;
-import java.util.List;
-
 @Configuration
 @RequiredArgsConstructor
 public class DataInitializer {
@@ -42,8 +39,12 @@ public class DataInitializer {
                         passwordEncoder.encode("123456")
                 );
 
-                // CẬP NHẬT ĐA QUYỀN: Bọc adminRole vào trong HashSet
-                admin.setRoles(new HashSet<>(List.of(adminRole)));
+                // 🔥 CẬP NHẬT ĐƠN QUYỀN: Gán trực tiếp 1 Role, không dùng HashSet nữa
+                admin.setRole(adminRole);
+
+                // Admin mặc định full quyền nên để chuỗi permissions là rỗng cũng được
+                // (Vì Frontend Vue của bạn đã có logic: if (isAdmin) return true; rồi)
+                admin.setPermissions("");
 
                 admin.setStatus(User.UserStatus.ACTIVE);
 

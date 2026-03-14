@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import poly.edu.vantix_hrm.dto.UserProfileDTO;
 import poly.edu.vantix_hrm.dto.employee.EmployeeCreateRequest;
 import poly.edu.vantix_hrm.dto.employee.EmployeeResponse;
 import poly.edu.vantix_hrm.dto.employee.EmployeeUpdateRequest;
@@ -63,5 +64,10 @@ public class EmployeeController {
         employeeService.delete(id);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/my-profile")
+    public ResponseEntity<UserProfileDTO> getMyProfile() {
+        return ResponseEntity.ok(employeeService.getMyProfile());
     }
 }

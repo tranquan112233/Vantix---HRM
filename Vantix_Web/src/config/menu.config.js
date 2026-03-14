@@ -85,17 +85,17 @@ export const menuItems = [
     },
     {
         section: "Attendance & Leave",
-        key: "leave", // Tách riêng key cho trang duyệt phép của HR
+        key: "leave-approvals",
         label: "Leave Approvals (HR)",
         icon: "bi bi-calendar-x",
-        to: "/leave"
+        to: "/leave-approvals"
     },
     {
         section: "Attendance & Leave",
-        key: "leaves", // Tách riêng key cho trang xin phép của cá nhân
+        key: "my-leaves",
         label: "My Leave Requests",
         icon: "bi bi-calendar-x",
-        to: "/leaves"
+        to: "/my-leaves"
     },
     {
         section: "Attendance & Leave",

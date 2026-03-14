@@ -23,6 +23,7 @@ import Attendance from "../views/main/Attendance.vue";
 import Contract from "@/views/main/Contract.vue";
 import LeaveManagement from "@/views/main/LeaveManagement.vue";
 import LeaveRequest from "@/views/user/LeaveRequest.vue";
+import Profile from "@/components/Profile.vue";
 
 /* ================= ROUTES ================= */
 const routes = [
@@ -42,17 +43,17 @@ const routes = [
     {
         path: "/",
         component: MainLayout,
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true }, // Layout chính bắt buộc phải login
         children: [
             {
                 path: "dashboard",
                 component: Dashboard
-                // Dashboard thường ai cũng xem được nên không cần lock
+                // Dashboard ai cũng xem được nên không cần lock
             },
             {
                 path: "users",
                 component: UserManagement,
-                meta: { permission: "users" } // Yêu cầu có permission 'users'
+                meta: { permission: "users" }
             },
             {
                 path: "roles",
@@ -85,14 +86,19 @@ const routes = [
                 meta: { permission: "contracts" }
             },
             {
-                path: "leave",
+                path: "leave-approvals",
                 component: LeaveManagement,
-                meta: { permission: "leave" }
+                meta: { permission: "leave-approvals" }
             },
             {
-                path: "leaves",
+                path: "my-leaves",
                 component: LeaveRequest,
-                meta: { permission: "leaves" }
+                meta: { permission: "my-leaves" }
+            },
+            {
+                path: "profile",
+                component: Profile,
+                meta: { permission: "profile" }
             }
         ]
     },
@@ -110,56 +116,34 @@ const router = createRouter({
     routes
 })
 
-/* ================= ROUTE GUARD ================= */
+// =============================================================
 router.beforeEach((to) => {
     const user = getUser()
+    if (to.matched.some(r => r.meta.requiresAuth) && !user) return { path: "/auth/login" }
+    if (to.matched.some(r => r.meta.guestOnly) && user) return { path: "/dashboard" }
 
-    const requiresAuth = to.matched.some(r => r.meta.requiresAuth)
-    const guestOnly = to.matched.some(r => r.meta.guestOnly)
-
-    // 1️⃣ Cần login nhưng chưa login
-    if (requiresAuth && !user) {
-        return { path: "/auth/login" }
-    }
-
-    // 2️⃣ Đã login mà vào trang login/auth
-    if (guestOnly && user) {
-        return { path: "/dashboard" }
-    }
-
-    // 3️⃣ KIỂM TRA QUYỀN ĐỘNG (DYNAMIC PERMISSIONS)
     if (user && to.meta.permission) {
         const userRoles = user.roles || []
         const userPermissions = user.permissions || []
-
-        // ADMIN là chúa tể, cho qua hết
         const isAdmin = userRoles.includes("ADMIN") || userRoles.includes("ROLE_ADMIN")
+        const isHR = userRoles.includes("HR") || userRoles.includes("ROLE_HR")
 
         if (!isAdmin) {
-            // Nếu không phải ADMIN, kiểm tra xem key permission có nằm trong mảng của User không
-            const hasPermission = userPermissions.includes(to.meta.permission)
+            const reqPerm = to.meta.permission
+            const employeeZone = ['dashboard', 'attendances', 'my-leaves', 'shifts', 'profile']
+            const hrZone = ['departments', 'positions', 'employees', 'contracts', 'contract-annexes', 'leave-approvals', 'leave-types', 'salaries', 'notifications']
 
-            if (!hasPermission) {
-                console.warn(`🔒 Truy cập bị từ chối. Cần quyền: ${to.meta.permission}`)
-                return { path: "/403" } // Đá ra chuồng gà
+            let hasRoleAccess = false;
+            if (employeeZone.includes(reqPerm)) hasRoleAccess = true;
+            else if (hrZone.includes(reqPerm) && isHR) hasRoleAccess = true;
+
+            if (!hasRoleAccess && !userPermissions.includes(reqPerm)) {
+                return { path: "/403" }
             }
         }
     }
-
-    // (Giữ lại logic cũ phòng trường hợp bạn cấu hình meta: { roles: [...] })
-    if (user && to.meta.roles) {
-        const userRoles = user.roles || []
-        const isAdmin = userRoles.includes("ADMIN") || userRoles.includes("ROLE_ADMIN")
-
-        if (!isAdmin) {
-            const hasRole = to.meta.roles.some(requiredRole =>
-                userRoles.includes(requiredRole) || userRoles.includes(`ROLE_${requiredRole}`)
-            )
-            if (!hasRole) return { path: "/403" }
-        }
-    }
-
     return true
 })
 
+// 👉 VÀ CHỐT SỔ FILE BẰNG DÒNG NÀY LÀ XONG:
 export default router

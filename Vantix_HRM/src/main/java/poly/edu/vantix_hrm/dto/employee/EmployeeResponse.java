@@ -16,7 +16,7 @@ public class EmployeeResponse {
     // === THÊM MẤY DÒNG NÀY VÀO ĐỂ HẾT ĐỎ ===
     private String username;
     private String email;
-    private List<Integer> roleIds;
+    private Integer roleId;
     private List<String> permissions;
 
     // === CÁC TRƯỜNG CŨ CỦA BẠN ===

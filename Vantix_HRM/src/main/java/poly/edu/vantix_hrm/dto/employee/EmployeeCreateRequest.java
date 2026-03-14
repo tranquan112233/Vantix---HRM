@@ -23,7 +23,7 @@ public class EmployeeCreateRequest {
     private String password;
 
     @NotNull(message = "Role is required")
-    private List<Integer> roleIds;
+    private Integer roleId;
 
     // ================= EMPLOYEE =================
     @NotBlank(message = "Full name is required")

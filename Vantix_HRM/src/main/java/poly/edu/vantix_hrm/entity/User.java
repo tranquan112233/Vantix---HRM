@@ -29,15 +29,9 @@ public class User {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash; // Mật khẩu đã mã hóa
 
-    // CHUYỂN ĐỔI SANG ĐA QUYỀN: Bỏ @ManyToOne, dùng @ManyToMany
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    @Builder.Default // Quan trọng: Giữ cho Set không bị null khi dùng @Builder
-    private Set<Role> roles = new HashSet<>();
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role; // Vai trò người dùng
 
     public enum UserStatus {ACTIVE, LOCKED} // Trạng thái (Hoạt động, Bị Khóa)
 

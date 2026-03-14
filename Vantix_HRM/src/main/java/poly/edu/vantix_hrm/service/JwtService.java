@@ -24,11 +24,8 @@ public class JwtService {
 
     // Tạo token
     public String generateToken(User user) {
-
-        // Chuyển Set<Role> thành List<String>
-        List<String> roles = user.getRoles().stream()
-                .map(role -> role.getRoleName())
-                .collect(Collectors.toList());
+    // Lấy tên của 1 Role duy nhất bọc vào List (để Frontend vẫn đọc dạng mảng cho đỡ phải sửa code Vue)
+        List<String> roles = java.util.List.of(user.getRole().getRoleName());
 
         // 🔥 THÊM ĐOẠN NÀY: Lấy chuỗi permissions của User cắt thành Mảng
         List<String> userPermissions = new ArrayList<>();
@@ -41,6 +38,7 @@ public class JwtService {
                 .claim("username", user.getUsername())
                 .claim("roles", roles)
                 .claim("permissions", userPermissions)
+
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 86400000)) // 24h
                 .signWith(getKey())

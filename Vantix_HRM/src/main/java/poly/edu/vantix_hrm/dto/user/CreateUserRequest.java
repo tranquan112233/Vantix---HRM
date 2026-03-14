@@ -22,8 +22,8 @@ public class CreateUserRequest {
     @Size(min = 6, message = "Password must be at least 6 characters long")
     private String password;
 
-    // Đổi từ Integer roleId -> List<Integer> roleIds
-    // Dùng @NotEmpty thay vì @NotNull để bắt buộc mảng không được rỗng
     @NotEmpty(message = "Please select at least one role")
-    private List<Integer> roleIds;
+    private Integer roleId;
+
+    private List<String> permissions;
 }

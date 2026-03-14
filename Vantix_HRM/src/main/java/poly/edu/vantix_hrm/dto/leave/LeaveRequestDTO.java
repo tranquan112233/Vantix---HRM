@@ -6,7 +6,6 @@ import java.time.LocalDate;
 
 @Data
 public class LeaveRequestDTO {
-    private Integer employeeId;
     private Integer leaveTypeId;
     private LocalDate startDate;
     private LocalDate endDate;

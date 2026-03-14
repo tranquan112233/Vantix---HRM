@@ -107,16 +107,12 @@
                   <div class="invalid-feedback">{{ errors.email }}</div>
                 </div>
                 <div class="col-md-6 mb-3">
-                  <label class="form-label d-block">Roles</label>
-                  <div>
-                    <div class="form-check form-check-inline" v-for="r in roleOptions" :key="r.roleId">
-                      <input class="form-check-input" type="checkbox" :id="'emp-role-' + r.roleId" :value="r.roleId" v-model="form.roleIds">
-                      <label class="form-check-label" :for="'emp-role-' + r.roleId">{{ r.roleName }}</label>
-                    </div>
-                  </div>
-                  <div class="invalid-feedback d-block" v-if="errors.roleIds">{{ errors.roleIds }}</div>
+                  <label class="form-label">Role</label>
+                  <select class="form-select" v-model="form.roleId" :class="{ 'is-invalid': errors.roleId }">
+                    <option v-for="r in roleOptions" :key="r.roleId" :value="r.roleId">{{ r.roleName }}</option>
+                  </select>
+                  <div class="invalid-feedback">{{ errors.roleId }}</div>
                 </div>
-
               </div>
               <hr/>
             </template>
@@ -281,7 +277,7 @@ watch(search, () => (currentPage.value = 1))
 
 function getDefaultForm() {
   return {
-    username: "", email: "", password: "", roleIds: [], permissions: [],
+    username: "", email: "", password: "", roleId: "", permissions: [],
     fullName: "", gender: "MALE", birthDate: "", phone: "", address: "",
     departmentId: "", positionId: "", workStatus: "WORKING"
   }
@@ -308,7 +304,7 @@ function openEdit(emp) {
     // 🔥 3 DÒNG NÀY RẤT QUAN TRỌNG ĐỂ KHÔNG BỊ LỖI 400
     username: emp.username,
     email: emp.email,
-    roleIds: emp.roleIds ? [...emp.roleIds] : [],
+    roleId: emp.roleId,
 
     fullName: emp.fullName,
     gender: emp.gender,
