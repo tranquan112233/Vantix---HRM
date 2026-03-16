@@ -1,5 +1,5 @@
 <script setup>
-import {ref, computed, nextTick} from 'vue';
+import {ref, computed, nextTick, onMounted, onUnmounted} from 'vue';
 
 // --- CẤU HÌNH & DỮ LIỆU ---
 const currentYear = new Date().getFullYear();
@@ -26,18 +26,33 @@ const selectedCount = computed(() => employees.value.filter(e => e.selected).len
 // --- XỬ LÝ LỊCH VÀ ACCORDION ---
 const expandedMonths = ref([new Date().getMonth() + 1]);
 
+onMounted(() => {
+  setTimeout(() => {
+    const currentMonth = expandedMonths.value[0];
+    const monthElement = document.getElementById(`month-card-${currentMonth}`);
+    if (monthElement) {
+      monthElement.scrollIntoView({behavior: 'smooth', block: 'center'});
+    }
+  }, 100);
+
+  // Thêm sự kiện bắt nhả chuột toàn cục để xử lý việc "Kéo Thả"
+  window.addEventListener('mouseup', endDrag);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('mouseup', endDrag);
+});
+
 const toggleMonth = async (month) => {
   const index = expandedMonths.value.indexOf(month);
   if (index > -1) {
-    expandedMonths.value.splice(index, 1); // Đóng lại
+    expandedMonths.value.splice(index, 1);
   } else {
-    expandedMonths.value.push(month); // Mở ra
-
-    // TÍNH NĂNG 3: Đợi DOM cập nhật rồi cuộn trang xuống phần tử đó
+    expandedMonths.value.push(month);
     await nextTick();
     const monthElement = document.getElementById(`month-card-${month}`);
     if (monthElement) {
-      monthElement.scrollIntoView({behavior: 'smooth', block: 'start'});
+      monthElement.scrollIntoView({behavior: 'smooth', block: 'center'});
     }
   }
 };
@@ -61,7 +76,7 @@ const getCalendarDays = (year, month) => {
   return days;
 };
 
-// --- LOGIC PHÂN CA LÀM VIỆC ---
+// --- LOGIC PHÂN CA LÀM VIỆC & KÉO THẢ ---
 const shiftOptions = [
   {id: 'Hành Chính', label: 'Hành Chính'},
   {id: 'Ca Sáng', label: 'Ca Sáng'},
@@ -71,12 +86,25 @@ const shiftOptions = [
 const schedules = ref({});
 const selectedShift = ref('Hành Chính');
 
+// Khai báo state cho việc kéo thả
+const dragState = ref({
+  active: false,
+  month: null,
+  startDay: null,
+  endDay: null,
+  shift: null
+});
+
+const isDaySunday = (month, day) => {
+  if (!day) return false;
+  return new Date(selectedYear.value, month - 1, day).getDay() === 0;
+};
+
 const getDayShift = (month, day) => {
   if (!schedules.value[month] || !day) return null;
   return schedules.value[month][day];
 };
 
-// TÍNH NĂNG 2: Hàm lấy class màu sắc cho từng loại ca
 const getShiftBadgeClass = (shift) => {
   if (shift === 'Hành Chính') return 'badge-hc';
   if (shift === 'Ca Sáng') return 'badge-morning';
@@ -84,32 +112,77 @@ const getShiftBadgeClass = (shift) => {
   return '';
 };
 
-const toggleDay = (month, day) => {
-  if (!day) return;
-  if (!schedules.value[month]) {
-    schedules.value[month] = {};
-  }
-
-  const currentShift = schedules.value[month][day];
-
-  // TÍNH NĂNG 1: Logic ghi đè nhanh
-  // Nếu ngày đang chọn giống hệt ca trên thanh công cụ -> Hủy chọn
-  // Nếu khác -> Ghi đè ca mới ngay lập tức
-  if (currentShift === selectedShift.value) {
-    schedules.value[month][day] = null;
-  } else {
-    schedules.value[month][day] = selectedShift.value;
-  }
+// 1. Khi bấm chuột xuống
+const startDrag = (month, day) => {
+  if (!day || isDaySunday(month, day)) return; // Bỏ qua nếu bấm vào ô trống hoặc Chủ Nhật
+  dragState.value = {
+    active: true,
+    month,
+    startDay: day,
+    endDay: day,
+    shift: selectedShift.value
+  };
 };
 
-const applyMonToSat = (month) => {
-  if (!schedules.value[month]) {
-    schedules.value[month] = {};
+// 2. Khi lướt qua các ô khác trong lúc giữ chuột
+const onDragOver = (month, day) => {
+  if (!dragState.value.active || dragState.value.month !== month || !day) return;
+  dragState.value.endDay = day; // Cập nhật ngày đích liên tục
+};
+
+// 3. Khi nhả chuột ra (Xử lý Lưu)
+const endDrag = () => {
+  if (!dragState.value.active) return;
+  const {month, startDay, endDay, shift} = dragState.value;
+
+  if (month && startDay && endDay) {
+    if (!schedules.value[month]) schedules.value[month] = {};
+
+    if (startDay === endDay) {
+      // Trường hợp 1: Chỉ click 1 ô (Giữ nguyên tính năng Bật/Tắt)
+      if (schedules.value[month][startDay] === shift) {
+        schedules.value[month][startDay] = null;
+      } else {
+        schedules.value[month][startDay] = shift;
+      }
+    } else {
+      // Trường hợp 2: Kéo thả 1 dải ngày
+      const minDay = Math.min(startDay, endDay);
+      const maxDay = Math.max(startDay, endDay);
+      for (let d = minDay; d <= maxDay; d++) {
+        if (!isDaySunday(month, d)) { // Trừ Chủ Nhật
+          schedules.value[month][d] = shift;
+        }
+      }
+    }
   }
+
+  // Tắt trạng thái kéo
+  dragState.value.active = false;
+};
+
+// Kiểm tra xem 1 ngày có đang nằm trong vùng kéo chuột preview không
+const isInDragRange = (month, day) => {
+  if (!dragState.value.active || dragState.value.month !== month || !day) return false;
+  if (isDaySunday(month, day)) return false; // Không preview cho Chủ Nhật
+
+  const minDay = Math.min(dragState.value.startDay, dragState.value.endDay);
+  const maxDay = Math.max(dragState.value.startDay, dragState.value.endDay);
+  return day >= minDay && day <= maxDay;
+};
+
+// Lấy ca để hiển thị (Nếu đang kéo thì hiển thị ca Preview, nếu không thì hiển thị ca thật)
+const getEffectiveShift = (month, day) => {
+  if (isInDragRange(month, day)) return dragState.value.shift;
+  return getDayShift(month, day);
+};
+
+// Nút chọn nhanh T2 - T7
+const applyMonToSat = (month) => {
+  if (!schedules.value[month]) schedules.value[month] = {};
   const daysInMonth = new Date(selectedYear.value, month, 0).getDate();
   for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(selectedYear.value, month - 1, d);
-    if (date.getDay() !== 0) {
+    if (!isDaySunday(month, d)) {
       schedules.value[month][d] = selectedShift.value;
     }
   }
@@ -175,7 +248,6 @@ const clearMonth = (month) => {
               :id="'month-card-' + month"
               class="month-card"
           >
-
             <div class="month-header" @click="toggleMonth(month)" :class="{ 'is-open': isMonthExpanded(month) }">
               <div class="month-title">
                 <h3>Tháng {{ month }}</h3>
@@ -226,19 +298,21 @@ const clearMonth = (month) => {
                         :class="[
                           'calendar-cell',
                           { 'is-clickable': day },
-                          { 'is-selected': getDayShift(month, day) },
-                          { 'is-sunday': day && new Date(selectedYear, month - 1, day).getDay() === 0 }
+                          { 'is-selected': getEffectiveShift(month, day) },
+                          { 'is-sunday': isDaySunday(month, day) },
+                          { 'is-previewing': isInDragRange(month, day) }
                         ]"
-                        @click="toggleDay(month, day)"
+                        @mousedown.prevent="startDrag(month, day)"
+                        @mouseenter="onDragOver(month, day)"
                     >
                       <template v-if="day">
                         <div class="date-num">{{ day }}</div>
                         <div class="date-status-text">
                           <span
-                              v-if="getDayShift(month, day)"
-                              :class="['vt-badge', getShiftBadgeClass(getDayShift(month, day))]"
+                              v-if="getEffectiveShift(month, day)"
+                              :class="['vt-badge', getShiftBadgeClass(getEffectiveShift(month, day))]"
                           >
-                            {{ getDayShift(month, day) }}
+                            {{ getEffectiveShift(month, day) }}
                           </span>
                           <span v-else class="text-muted">Chưa xếp</span>
                         </div>
@@ -257,14 +331,13 @@ const clearMonth = (month) => {
 </template>
 
 <style scoped>
-/* Các styles cơ bản giữ nguyên */
 .page-wrapper {
   padding: 24px;
   background-color: #f5f7fa;
   min-height: calc(100vh - 60px);
   font-family: 'Inter', 'Segoe UI', sans-serif;
   box-sizing: border-box;
-  scroll-behavior: smooth; /* Hỗ trợ scroll mượt cho toàn bộ page */
+  scroll-behavior: smooth;
 }
 
 .content-card {
@@ -351,7 +424,6 @@ const clearMonth = (month) => {
   top: 24px;
 }
 
-/* Cố định sidebar khi cuộn trang */
 .main-content {
   flex: 1;
   min-width: 0;
@@ -438,7 +510,7 @@ const clearMonth = (month) => {
   border-radius: 8px;
   overflow: hidden;
   background: #fff;
-  scroll-margin-top: 24px; /* Giữ khoảng cách khi tự động cuộn đến thẻ này */
+  scroll-margin-top: 24px;
 }
 
 .month-header {
@@ -577,6 +649,7 @@ const clearMonth = (month) => {
   border-color: #f56c6c !important;
 }
 
+/* CSS LƯỚI LỊCH: Vô hiệu hóa bôi đen text khi kéo thả */
 .calendar-wrapper {
   border: 1px solid #ebeef5;
   border-radius: 8px;
@@ -606,6 +679,7 @@ const clearMonth = (month) => {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   grid-auto-rows: minmax(80px, auto);
+  user-select: none;
 }
 
 .calendar-cell {
@@ -631,12 +705,15 @@ const clearMonth = (month) => {
   opacity: 0.9;
 }
 
-/* Giữ lại nền xanh lá thật nhạt cho ô được chọn để dễ nhận diện khối */
 .calendar-cell.is-selected {
   background-color: #f4fcf0 !important;
 }
 
-/* STYLE BADGE CHO TỪNG LOẠI CA */
+/* ĐÃ XÓA VIỀN ĐỨT NÉT, CHỈ GIỮ LẠI MÀU NỀN MỜ */
+.calendar-cell.is-previewing {
+  background-color: #eef2f9 !important;
+}
+
 .vt-badge {
   display: inline-block;
   padding: 4px 8px;
@@ -650,19 +727,15 @@ const clearMonth = (month) => {
   color: #529b2e;
 }
 
-/* Xanh lá đậm */
 .badge-morning {
   background: #e6f1fc;
   color: #409eff;
 }
 
-/* Xanh dương */
 .badge-afternoon {
   background: #fdf0e6;
   color: #e6a23c;
 }
-
-/* Cam */
 
 .is-sunday .date-num {
   color: #f56c6c;
