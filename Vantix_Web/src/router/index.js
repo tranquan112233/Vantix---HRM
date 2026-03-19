@@ -60,7 +60,7 @@ const routes = [
         }, {
             path: "leave-request", component: LeaveRequest, meta: {roles: ["ADMIN"]}
         }, {
-            path: "schedules", component: Schedules, meta: {roles: ["ADMIN"]}
+            path: "schedules", component: Schedules, meta: {roles: ["EMPLOYEE"]}
         },
 
         ]
