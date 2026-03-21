@@ -22,26 +22,34 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(
-            HttpSecurity http) throws Exception {
-        return http
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+        http
                 .csrf(csrf -> csrf.disable())
+
+                // 🔥 BẬT CORS
+                .cors(cors -> {})
+
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**")
-                        .permitAll()
-                        .anyRequest()
-                        .authenticated()
+                        // 🔥 AUTH
+                        .requestMatchers("/api/auth/**").permitAll()
+
+                        // 🔥 TASK
+                        .requestMatchers("/api/tasks/**").permitAll()
+
+                        // 🔥 FIX QUAN TRỌNG
+                        .requestMatchers("/api/employees/**").permitAll()
+
+                        // các API khác
+                        .anyRequest().authenticated()
                 )
 
                 .addFilterBefore(
-                        new JwtAuthenticationFilter(
-                                jwtService,
-                                userDetailsService
-                        ),
+                        new JwtAuthenticationFilter(jwtService, userDetailsService),
                         UsernamePasswordAuthenticationFilter.class
-                )
-                .build();
+                );
 
+        return http.build();
     }
 
 }

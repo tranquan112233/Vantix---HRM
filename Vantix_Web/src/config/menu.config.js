@@ -10,28 +10,28 @@ export const menuItems = [
         roles: ["ADMIN", "HR", "EMPLOYEE"]
     },
 
-
     // ================= USER & ACCESS =================
     {
         section: "User & Access",
-        key: "users",
+        key: "user_management",
         label: "Users",
         icon: "bi bi-person",
         roles: ["ADMIN"],
         children: [
             {
+                key: "user_list",
                 label: "User List",
                 to: "/users",
                 roles: ["ADMIN"]
             },
             {
+                key: "role_list",
                 label: "Roles",
                 to: "/roles",
                 roles: ["ADMIN"]
             }
         ]
     },
-
 
     // ================= ORGANIZATION =================
     {
@@ -51,8 +51,7 @@ export const menuItems = [
         roles: ["ADMIN", "HR"]
     },
 
-
-    // ================= EMPLOYEE MANAGEMENT =================
+    // ================= EMPLOYEE =================
     {
         section: "Employee Management",
         key: "employees",
@@ -77,7 +76,6 @@ export const menuItems = [
         to: "/contract-annexes",
         roles: ["ADMIN", "HR"]
     },
-
 
     // ================= ATTENDANCE =================
     {
@@ -106,11 +104,11 @@ export const menuItems = [
     },
     {
         section: "Attendance & Leave",
-        key: "leave_requests",
-        label: "Leave Requests Manager",
-        icon: "bi bi-calendar-x",
+        key: "leave_manager",
+        label: "Leave Manager",
+        icon: "bi bi-calendar2-check",
         to: "/leaves",
-        roles: ["ADMIN", "HR", "EMPLOYEE"]
+        roles: ["ADMIN", "HR"]
     },
     {
         section: "Attendance & Leave",
@@ -120,7 +118,6 @@ export const menuItems = [
         to: "/leave-types",
         roles: ["ADMIN", "HR"]
     },
-
 
     // ================= PAYROLL =================
     {
@@ -132,6 +129,47 @@ export const menuItems = [
         roles: ["ADMIN", "HR"]
     },
 
+    // ================= TASK MANAGEMENT =================
+    {
+        section: "Task Management",
+        key: "task_list",
+        label: "Task List",
+        icon: "bi bi-list-task",
+        to: "/tasks",
+        roles: ["ADMIN", "HR"]
+    },
+    {
+        section: "Task Management",
+        key: "task_create",
+        label: "Create Task",
+        icon: "bi bi-plus-circle",
+        to: "/create-task",
+        roles: ["ADMIN", "HR"]
+    },
+    {
+        section: "Task Management",
+        key: "task_assign",
+        label: "Assign Task",
+        icon: "bi bi-person-check",
+        to: "/task-assign",
+        roles: ["ADMIN", "HR"]
+    },
+    {
+        section: "Task Management",
+        key: "task_my",
+        label: "My Tasks",
+        icon: "bi bi-check2-square",
+        to: "/my-tasks",
+        roles: ["EMPLOYEE"]
+    },
+    {
+        section: "Task Management",
+        key: "task_kpi",
+        label: "KPI Dashboard",
+        icon: "bi bi-bar-chart",
+        to: "/task-kpi",
+        roles: ["ADMIN", "HR"]
+    },
 
     // ================= SYSTEM =================
     {
@@ -142,4 +180,5 @@ export const menuItems = [
         to: "/notifications",
         roles: ["ADMIN", "HR", "EMPLOYEE"]
     }
+
 ]

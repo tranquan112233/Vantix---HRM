@@ -16,13 +16,22 @@ import Dashboard from "@/views/main/Dashboard.vue"
 import UserManagement from "@/views/main/UserManagement.vue"
 import RoleManagement from "@/views/main/RoleManagement.vue"
 import Forbidden from "@/views/errors/Forbidden.vue"
-import DepartmentManagement from "@/views/main/DepartmentManagement.vue";
-import PositionManagement from "@/views/main/PositionManagement.vue";
-import EmployeeManagement from "@/views/main/EmployeeManagement.vue";
-import Attendance from "../views/main/Attendance.vue";
-import Contract from "@/views/main/Contract.vue";
-import LeaveManagement from "@/views/main/LeaveManagement.vue";
-import LeaveRequest from "@/views/main/LeaveRequest.vue";
+import DepartmentManagement from "@/views/main/DepartmentManagement.vue"
+import PositionManagement from "@/views/main/PositionManagement.vue"
+import EmployeeManagement from "@/views/main/EmployeeManagement.vue"
+import Attendance from "@/views/main/Attendance.vue"
+import Contract from "@/views/main/Contract.vue"
+import LeaveManagement from "@/views/main/LeaveManagement.vue"
+import LeaveRequest from "@/views/main/LeaveRequest.vue"
+
+/* ================= TASK MODULE ================= */
+/* ================= TASK MODULE ================= */
+import TaskListManagement from "@/views/main/TaskListManagement.vue"
+import CreateTaskManagement from "@/views/main/CreateTaskManagement.vue"
+import MyTaskManagement from "@/views/main/MyTaskManagement.vue"
+import TaskAssign from "@/views/main/TaskAssginManagement.vue"
+import TaskKPI from "@/views/main/TaskKpiManagement.vue"
+
 /* ================= ROUTES ================= */
 const routes = [
 
@@ -48,54 +57,95 @@ const routes = [
         component: MainLayout,
         meta: { requiresAuth: true },
         children: [
+
             {
                 path: "dashboard",
                 component: Dashboard
             },
+
             {
                 path: "users",
                 component: UserManagement,
                 meta: { roles: ["ADMIN"] }
             },
+
             {
                 path: "roles",
                 component: RoleManagement,
                 meta: { roles: ["ADMIN"] }
             },
+
             {
                 path: "departments",
                 component: DepartmentManagement,
                 meta: { roles: ["ADMIN"] }
             },
+
             {
                 path: "positions",
                 component: PositionManagement,
                 meta: { roles: ["ADMIN"] }
             },
+
             {
                 path: "employees",
                 component: EmployeeManagement,
                 meta: { roles: ["ADMIN"] }
             },
+
             {
                 path: "attendances",
                 component: Attendance,
                 meta: { roles: ["ADMIN"] }
             },
+
             {
                 path: "contracts",
                 component: Contract,
                 meta: { roles: ["ADMIN"] }
             },
+
             {
                 path: "leaves",
                 component: LeaveManagement,
                 meta: { roles: ["ADMIN"] }
             },
+
             {
                 path: "leave-request",
                 component: LeaveRequest,
                 meta: { roles: ["ADMIN"] }
+            },
+
+            /* ================= TASK MANAGEMENT ================= */
+
+            {
+                path: "tasks",
+                component: TaskListManagement,
+                meta: { roles: ["ADMIN","HR"] }
+            },
+
+            {
+                path: "create-task",
+                component: CreateTaskManagement,
+                meta: { roles: ["ADMIN","HR"] }
+            },
+
+            {
+                path: "my-tasks",
+                component: MyTaskManagement,
+                meta: { roles: ["EMPLOYEE"] }
+            },
+            {
+                path: "task-assign",
+                component: TaskAssign,
+                meta: { roles: ["ADMIN","HR"] }
+            },
+
+            {
+                path: "task-kpi",
+                component: TaskKPI,
+                meta: { roles: ["ADMIN","HR"] }
             }
 
         ]
@@ -112,10 +162,12 @@ const routes = [
         path: "/",
         redirect: "/dashboard"
     },
+
     {
         path: "/:pathMatch(.*)*",
         redirect: "/dashboard"
     }
+
 ]
 
 const router = createRouter({
@@ -124,6 +176,7 @@ const router = createRouter({
 })
 
 /* ================= ROUTE GUARD ================= */
+
 router.beforeEach((to) => {
 
     const user = getUser()
