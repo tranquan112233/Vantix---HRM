@@ -4,9 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import poly.edu.vantix_hrm.entity.Attendance;
-import poly.edu.vantix_hrm.entity.DailyWorkSchedules;
 import poly.edu.vantix_hrm.entity.Employee;
 import poly.edu.vantix_hrm.entity.Shift;
+import poly.edu.vantix_hrm.entity.DailyWorkSchedules;
 import poly.edu.vantix_hrm.repository.AttendanceRepository;
 import poly.edu.vantix_hrm.repository.DailyWorkSchedulesRepository;
 import poly.edu.vantix_hrm.repository.EmployeeRepository;
@@ -96,6 +96,48 @@ public class AttendanceService {
         return attendanceRepository.save(att);
     }
 
+    // Hàm xác định Attendance cần check-out
+    public Attendance findAttendanceToUpdate(Employee employee) {
+
+        LocalDate today = LocalDate.now(VIETNAM_ZONE);
+
+        // 1. Kiểm tra xem hôm nay có lịch đi làm không
+        Shift shift = getScheduledShiftForToday(employee);
+
+        // 2. Kiểm tra xem đã có Attendance cho ca làm đó trong ngày hôm nay chưa
+        Attendance att = attendanceRepository.findExistingAttendance(employee.getEmployeeId(), shift.getShiftId(), today).orElseThrow(() -> new RuntimeException("Bạn chưa Check-in cho ca " + shift.getShiftName() + " ngày " + today + ", không thể Check-out."));
+
+        // 3. Kiểm tra trạng thái của phiếu Attendance
+        switch (att.getStatus()) {
+            case APPROVED, REJECTED ->
+                    throw new RuntimeException("Ca này đã chốt công (Trạng thái: " + att.getStatus() + "), không thể Check-out lại.");
+            case PENDING ->
+                    throw new RuntimeException("Bạn đã được hệ thống Check-out tự động. Vui lòng sử dụng chức năng Xác nhận công.");
+            default -> {
+                return att; // Nếu là DRAFT thì hợp lệ để tiến hành Check-out
+            }
+        }
+    }
+
+    // Hàm Check-out
+    public Attendance updateAttendanceRecord(Attendance att, boolean isAuto) {
+        Shift shift = att.getShift();
+        LocalTime now = LocalTime.now(VIETNAM_ZONE);
+
+        if (isAuto) {
+            att.setCheckOut(shift.getEndTime());
+            att.setEarlyLeaveMinutes(0);
+            att.setStatus(Attendance.AttendanceStatus.PENDING);
+        } else {
+            att.setCheckOut(now);
+            // Tính số phút về sớm nếu Check-out trước khi ca kết thúc
+            long diff = Duration.between(now, shift.getEndTime()).toMinutes();
+            att.setEarlyLeaveMinutes((int) Math.max(0, diff));
+            att.setStatus(Attendance.AttendanceStatus.APPROVED);
+        }
+
+        return attendanceRepository.save(att);
+    }
 
 //    /* ================= SHIFT ================= */
 //

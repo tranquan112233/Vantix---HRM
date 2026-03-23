@@ -3,7 +3,7 @@ import {ref, onMounted, watch, computed} from 'vue';
 import attendanceService from "@/services/attendance.service.js";
 
 // --- CẤU HÌNH ---
-const employeeId = ref(9); // Giả lập ID nhân viên
+const employeeId = ref(8); // Giả lập ID nhân viên
 
 // --- FORMATTER & HELPERS ---
 const formatTime = (timeStr) => timeStr ? timeStr.slice(0, 5) : '--:--';

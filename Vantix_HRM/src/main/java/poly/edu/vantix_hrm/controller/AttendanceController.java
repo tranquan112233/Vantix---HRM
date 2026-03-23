@@ -53,21 +53,27 @@ public class AttendanceController {
         }
     }
 
-//    @PutMapping("/checkOutManual")
-//    public ResponseEntity<?> checkOutManual(@RequestBody Integer employeeId) {
-//        try {
-//            Employee employee = attendanceService.isEmployeeValid(employeeId);
-//            Shift shift = attendanceService.getCurrentShift();
-//            Attendance attendance = attendanceService.findAttendanceToUpdate(employee, shift);
-//            Attendance putAttendance = attendanceService.updateAttendanceRecord(attendance, false);
-//            return ResponseEntity.ok(putAttendance);
-//        } catch (RuntimeException e) {
-//            return ResponseEntity.badRequest().body(e.getMessage());
-//        } catch (Exception e) {
-//            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
-//        }
-//    }
-//
+    @PutMapping("/checkOutManual")
+    public ResponseEntity<?> checkOutManual(@RequestBody Integer employeeId) {
+        try {
+            // 1. Xác thực nhân viên
+            Employee employee = attendanceService.isEmployeeValid(employeeId);
+
+            // 2. Tìm phiếu chấm công hợp lệ (Service đã tự động kiểm tra lịch làm bên trong hàm này)
+            Attendance attendance = attendanceService.findAttendanceToUpdate(employee);
+
+            // 3. Cập nhật giờ ra và tính toán thời gian
+            Attendance putAttendance = attendanceService.updateAttendanceRecord(attendance, false);
+
+            return ResponseEntity.ok(putAttendance);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+
 //    @PutMapping("/confirm-checkout")
 //    public ResponseEntity<?> confirmCheckOut(@RequestBody Integer employeeId) {
 //        try {
