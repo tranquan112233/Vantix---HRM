@@ -23,21 +23,21 @@ public class AttendanceScheduler {
     @Autowired
     private AttendanceService attendanceService;
 
-    @Scheduled(cron = "0 * * * * ?")
-    public void autoCheckOutScanner() {
-        LocalTime now = LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        List<Attendance> listNeedAutoCheckOut = attendanceRepository.findLateEmployees(today, now);
-        if (listNeedAutoCheckOut.isEmpty()) return;
-        for (Attendance att : listNeedAutoCheckOut) {
-            try {
-                attendanceService.updateAttendanceRecord(att, true);
-                System.out.println("✅ Auto-checkout thành công cho NV: " + att.getEmployee().getEmployeeId());
-            } catch (Exception e) {
-                System.err.println("❌ Lỗi xử lý NV " + att.getEmployee().getEmployeeId() + ": " + e.getMessage());
-            }
-        }
-    }
+//    @Scheduled(cron = "0 * * * * ?")
+//    public void autoCheckOutScanner() {
+//        LocalTime now = LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+//        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+//        List<Attendance> listNeedAutoCheckOut = attendanceRepository.findLateEmployees(today, now);
+//        if (listNeedAutoCheckOut.isEmpty()) return;
+//        for (Attendance att : listNeedAutoCheckOut) {
+//            try {
+//                attendanceService.updateAttendanceRecord(att, true);
+//                System.out.println("✅ Auto-checkout thành công cho NV: " + att.getEmployee().getEmployeeId());
+//            } catch (Exception e) {
+//                System.err.println("❌ Lỗi xử lý NV " + att.getEmployee().getEmployeeId() + ": " + e.getMessage());
+//            }
+//        }
+//    }
 
     @Scheduled(cron = "0 * * * * ?")
     public void autoCheckOutRejected() {

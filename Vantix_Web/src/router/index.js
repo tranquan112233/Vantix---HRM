@@ -52,7 +52,7 @@ const routes = [
         }, {
             path: "employees", component: EmployeeManagement, meta: {roles: ["ADMIN"]}
         }, {
-            path: "attendances", component: Attendance, meta: {roles: ["ADMIN"]}
+            path: "attendances", component: Attendance, meta: {roles: ["ADMIN", "EMPLOYEE"]}
         }, {
             path: "contracts", component: Contract, meta: {roles: ["ADMIN"]}
         }, {

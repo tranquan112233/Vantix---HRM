@@ -9,7 +9,7 @@ const selectedYear = ref(currentYear);
 // ĐỂ TEST: Đổi ID ở đây để xem giao diện thay đổi
 // ID 13: Trưởng phòng (Hà Gia Bảo) -> Thấy Sidebar + Tool phân ca
 // ID 8: Nhân viên (Vũ Thị Giang) -> Bị ẩn Sidebar, chỉ xem lịch
-const currentViewerId = ref(13);
+const currentViewerId = ref(8);
 
 const employees = ref([]);
 const selectedEmployeeId = ref(null);
@@ -140,14 +140,16 @@ const getCalendarDays = (year, month) => {
 };
 
 // --- LOGIC PHÂN CA LÀM VIỆC & KÉO THẢ ---
+// Cập nhật lại đúng ID khớp với Database
 const shiftOptions = [
-  {id: 1, label: 'Hành Chính'},
-  {id: 2, label: 'Ca Sáng'},
-  {id: 3, label: 'Ca Chiều'}
+  {id: 1, label: 'Ca Sáng'},
+  {id: 2, label: 'Ca Chiều'},
+  {id: 3, label: 'Hành Chính'}
 ];
 
 const schedules = ref({});
-const selectedShift = ref(1);
+// Mặc định chọn Hành Chính (ID 3)
+const selectedShift = ref(3);
 
 const dragState = ref({
   active: false,
@@ -167,10 +169,11 @@ const getDayShift = (month, day) => {
   return schedules.value[month][day];
 };
 
+// Đổi lại màu Badge khớp với đúng ID mới
 const getShiftBadgeClass = (shiftId) => {
-  if (shiftId === 1) return 'badge-hc';
-  if (shiftId === 2) return 'badge-morning';
-  if (shiftId === 3) return 'badge-afternoon';
+  if (shiftId === 3) return 'badge-hc';        // 3: Hành chính -> Xanh lá
+  if (shiftId === 1) return 'badge-morning';   // 1: Ca sáng -> Xanh dương
+  if (shiftId === 2) return 'badge-afternoon'; // 2: Ca chiều -> Cam
   return '';
 };
 
@@ -180,7 +183,6 @@ const getShiftName = (shiftId) => {
 };
 
 const startDrag = (month, day) => {
-  // Chỉ cho phép Trưởng phòng mới được kéo thả (Nhân viên bị khóa chuột)
   if (!isManager.value || !day || isDaySunday(month, day)) return;
   dragState.value = {
     active: true,
@@ -283,7 +285,6 @@ const saveSchedule = async (month) => {
   }
 };
 
-// Lấy trạng thái hiện tại của lịch (OPEN hay LOCKED)
 const getCurrentScheduleStatus = () => {
   const emp = employees.value.find(e => e.id === selectedEmployeeId.value);
   if (emp && emp.monthlySchedule) {
@@ -292,7 +293,6 @@ const getCurrentScheduleStatus = () => {
   return null;
 };
 
-// Hàm gọi API Đổi trạng thái khóa (Đã bỏ confirm)
 const toggleLockStatus = async (month) => {
   const emp = employees.value.find(e => e.id === selectedEmployeeId.value);
   if (!emp || !emp.monthlySchedule) return;
@@ -303,7 +303,7 @@ const toggleLockStatus = async (month) => {
 
   try {
     await ScheduleService.updateStatus(emp.monthlySchedule.monthlyScheduleId, newStatus);
-    emp.monthlySchedule.status = newStatus; // Cập nhật ngay trên UI
+    emp.monthlySchedule.status = newStatus;
     showMessage(`✅ Đã ${actionText} thành công!`, 'success');
   } catch (error) {
     console.error("Lỗi khi cập nhật trạng thái:", error);
