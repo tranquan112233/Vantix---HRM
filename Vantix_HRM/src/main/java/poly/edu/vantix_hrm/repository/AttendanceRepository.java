@@ -22,7 +22,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Integer>
     @Query(value = "SELECT * FROM Attendance " + "WHERE employee_id = :employeeId " + "AND shift_id = :shiftId " + "AND work_date = :workDate " + "LIMIT 1", nativeQuery = true)
     Optional<Attendance> findExistingAttendance(@Param("employeeId") Integer employeeId, @Param("shiftId") Integer shiftId, @Param("workDate") LocalDate workDate);
 
-    @Query("SELECT a FROM Attendance a " + "WHERE a.workDate = :today " + "AND a.checkOut IS NULL " + "AND a.status = 'DRAFT' " + "AND a.shift.endTime < :now")
+    @Query("SELECT a FROM Attendance a " + "WHERE a.workDate = :today " + "AND a.checkOut IS NULL " + "AND a.status = 'DRAFT' " + "AND a.shift.endTime <= :now")
     List<Attendance> findLateEmployees(@Param("today") LocalDate today, @Param("now") LocalTime now);
 
     @Query(value = "SELECT * FROM Attendance " + "WHERE employee_id = :employeeId " + "AND work_date = :workDate " + "AND status = 'PENDING' " + "LIMIT 1", nativeQuery = true)

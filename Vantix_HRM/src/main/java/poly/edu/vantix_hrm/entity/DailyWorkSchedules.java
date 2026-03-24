@@ -2,6 +2,7 @@ package poly.edu.vantix_hrm.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class DailyWorkSchedules {
 
     @Id
@@ -41,5 +43,5 @@ public class DailyWorkSchedules {
     @Column(name = "updated_at", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
 
-    public enum DayType { WORK, HOLIDAY, OFF, COMPENSATORY }
+    public enum DayType {WORK, HOLIDAY, OFF, COMPENSATORY}
 }

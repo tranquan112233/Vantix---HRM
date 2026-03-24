@@ -74,26 +74,18 @@ public class AttendanceController {
         }
     }
 
-//    @PutMapping("/confirm-checkout")
-//    public ResponseEntity<?> confirmCheckOut(@RequestBody Integer employeeId) {
-//        try {
-//            Employee employee = attendanceService.isEmployeeValid(employeeId);
-//            Attendance att = attendanceService.findPendingAutoCheckOut(employee);
-//            checkTimeLimitForConfirmation(att);
-//            Attendance attendance = attendanceService.finalizeAndApproveCheckOut(att);
-//            return ResponseEntity.ok(attendance);
-//        } catch (RuntimeException e) {
-//            return ResponseEntity.badRequest().body(e.getMessage());
-//        } catch (Exception e) {
-//            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
-//        }
-//    }
-//
-//    private void checkTimeLimitForConfirmation(Attendance att) {
-//        LocalTime now = LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-//        LocalTime limitTime = att.getShift().getEndTime().plusMinutes(15);
-//        if (now.isAfter(limitTime)) {
-//            throw new RuntimeException("Đã quá thời gian xác nhận (15 phút). Vui lòng liên hệ HR.");
-//        }
-//    }
+    @PutMapping("/confirm-checkout")
+    public ResponseEntity<?> confirmCheckOut(@RequestBody Integer employeeId) {
+        try {
+            Employee employee = attendanceService.isEmployeeValid(employeeId);
+            Attendance att = attendanceService.findPendingAutoCheckOut(employee);
+            attendanceService.checkTimeLimitForConfirmation(att);
+            Attendance attendance = attendanceService.finalizeAndApproveCheckOut(att);
+            return ResponseEntity.ok(attendance);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
+        }
+    }
 }

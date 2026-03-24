@@ -129,6 +129,9 @@ public class AttendanceService {
             att.setEarlyLeaveMinutes(0);
             att.setStatus(Attendance.AttendanceStatus.PENDING);
         } else {
+            if (!now.isBefore(shift.getEndTime())) {
+                throw new RuntimeException("Ca làm việc đã kết thúc. Nút Check-out chỉ dùng khi về sớm. Vui lòng đợi hệ thống tự động chốt công và sử dụng chức năng Xác nhận.");
+            }
             att.setCheckOut(now);
             // Tính số phút về sớm nếu Check-out trước khi ca kết thúc
             long diff = Duration.between(now, shift.getEndTime()).toMinutes();
@@ -139,92 +142,26 @@ public class AttendanceService {
         return attendanceRepository.save(att);
     }
 
-//    /* ================= SHIFT ================= */
-//
-//    public Shift getCurrentShift() {
-//
-//        LocalTime now = LocalTime.now(VIETNAM_ZONE);
-//
-//        return shiftsRepository.findAll().stream().filter(shift -> {
-//            LocalTime start = shift.getStartTime().minusMinutes(15);
-//            LocalTime end = shift.getEndTime();
-//            return !now.isBefore(start) && !now.isAfter(end);
-//        }).findFirst().orElseThrow(() -> new RuntimeException("Hiện tại không nằm trong khung giờ chấm công hợp lệ."));
-//    }
-//
-//    /* ================= CHECK IN ================= */
-//
-//    public Attendance createAttendanceRecord(Employee employee, Shift shift) {
-//
-//        LocalDate today = LocalDate.now(VIETNAM_ZONE);
-//        LocalTime now = LocalTime.now(VIETNAM_ZONE);
-//
-//        boolean alreadyChecked = attendanceRepository.isAlreadyCheckedIn(employee.getEmployeeId(), shift.getShiftId(), today);
-//
-//        if (alreadyChecked) {
-//            throw new RuntimeException("Đã chấm công cho ca " + shift.getShiftName() + " hôm nay rồi.");
-//        }
-//
-//        int lateMinutes = 0;
-//        if (now.isAfter(shift.getStartTime())) {
-//            lateMinutes = (int) Duration.between(shift.getStartTime(), now).toMinutes();
-//        }
-//
-//        Attendance att = Attendance.builder().employee(employee).shift(shift).workDate(today).checkIn(now).lateMinutes(lateMinutes).status(Attendance.AttendanceStatus.DRAFT).build();
-//
-//        return attendanceRepository.save(att);
-//    }
-//
-//    /* ================= CHECK OUT ================= */
-//
-//    public Attendance updateAttendanceRecord(Attendance att, boolean isAuto) {
-//
-//        Shift shift = att.getShift();
-//        LocalTime now = LocalTime.now(VIETNAM_ZONE);
-//
-//        if (isAuto) {
-//            att.setCheckOut(shift.getEndTime());
-//            att.setEarlyLeaveMinutes(0);
-//            att.setStatus(Attendance.AttendanceStatus.PENDING);
-//        } else {
-//            att.setCheckOut(now);
-//
-//            long diff = Duration.between(now, shift.getEndTime()).toMinutes();
-//            att.setEarlyLeaveMinutes((int) Math.max(0, diff));
-//            att.setStatus(Attendance.AttendanceStatus.APPROVED);
-//        }
-//
-//        return attendanceRepository.save(att);
-//    }
-//
-//    /* ================= FIND RECORD ================= */
-//
-//    public Attendance findAttendanceToUpdate(Employee employee, Shift shift) {
-//
-//        LocalDate today = LocalDate.now(VIETNAM_ZONE);
-//
-//        Attendance att = attendanceRepository.findExistingAttendance(employee.getEmployeeId(), shift.getShiftId(), today).orElseThrow(() -> new RuntimeException("Bạn chưa chấm công ca " + shift.getShiftName() + " ngày " + today));
-//
-//        switch (att.getStatus()) {
-//            case APPROVED, REJECTED ->
-//                    throw new RuntimeException("Ca này đã có trạng thái " + att.getStatus() + ", không thể chỉnh sửa.");
-//
-//            case PENDING -> throw new RuntimeException("Bạn đã được Check Out, vui lòng xác nhận.");
-//
-//            default -> {
-//                return att;
-//            }
-//        }
-//    }
-//
-//    public Attendance findPendingAutoCheckOut(Employee employee) {
-//        LocalDate today = LocalDate.now(VIETNAM_ZONE);
-//
-//        return attendanceRepository.findPendingAttendance(employee.getEmployeeId(), today).orElseThrow(() -> new RuntimeException("Bạn không có yêu cầu xác nhận công nào đang chờ xử lý."));
-//    }
-//
-//    public Attendance finalizeAndApproveCheckOut(Attendance att) {
-//        att.setStatus(Attendance.AttendanceStatus.APPROVED);
-//        return attendanceRepository.save(att);
-//    }
+    // 1. Tìm phiếu chấm công đang chờ xác nhận (PENDING)
+    public Attendance findPendingAutoCheckOut(Employee employee) {
+        LocalDate today = LocalDate.now(VIETNAM_ZONE);
+
+        return attendanceRepository.findPendingAttendance(employee.getEmployeeId(), today).orElseThrow(() -> new RuntimeException("Bạn không có yêu cầu xác nhận công nào đang chờ xử lý trong hôm nay."));
+    }
+
+    // 2. Kiểm tra thời gian giới hạn xác nhận (15 phút sau khi kết thúc ca)
+    public void checkTimeLimitForConfirmation(Attendance att) {
+        LocalTime now = LocalTime.now(VIETNAM_ZONE);
+        LocalTime limitTime = att.getShift().getEndTime().plusMinutes(15);
+
+        if (now.isAfter(limitTime)) {
+            throw new RuntimeException("Đã quá thời gian xác nhận (15 phút sau khi kết thúc ca). Vui lòng liên hệ HR để được hỗ trợ.");
+        }
+    }
+
+    // 3. Chốt công thành công sang APPROVED
+    public Attendance finalizeAndApproveCheckOut(Attendance att) {
+        att.setStatus(Attendance.AttendanceStatus.APPROVED);
+        return attendanceRepository.save(att);
+    }
 }

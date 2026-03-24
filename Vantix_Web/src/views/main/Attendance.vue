@@ -10,9 +10,18 @@ const formatTime = (timeStr) => timeStr ? timeStr.slice(0, 5) : '--:--';
 
 const getShiftLabel = (shiftObj) => {
   if (!shiftObj) return 'Khác';
-  if (shiftObj.shiftId === 1) return 'Sáng';
-  if (shiftObj.shiftId === 2) return 'Chiều';
+  if (shiftObj.shiftId === 1) return 'Ca sáng';
+  if (shiftObj.shiftId === 2) return 'Ca chiều';
+  if (shiftObj.shiftId === 3) return 'Hành chính';
   return shiftObj.shiftName || 'Khác';
+};
+
+// Hàm mới: Trả về class màu sắc tương ứng với từng loại ca làm việc
+const getShiftBadgeClass = (shiftId) => {
+  if (shiftId === 1) return 'shift-morning';
+  if (shiftId === 2) return 'shift-afternoon';
+  if (shiftId === 3) return 'shift-full';
+  return 'badge-gray';
 };
 
 const getStatusClass = (status) => {
@@ -77,7 +86,6 @@ const attendanceMap = computed(() => {
     if (!map[dateKey]) map[dateKey] = [];
     map[dateKey].push(att);
   });
-  // Sắp xếp các ca trong cùng 1 ngày (Ca sáng trước, chiều sau)
   for (const date in map) {
     map[date].sort((a, b) => (a.shift?.shiftId || 0) - (b.shift?.shiftId || 0));
   }
@@ -99,6 +107,7 @@ const calendarDays = computed(() => {
   return days;
 });
 
+// LOGIC MỚI: Check ngày đã chấm công hay vắng mặt
 const getDayStatus = (day) => {
   if (!day) return 'empty';
   const dateStr = `${selectedYear.value}-${String(selectedMonth.value).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -107,11 +116,16 @@ const getDayStatus = (day) => {
   todayDate.setHours(0, 0, 0, 0);
 
   if (currentDayDate > todayDate) return 'status-future';
-  if (currentDayDate.getDay() === 0) return 'status-sunday';
 
   const records = attendanceMap.value[dateStr] || [];
-  if (records.length >= 2) return 'status-full';
-  if (records.length === 1) return 'status-half';
+
+  // Nếu có bản ghi chấm công -> Đã chấm công
+  if (records.length > 0) return 'status-full';
+
+  // Nếu không có bản ghi và là chủ nhật
+  if (currentDayDate.getDay() === 0) return 'status-sunday';
+
+  // Những ngày đã qua/hiện tại không có bản ghi -> Vắng mặt
   return 'status-absent';
 };
 
@@ -120,10 +134,7 @@ const openDayDetail = (day) => {
   if (!day) return;
   const dateStr = `${selectedYear.value}-${String(selectedMonth.value).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-  // Format hiển thị: DD/MM/YYYY
   selectedDateDisplay.value = `${String(day).padStart(2, '0')}/${String(selectedMonth.value).padStart(2, '0')}/${selectedYear.value}`;
-
-  // Lấy danh sách ca làm việc của ngày đó
   selectedDayRecords.value = attendanceMap.value[dateStr] || [];
   showDetailModal.value = true;
 };
@@ -211,7 +222,7 @@ onMounted(() => fetchAttendanceData());
 
       <div class="metric-card" @click="!loading && requestCheckOut()" :class="{ 'loading-state': loading }">
         <div class="metric-info">
-          <span class="metric-title">Kết thúc ca làm</span>
+          <span class="metric-title">Kết thúc ca làm (Về sớm)</span>
           <h3 class="metric-action">Chấm Out</h3>
         </div>
         <div class="metric-icon bg-orange">🚪</div>
@@ -256,9 +267,8 @@ onMounted(() => fetchAttendanceData());
       </div>
 
       <div class="calendar-legend">
-        <span class="legend-item"><span class="dot bg-success"></span> Đủ 2 ca</span>
-        <span class="legend-item"><span class="dot bg-warning"></span> 1 ca</span>
-        <span class="legend-item"><span class="dot bg-danger"></span> Vắng</span>
+        <span class="legend-item"><span class="dot bg-success"></span> Đã chấm công</span>
+        <span class="legend-item"><span class="dot bg-danger"></span> Vắng mặt</span>
         <span class="legend-item"><span class="dot bg-gray"></span> Chưa tới / Nghỉ CN</span>
       </div>
 
@@ -283,8 +293,7 @@ onMounted(() => fetchAttendanceData());
             <template v-if="day">
               <div class="date-num">{{ day }}</div>
               <div class="date-status-text">
-                <span v-if="getDayStatus(day) === 'status-full'">Đủ ca</span>
-                <span v-else-if="getDayStatus(day) === 'status-half'">Thiếu 1 ca</span>
+                <span v-if="getDayStatus(day) === 'status-full'">Đã chấm công</span>
                 <span v-else-if="getDayStatus(day) === 'status-absent'">Vắng mặt</span>
                 <span v-else-if="getDayStatus(day) === 'status-sunday'">Nghỉ Lễ / CN</span>
                 <span v-else-if="getDayStatus(day) === 'status-future'">-</span>
@@ -318,7 +327,7 @@ onMounted(() => fetchAttendanceData());
               <tbody>
               <tr v-for="att in selectedDayRecords" :key="att.attendanceId">
                 <td>
-                    <span :class="['vt-badge', att.shift?.shiftId === 1 ? 'badge-cyan' : 'badge-gray']">
+                    <span :class="['vt-badge', getShiftBadgeClass(att.shift?.shiftId)]">
                       {{ getShiftLabel(att.shift) }}
                     </span>
                 </td>
@@ -353,7 +362,8 @@ onMounted(() => fetchAttendanceData());
     <div v-if="showConfirmModal" class="modal-overlay">
       <div class="modal-content">
         <h3>Xác nhận Check-out?</h3>
-        <p>Bạn có chắc chắn muốn kết thúc ca làm việc này không?</p>
+        <p>Lưu ý: Bạn chỉ sử dụng nút này khi cần <b>về sớm</b> so với lịch. Ca làm bình thường sẽ tự chốt, bạn có muốn
+          tiếp tục?</p>
         <div class="modal-actions">
           <button class="btn btn-outline" @click="showConfirmModal = false">Hủy bỏ</button>
           <button class="btn btn-primary" @click="confirmCheckOut">Đồng ý</button>
@@ -364,7 +374,7 @@ onMounted(() => fetchAttendanceData());
 </template>
 
 <style scoped>
-/* (Phần CSS chung từ các bước trước giữ nguyên) */
+/* (Phần CSS chung giữ nguyên) */
 .page-wrapper {
   padding: 24px;
   background-color: #f5f7fa;
@@ -577,6 +587,7 @@ onMounted(() => fetchAttendanceData());
   color: #606266;
   font-size: 14px;
   margin-bottom: 24px;
+  line-height: 1.5;
 }
 
 .modal-actions {
@@ -627,7 +638,6 @@ onMounted(() => fetchAttendanceData());
   opacity: 0;
 }
 
-/* CSS cho Table (Tái sử dụng cho Modal) */
 .table-responsive {
   width: 100%;
   overflow-x: auto;
@@ -667,22 +677,37 @@ onMounted(() => fetchAttendanceData());
 
 .vt-badge {
   display: inline-block;
-  padding: 4px 10px;
-  font-size: 12px;
+  padding: 6px 12px;
+  font-size: 13px;
   font-weight: 600;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
-.badge-cyan {
-  background: #e0f7fa;
-  color: #00838f;
+/* -- BỘ MÀU MỚI CHO TỪNG CA LÀM (Khớp với ảnh) -- */
+.shift-morning {
+  background: #eef5fe;
+  color: #5097fa;
 }
 
+/* Ca Sáng - Xanh dương */
+.shift-afternoon {
+  background: #fff2e8;
+  color: #f89e5a;
+}
+
+/* Ca Chiều - Cam */
+.shift-full {
+  background: #eaf5e8;
+  color: #62a353;
+}
+
+/* Hành Chính - Xanh lá */
 .badge-gray {
   background: #f0f2f5;
   color: #606266;
 }
 
+/* Trạng thái công */
 .badge-success {
   background: #e1f3d8;
   color: #67c23a;
@@ -711,7 +736,7 @@ onMounted(() => fetchAttendanceData());
   font-weight: 600;
 }
 
-/* CSS Lịch (Giữ nguyên, thêm class is-clickable) */
+/* CSS Lịch */
 .calendar-legend {
   display: flex;
   gap: 20px;
@@ -738,10 +763,6 @@ onMounted(() => fetchAttendanceData());
 
 .dot.bg-success {
   background: #67c23a;
-}
-
-.dot.bg-warning {
-  background: #e6a23c;
 }
 
 .dot.bg-danger {
@@ -813,6 +834,7 @@ onMounted(() => fetchAttendanceData());
   margin-top: auto;
 }
 
+/* Đã chấm công */
 .status-full {
   background-color: #f0f9eb;
 }
@@ -821,14 +843,7 @@ onMounted(() => fetchAttendanceData());
   color: #67c23a;
 }
 
-.status-half {
-  background-color: #fdf6ec;
-}
-
-.status-half .date-status-text {
-  color: #e6a23c;
-}
-
+/* Vắng mặt */
 .status-absent {
   background-color: #fef0f0;
 }
@@ -837,6 +852,7 @@ onMounted(() => fetchAttendanceData());
   color: #f56c6c;
 }
 
+/* Tương lai / Chủ nhật */
 .status-future, .status-sunday {
   background-color: #fafafa;
 }
@@ -849,7 +865,6 @@ onMounted(() => fetchAttendanceData());
   color: #f56c6c;
 }
 
-/* -- CSS MỚI CHO HOVER CLICK VÀ MODAL DETAIL -- */
 .calendar-cell.is-clickable {
   cursor: pointer;
 }
@@ -860,7 +875,7 @@ onMounted(() => fetchAttendanceData());
 }
 
 .modal-lg {
-  max-width: 650px !important;
+  max-width: 680px !important;
 }
 
 .modal-header-custom {

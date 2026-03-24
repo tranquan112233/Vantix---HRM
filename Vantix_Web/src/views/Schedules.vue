@@ -9,7 +9,7 @@ const selectedYear = ref(currentYear);
 // ĐỂ TEST: Đổi ID ở đây để xem giao diện thay đổi
 // ID 13: Trưởng phòng (Hà Gia Bảo) -> Thấy Sidebar + Tool phân ca
 // ID 8: Nhân viên (Vũ Thị Giang) -> Bị ẩn Sidebar, chỉ xem lịch
-const currentViewerId = ref(8);
+const currentViewerId = ref(13);
 
 const employees = ref([]);
 const selectedEmployeeId = ref(null);
