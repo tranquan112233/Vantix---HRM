@@ -147,8 +147,8 @@ const hasDynamicPermission = (item) => {
   }
 
   const reqPerm = item.key;
-  const employeeZone = ['dashboard', 'attendances', 'my-leaves', 'shifts', 'profile'];
-  const hrZone = ['departments', 'positions', 'employees', 'contracts', 'contract-annexes', 'leave-approvals', 'leave-types', 'salaries', 'notifications'];
+  const employeeZone = ['dashboard', 'attendances', 'my-leaves', 'shifts', 'profile','setting'];
+  const hrZone = ['departments', 'positions', 'employees', 'contracts', 'contract-annexes', 'leave-approvals', 'leave-types', 'salaries', 'notifications','profile','setting'];
 
   if (employeeZone.includes(reqPerm)) return true;
   if (hrZone.includes(reqPerm) && isHR) return true;

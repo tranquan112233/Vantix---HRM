@@ -24,6 +24,8 @@ import Contract from "@/views/main/Contract.vue";
 import LeaveManagement from "@/views/main/LeaveManagement.vue";
 import LeaveRequest from "@/views/user/LeaveRequest.vue";
 import Profile from "@/components/Profile.vue";
+import Settings from "@/components/Settings.vue";
+import LeaveTypes from "@/views/main/LeaveTypes.vue";
 
 /* ================= ROUTES ================= */
 const routes = [
@@ -99,6 +101,16 @@ const routes = [
                 path: "profile",
                 component: Profile,
                 meta: { permission: "profile" }
+            },
+            {
+                path: "settings",
+                component: Settings,
+                meta: { permission: "settings" }
+            },
+            {
+                path: "leavetypes",
+                component: LeaveTypes,
+                meta: { permission: "leavetypes" }
             }
         ]
     },

@@ -102,7 +102,7 @@ export const menuItems = [
         key: "leave_types",
         label: "Leave Types",
         icon: "bi bi-list-check",
-        to: "/leave-types"
+        to: "/leavetypes"
     },
 
     // ================= PAYROLL =================
