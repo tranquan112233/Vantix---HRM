@@ -24,6 +24,7 @@ import Contract from "@/views/main/Contract.vue";
 import LeaveManagement from "@/views/main/LeaveManagement.vue";
 import LeaveRequest from "@/views/main/LeaveRequest.vue";
 import Schedules from "@/views/Schedules.vue";
+import AttendanceManagement from "@/views/main/AttendanceManagement.vue";
 /* ================= ROUTES ================= */
 const routes = [
 
@@ -61,7 +62,9 @@ const routes = [
             path: "leave-request", component: LeaveRequest, meta: {roles: ["ADMIN"]}
         }, {
             path: "schedules", component: Schedules, meta: {roles: ["EMPLOYEE"]}
-        },
+        }, {
+            path: "addtendance-management", component: AttendanceManagement, meta: {roles: ["EMPLOYEE"]}
+        }
 
         ]
     },

@@ -30,4 +30,9 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Integer>
 
     @Query("SELECT a FROM Attendance a " + "WHERE a.status = 'PENDING' " + "AND a.workDate = :today " + "AND a.shift.endTime < :cutoffTime")
     List<Attendance> findExpiredPending(@Param("today") LocalDate today, @Param("cutoffTime") LocalTime cutoffTime);
+
+    // DÙng cho Attendance Management
+    // Query mới: Lấy Attendance REJECTED theo ID phòng ban và khoảng thời gian
+    @Query("SELECT a FROM Attendance a " + "JOIN FETCH a.employee e " + "JOIN FETCH a.shift s " + "WHERE e.department.departmentId = :departmentId " + "AND a.status = 'REJECTED' " + "AND a.workDate BETWEEN :startDate AND :endDate " + "ORDER BY e.employeeId ASC, a.workDate DESC")
+    List<Attendance> findRejectedByDepartmentAndDateRange(@Param("departmentId") Integer departmentId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 }
