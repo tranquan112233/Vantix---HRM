@@ -140,14 +140,6 @@ export const menuItems = [
     },
     {
         section: "Task Management",
-        key: "task_create",
-        label: "Create Task",
-        icon: "bi bi-plus-circle",
-        to: "/create-task",
-        roles: ["ADMIN", "HR"]
-    },
-    {
-        section: "Task Management",
         key: "task_assign",
         label: "Assign Task",
         icon: "bi bi-person-check",
