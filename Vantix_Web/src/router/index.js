@@ -33,8 +33,7 @@ const routes = [
         path: "/auth", component: AuthLayout, children: [{
             path: "login", component: Login, meta: {guestOnly: true}
         }, {path: "forgot-password", component: ForgotPassword}, {
-            path: "verify-otp",
-            component: VerifyOtp
+            path: "verify-otp", component: VerifyOtp
         }, {path: "reset-password", component: ResetPassword}]
     },
 
@@ -55,7 +54,7 @@ const routes = [
         }, {
             path: "attendances", component: Attendance, meta: {roles: ["ADMIN", "EMPLOYEE"]}
         }, {
-            path: "contracts", component: Contract, meta: {roles: ["ADMIN"]}
+            path: "contracts", component: Contract, meta: {roles: ["ADMIN", "EMPLOYEE"]}
         }, {
             path: "leaves", component: LeaveManagement, meta: {roles: ["ADMIN"]}
         }, {
