@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import poly.edu.vantix_hrm.dto.contract.ContractResponseDTO;
 import poly.edu.vantix_hrm.dto.contract.CreateContractRequest;
 import poly.edu.vantix_hrm.entity.Contract;
 import poly.edu.vantix_hrm.entity.Employee;
@@ -22,43 +23,36 @@ public class ContractsController {
     private final ContractsService contractsService;
     private final EmployeeService employeeService;
 
-    // ================= GET ALL =================
+    // Tải toàn bộ Hợp Đồng lên
     @GetMapping
-    public ResponseEntity<List<Contract>> getAllContracts() {
+    public ResponseEntity<List<ContractResponseDTO>> getAllContracts() {
         return ResponseEntity.ok(contractsService.getAllContracts());
     }
 
-    // ================= CREATE =================
+    // Tạo mới Hợp Đồng
     @PostMapping
-    public ResponseEntity<?> createContract(
-            @Valid @RequestBody CreateContractRequest request) {
-
+    public ResponseEntity<?> createContract(@Valid @RequestBody CreateContractRequest request) {
         try {
-            // Validate employee
-            Employee employee =
-                    employeeService.isEmployeeValid(request.getEmployeeId());
+            // Kiểm tra nhân viên có tồn tại không
+            Employee employee = employeeService.isEmployeeValid(request.getEmployeeId());
 
-            // Check duplicate active contract
-            contractsService
-                    .validateEmployeeContractEligibility(request.getEmployeeId());
+            // Kiểm tra trạng thái Hợp Đồng của nhân viên
+            contractsService.validateEmployeeContractEligibility(request.getEmployeeId());
 
-            // Create contract
-            Contract contract = new Contract();
-            contract.setEmployee(employee);
-            contract.setPosition(request.getPosition());
-            contract.setType(request.getType());
-            contract.setStartDate(request.getStartDate());
-            contract.setBaseSalary(request.getBaseSalary());
-            contract.setStatus(request.getStatus());
+            // Tính EndDate của Hợp Đồng
+            LocalDate endDate = contractsService.calculateEndDateByType(request.getStartDate(), request.getType());
 
-            LocalDate endDate =
-                    contractsService.calculateEndDateByType(
-                            request.getStartDate(),
-                            request.getType()
-                    );
+            // Tạo mới Hợp Đồng
+            Contract contract = new Contract();                 // Khai báo biến lưu
+            contract.setEmployee(employee);                     // Gán employee
+            contract.setPosition(request.getPosition());        // Gán Position
+            contract.setType(request.getType());                // Gán Type
+            contract.setStartDate(request.getStartDate());      // Gán StartDate
+            contract.setEndDate(endDate);                       // Gán EndDate
+            contract.setBaseSalary(request.getBaseSalary());    // Gán BaseSalary
+            contract.setStatus(request.getStatus());            // Gán Status
 
-            contract.setEndDate(endDate);
-
+            // Lưu Hợp Đồng
             Contract saved = contractsService.saveContract(contract);
 
             return ResponseEntity.ok(saved);
@@ -66,15 +60,13 @@ public class ContractsController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body("Lỗi hệ thống khi tạo hợp đồng.");
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống khi tạo hợp đồng.");
         }
     }
 
     // ================= DELETE =================
     @DeleteMapping("/{contractId}")
-    public ResponseEntity<?> deleteContract(
-            @PathVariable Integer contractId) {
+    public ResponseEntity<?> deleteContract(@PathVariable Integer contractId) {
 
         try {
             contractsService.deleteContract(contractId);
@@ -83,31 +75,25 @@ public class ContractsController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body("Lỗi hệ thống khi xóa hợp đồng.");
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống khi xóa hợp đồng.");
         }
     }
 
     // ================= UPDATE STATUS =================
     @PutMapping("/{contractId}/status")
-    public ResponseEntity<?> updateContractStatus(
-            @PathVariable Integer contractId) {
+    public ResponseEntity<?> updateContractStatus(@PathVariable Integer contractId) {
 
         try {
-            Contract updated =
-                    contractsService.updateContractStatus(contractId);
+            Contract updated = contractsService.updateContractStatus(contractId);
 
-            String msg = "Hợp đồng (" + updated.getContractId()
-                    + ") được cập nhật trạng thái thành ("
-                    + updated.getStatus() + ")";
+            String msg = "Hợp đồng (" + updated.getContractId() + ") được cập nhật trạng thái thành (" + updated.getStatus() + ")";
 
             return ResponseEntity.ok(msg);
 
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body("Lỗi hệ thống khi cập nhật trạng thái.");
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống khi cập nhật trạng thái.");
         }
     }
 }
