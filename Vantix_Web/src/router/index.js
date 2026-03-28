@@ -25,9 +25,7 @@ import LeaveManagement from "@/views/main/LeaveManagement.vue"
 import LeaveRequest from "@/views/main/LeaveRequest.vue"
 
 /* ================= TASK MODULE ================= */
-/* ================= TASK MODULE ================= */
 import TaskListManagement from "@/views/main/TaskListManagement.vue"
-import CreateTaskManagement from "@/views/main/CreateTaskManagement.vue"
 import MyTaskManagement from "@/views/main/MyTaskManagement.vue"
 import TaskAssign from "@/views/main/TaskAssginManagement.vue"
 import TaskKPI from "@/views/main/TaskKpiManagement.vue"
@@ -124,13 +122,6 @@ const routes = [
                 component: TaskListManagement,
                 meta: { roles: ["ADMIN","HR"] }
             },
-
-            {
-                path: "create-task",
-                component: CreateTaskManagement,
-                meta: { roles: ["ADMIN","HR"] }
-            },
-
             {
                 path: "my-tasks",
                 component: MyTaskManagement,
