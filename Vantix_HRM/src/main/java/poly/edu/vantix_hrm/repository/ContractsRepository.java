@@ -16,10 +16,6 @@ public interface ContractsRepository extends JpaRepository<Contract, Integer> {
     @Query("SELECT c FROM Contract c JOIN FETCH c.employee e ORDER BY c.contractId DESC")
     List<Contract> findAllContractsWithEmployee();
 
-    // Trả về số lượng phụ lục đang liên kết với hợp đồng
-    @Query("SELECT COUNT(ca) FROM ContractAnnexes ca WHERE ca.contract.contractId = :contractId")
-    long countAnnexesByContractId(@Param("contractId") Integer contractId);
-
     // Các hàm có sẵn của bạn
     List<Contract> findByEmployee_EmployeeId(Integer employeeId);
 

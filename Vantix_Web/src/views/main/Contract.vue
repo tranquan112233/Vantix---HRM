@@ -48,6 +48,7 @@
 
     <div class="filter-card">
       <div class="filter-content">
+        <!-- 🌟 Khung tìm kiếm được bóp ngắn lại -->
         <div class="search-wrapper">
           <i class="bi bi-search search-icon"></i>
           <input
@@ -79,11 +80,12 @@
           <i class="bi bi-chevron-down select-icon"></i>
         </div>
 
+        <!-- 🌟 Khung lương được kéo giãn ra và hỗ trợ tự động điền dấu chấm -->
         <div class="salary-range-wrapper">
           <i class="bi bi-cash-coin search-icon"></i>
-          <input v-model="minSalary" type="number" placeholder="Lương từ" class="salary-input" min="0"/>
+          <input v-model="minSalaryFormatted" type="text" placeholder="Lương từ" class="salary-input"/>
           <span class="salary-separator">-</span>
-          <input v-model="maxSalary" type="number" placeholder="Đến" class="salary-input" min="0"/>
+          <input v-model="maxSalaryFormatted" type="text" placeholder="Đến" class="salary-input"/>
         </div>
       </div>
     </div>
@@ -193,7 +195,7 @@
                 </div>
                 <div>
                   <h3>Tạo Hợp Đồng Mới</h3>
-                  <p>Nhập thông tin hợp đồng cho nhân viên</p>
+                  <p>Nhập thôngợp đồng cho nhân viên</p>
                 </div>
               </div>
               <button class="modal-close" @click="showModal = false">
@@ -270,11 +272,12 @@
                 </div>
 
                 <div class="form-row">
+                  <!-- 🌟 Lương trong Form cũng hỗ trợ auto format dấu chấm -->
                   <div class="form-group">
                     <label>Lương cơ bản (VNĐ) <span class="required">*</span></label>
                     <div class="input-wrapper">
                       <i class="bi bi-cash"></i>
-                      <input v-model="form.baseSalary" type="number" required min="0"/>
+                      <input v-model="baseSalaryFormatted" type="text" placeholder="0" required/>
                     </div>
                   </div>
                   <div class="form-group">
@@ -372,6 +375,8 @@ const currentFilter = ref('ALL');
 const searchQuery = ref('');
 const selectedType = ref('ALL');
 const selectedPosition = ref('ALL');
+
+// 🌟 Lưu giá trị thật (số thô)
 const minSalary = ref(null);
 const maxSalary = ref(null);
 
@@ -382,9 +387,35 @@ const form = ref({
   startDate: '',
   endDate: '',
   position: '',
-  baseSalary: 0,
+  baseSalary: null, // Đổi về null để Form init dễ kiểm soát
   status: 'ACTIVE'
 });
+
+// 🌟 Computed Formatting tiền tệ (Thêm dấu chấm tự động khi nhập)
+const minSalaryFormatted = computed({
+  get: () => minSalary.value ? new Intl.NumberFormat('vi-VN').format(minSalary.value) : '',
+  set: (val) => {
+    const rawValue = val.toString().replace(/\D/g, ''); // Xóa mọi ký tự không phải số
+    minSalary.value = rawValue ? Number(rawValue) : null;
+  }
+});
+
+const maxSalaryFormatted = computed({
+  get: () => maxSalary.value ? new Intl.NumberFormat('vi-VN').format(maxSalary.value) : '',
+  set: (val) => {
+    const rawValue = val.toString().replace(/\D/g, '');
+    maxSalary.value = rawValue ? Number(rawValue) : null;
+  }
+});
+
+const baseSalaryFormatted = computed({
+  get: () => form.value.baseSalary ? new Intl.NumberFormat('vi-VN').format(form.value.baseSalary) : '',
+  set: (val) => {
+    const rawValue = val.toString().replace(/\D/g, '');
+    form.value.baseSalary = rawValue ? Number(rawValue) : null;
+  }
+});
+
 
 const positionSearch = ref('');
 const showPositionDropdown = ref(false);
@@ -458,6 +489,7 @@ const filteredContracts = computed(() => {
   if (selectedType.value !== 'ALL') result = result.filter(c => c.type === selectedType.value);
   if (selectedPosition.value !== 'ALL') result = result.filter(c => c.position === selectedPosition.value);
 
+  // So sánh dựa trên giá trị raw của minSalary và maxSalary
   if (minSalary.value !== null && minSalary.value !== '') result = result.filter(c => c.baseSalary >= Number(minSalary.value));
   if (maxSalary.value !== null && maxSalary.value !== '') result = result.filter(c => c.baseSalary <= Number(maxSalary.value));
 
@@ -536,7 +568,7 @@ const openCreateModal = () => {
     startDate: '',
     endDate: '',
     position: '',
-    baseSalary: 0,
+    baseSalary: null, // Đã chỉnh về null để ô input trống ban đầu
     status: 'ACTIVE'
   };
   showModal.value = true;
@@ -548,10 +580,15 @@ const handleSubmit = async () => {
     return;
   }
 
+  // 🌟 Đẩy con số thực tế không có dấu phẩy xuống API
   const payload = {
-    type: form.value.type, position: form.value.position, startDate: form.value.startDate,
-    endDate: form.value.endDate || null, baseSalary: Number(form.value.baseSalary),
-    status: form.value.status, employeeId: Number(form.value.employeeId)
+    type: form.value.type,
+    position: form.value.position,
+    startDate: form.value.startDate,
+    endDate: form.value.endDate || null,
+    baseSalary: Number(form.value.baseSalary || 0),
+    status: form.value.status,
+    employeeId: Number(form.value.employeeId)
   };
 
   try {
@@ -630,7 +667,7 @@ onMounted(() => {
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-/* ── MÀU CSS VARIABLES (Thêm nội bộ) ── */
+/* ── MÀU CSS VARIABLES ── */
 .contract-management {
   --danger: #dc2626;
   --danger-light: #fee2e2;
@@ -785,10 +822,12 @@ onMounted(() => {
   align-items: center;
 }
 
+/* 🌟 ĐÃ SỬA: Khung tìm kiếm giãn dài ra bù vào chỗ trống */
 .search-wrapper {
   position: relative;
-  flex: 1;
-  min-width: 240px;
+  flex: 1 1 auto; /* Tự động giãn ra lấy hết khoảng trống dư thừa */
+  min-width: 220px; /* Không được nhỏ hơn mức này khi thu nhỏ trình duyệt */
+  max-width: 550px; /* Giới hạn độ dài tối đa để không bị quá dài trên màn hình to */
 }
 
 .search-icon {
@@ -879,6 +918,7 @@ onMounted(() => {
   pointer-events: none;
 }
 
+/* 🌟 ĐÃ SỬA: Khung lương bị ép ngắn lại 1 nửa */
 .salary-range-wrapper {
   display: flex;
   align-items: center;
@@ -889,6 +929,9 @@ onMounted(() => {
   position: relative;
   overflow: hidden;
   transition: all 0.2s;
+
+  flex: 1; /* Không tự động giãn bành trướng nữa */
+  min-width: 260px;
 }
 
 .salary-range-wrapper:focus-within {
@@ -902,7 +945,7 @@ onMounted(() => {
   background: transparent;
   padding: 9px 10px;
   font-size: 13px;
-  width: 90px;
+  width: 100%;
   text-align: center;
   color: #0f172a;
   outline: none;

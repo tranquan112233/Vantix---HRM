@@ -24,13 +24,13 @@ public class ContractsController {
     private final EmployeeService employeeService;
 
     // Tải toàn bộ Hợp Đồng lên
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<List<ContractResponseDTO>> getAllContracts() {
         return ResponseEntity.ok(contractsService.getAllContracts());
     }
 
     // Tạo mới Hợp Đồng
-    @PostMapping
+    @PostMapping("/create")
     public ResponseEntity<?> createContract(@Valid @RequestBody CreateContractRequest request) {
         try {
             // Kiểm tra nhân viên có tồn tại không
@@ -64,14 +64,16 @@ public class ContractsController {
         }
     }
 
-    // ================= DELETE =================
+    // Xóa Hợp Đồng
     @DeleteMapping("/{contractId}")
     public ResponseEntity<?> deleteContract(@PathVariable Integer contractId) {
-
         try {
-            contractsService.deleteContract(contractId);
-            return ResponseEntity.ok("Xóa hợp đồng thành công!");
+            // Tìm Hợp Đồng từ mã
+            Contract contract = contractsService.findById(contractId);
 
+            // Xóa Hợp Đồng
+            contractsService.deleteContract(contract);
+            return ResponseEntity.ok("Xóa hợp đồng thành công!");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
@@ -79,12 +81,15 @@ public class ContractsController {
         }
     }
 
-    // ================= UPDATE STATUS =================
+    // Cập nhật trạng thái Hợp Đồng
     @PutMapping("/{contractId}/status")
     public ResponseEntity<?> updateContractStatus(@PathVariable Integer contractId) {
-
         try {
-            Contract updated = contractsService.updateContractStatus(contractId);
+            // Tìm Hợp Đồng
+            Contract contract = contractsService.findById(contractId);
+
+            // Chỉnh sửa Trạng Thái Hợp Đồng
+            Contract updated = contractsService.updateContractStatus(contract);
 
             String msg = "Hợp đồng (" + updated.getContractId() + ") được cập nhật trạng thái thành (" + updated.getStatus() + ")";
 

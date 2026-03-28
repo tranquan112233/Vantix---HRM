@@ -21,6 +21,8 @@ public class ContractsService {
     private final ContractsRepository contractsRepository;
     private final ContractAnnexesRepository contractAnnexesRepository;
 
+    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+
     // Lấy danh sách Hợp Đồng
     public List<ContractResponseDTO> getAllContracts() {
         // 1. Lấy dữ liệu từ DB
@@ -89,39 +91,47 @@ public class ContractsService {
         }
     }
 
+    // Xóa Hợp Đồng
+    public void deleteContract(Contract contract) {
+        // Kiểm tra null tránh lỗi
+        if (contract == null || contract.getContractId() == null) {
+            throw new RuntimeException("Hợp đồng không hợp lệ!");
+        }
 
-    // ================= DELETE =================
-    public void deleteContract(Integer contractId) {
-        Contract contract = findById(contractId);
-
+        // Chặn không cho xóa Hợp Đồng có status là ACTIVE
         if (contract.getStatus() == Contract.ContractStatus.ACTIVE) {
             throw new RuntimeException("Không thể xóa hợp đồng đang ACTIVE.");
         }
 
+        // Kiểm tra Hợp Đồng có phụ lục không
+        checkContractAnnexes(contract);
+
         contractsRepository.delete(contract);
     }
 
-    // ================= UPDATE STATUS =================
-    public Contract updateContractStatus(Integer contractId) {
+    // Cập nhật Status Hợp Đồng
+    public Contract updateContractStatus(Contract contract) {
 
-        Contract contract = findById(contractId);
-
+        // 1. Đang ACTIVE -> Chuyển thành EXPIRED
         if (contract.getStatus() == Contract.ContractStatus.ACTIVE) {
-
             contract.setStatus(Contract.ContractStatus.EXPIRED);
             return contractsRepository.save(contract);
         }
 
+        // 2. Đang EXPIRED -> Khôi phục về ACTIVE
         if (contract.getStatus() == Contract.ContractStatus.EXPIRED) {
 
+            // Kiểm tra thời hạn hợp đồng (nếu không phải vô thời hạn)
             if (contract.getType() != Contract.Type.INDEFINITE && contract.getEndDate() != null) {
-
-                LocalDate currentDate = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-
+                LocalDate currentDate = LocalDate.now(VIETNAM_ZONE);
                 if (currentDate.isAfter(contract.getEndDate())) {
                     throw new RuntimeException("Không thể khôi phục hợp đồng đã hết hạn (" + contract.getEndDate() + ")");
                 }
             }
+
+            // BỔ SUNG QUAN TRỌNG: Kiểm tra xem nhân viên đã có hợp đồng ACTIVE nào khác chưa
+            // Nếu có rồi, hàm này sẽ ném ra Exception và chặn việc khôi phục
+            validateEmployeeContractEligibility(contract.getEmployee().getEmployeeId());
 
             contract.setStatus(Contract.ContractStatus.ACTIVE);
             return contractsRepository.save(contract);
