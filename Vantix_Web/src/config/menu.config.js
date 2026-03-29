@@ -140,14 +140,6 @@ export const menuItems = [
     },
     {
         section: "Task Management",
-        key: "task_assign",
-        label: "Assign Task",
-        icon: "bi bi-person-check",
-        to: "/task-assign",
-        roles: ["ADMIN", "HR"]
-    },
-    {
-        section: "Task Management",
         key: "task_my",
         label: "My Tasks",
         icon: "bi bi-check2-square",

@@ -38,9 +38,20 @@ class TaskService {
     // 🔥 UPDATE TASK
     async update(id, data) {
         try {
-            return await api.put(`/tasks/${id}`, data);
+            // Sửa lại đoạn này, cắm thẳng 8080 vào:
+            return await api.put(`http://localhost:8080/api/tasks/${id}`, data);
         } catch (error) {
             console.error("Error update task:", error);
+            throw error;
+        }
+    }
+
+    // 🔥 APPROVE TASK
+    async approve(id) {
+        try {
+            return await api.put(`http://localhost:8080/api/tasks/${id}/approve`);
+        } catch (error) {
+            console.error("Error approve task:", error);
             throw error;
         }
     }
@@ -73,9 +84,10 @@ class TaskService {
 
     async report(reportData) {
         console.log("Dữ liệu gửi đi nè:", reportData);
-        return api.post('/tasks/report', reportData, {
+        // 🔥 Thêm http://localhost:8080 vào trước link
+        return api.post('http://localhost:8080/api/tasks/report', reportData, {
             headers: {
-                'Content-Type': 'multipart/form-data' // 🔥 Ép kiểu multipart cho chuẩn
+                'Content-Type': 'multipart/form-data'
             }
         });
     }
@@ -94,18 +106,10 @@ class TaskService {
 
     /* ================= KPI ================= */
 
-    async getKPI(employeeId) {
+    async getRanking(month = "") {
         try {
-            return await api.get(`/tasks/kpi?employeeId=${employeeId}`);
-        } catch (error) {
-            console.error("Error KPI:", error);
-            throw error;
-        }
-    }
-
-    async getRanking() {
-        try {
-            return await api.get("/tasks/ranking");
+            const url = month ? `http://localhost:8080/api/tasks/ranking?month=${month}` : `http://localhost:8080/api/tasks/ranking`;
+            return await api.get(url);
         } catch (error) {
             console.error("Error ranking:", error);
             throw error;

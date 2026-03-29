@@ -42,13 +42,14 @@ public class TaskController {
 
     // 🔥 API BÁO CÁO VÀ UPLOAD FILE (ĐÃ FIX LỖI GẠCH ĐỎ)
     // Trong TaskController.java
+    // Trong TaskController.java
     @PostMapping("/report")
     public ResponseEntity<?> report(
             @RequestParam("taskId") Integer taskId,
             @RequestParam("employeeId") Integer employeeId,
             @RequestParam("workDescription") String workDescription,
             @RequestParam(value = "progressPercent", required = false) Integer progressPercent,
-            @RequestParam(value = "status", required = false) String status, // "DONE" hoặc "IN_PROGRESS"
+            @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "file", required = false) MultipartFile file
     ) {
         try {
@@ -61,41 +62,26 @@ public class TaskController {
                                 "use_filename", true,
                                 "unique_filename", true
                         ));
-                // Dùng secure_url để lấy link https cho chuẩn
                 fileUrl = uploadResult.get("secure_url").toString();
             }
 
-            // Tìm Task để cập nhật
             java.util.Optional<Task> taskOpt = taskRepo.findById(taskId);
             if (taskOpt.isPresent()) {
                 Task task = taskOpt.get();
 
-                // 🔥 CẬP NHẬT TIẾN ĐỘ
-                if (progressPercent != null) {
-                    task.setProgressPercent(progressPercent);
-                }
-
-                // 🔥 CẬP NHẬT FILE URL
+                // Lưu link file vào bảng Task
                 if (fileUrl != null) {
                     task.setFileUrl(fileUrl);
                 }
 
-                // 🔥 QUAN TRỌNG NHẤT: Cập nhật Status để Vue có thể ẩn Task
+                // Lưu trạng thái DONE vào bảng Task để Vue ẩn đi
                 if (status != null && !status.isEmpty()) {
-                    // Chuyển String "DONE" thành Enum TaskStatus.DONE
                     task.setStatus(poly.edu.vantix_hrm.entity.TaskStatus.valueOf(status.toUpperCase()));
                 }
 
                 taskRepo.save(task);
 
-                // (Tùy chọn) Lưu vào bảng TaskReport để làm lịch sử báo cáo
-                TaskReport report = new TaskReport();
-                report.setTaskId(taskId);
-                report.setEmployeeId(employeeId);
-                report.setWorkDescription(workDescription);
-                report.setFileUrl(fileUrl);
-                report.setReportDate(LocalDateTime.now());
-                reportRepo.save(report);
+                // ĐÃ XÓA VĨNH VIỄN PHẦN TASK_REPORT GÂY LỖI 500 Ở ĐÂY 😎
             }
 
             return ResponseEntity.ok("Báo cáo thành công!");
@@ -110,12 +96,46 @@ public class TaskController {
     public Task create(@RequestBody Task task) { return taskService.createTask(task); }
 
     @PutMapping("/{id}")
-    public Task update(@PathVariable Integer id, @RequestBody Task taskDetails) {
-        return taskService.updateTask(id, taskDetails);
+    public ResponseEntity<?> update(@PathVariable Integer id, @RequestBody Task taskDetails) {
+        try {
+            // Chỉ gọi service để cập nhật vào DB
+            taskService.updateTask(id, taskDetails);
+
+            // Trả về câu thông báo đơn giản thay vì trả về đối tượng Task
+            return ResponseEntity.ok("Cập nhật thành công!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi: " + e.getMessage());
+        }
+    }
+    @PutMapping("/{id}/approve")
+    public ResponseEntity<?> approveTask(@PathVariable Integer id) {
+        try {
+            Task task = taskRepo.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy Task"));
+
+            // Đổi trạng thái sang COMPLETED và lưu DB
+            task.setStatus(poly.edu.vantix_hrm.entity.TaskStatus.COMPLETED);
+            taskRepo.save(task);
+
+            return ResponseEntity.ok("Phê duyệt thành công!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi: " + e.getMessage());
+        }
     }
 
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable Integer id) { taskService.deleteTask(id); }
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<?> cancelTask(@PathVariable Integer id) {
+        try {
+            Task task = taskRepo.findById(id).orElseThrow();
+            task.setStatus(poly.edu.vantix_hrm.entity.TaskStatus.CANCELLED);
+            taskRepo.save(task);
+            return ResponseEntity.ok("Đã hủy công việc!");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi: " + e.getMessage());
+        }
+    }
 
     @GetMapping("/my")
     public List<Task> myTasks(@RequestParam("employeeId") Integer employeeId) {
@@ -148,6 +168,67 @@ public class TaskController {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Lỗi giao việc: " + e.getMessage());
+        }
+    }
+    // 🔥 API LẤY BẢNG XẾP HẠNG KPI (LỌC THEO THÁNG CỦA DUE_DATE - KHÔNG CẦN SỬA DB)
+    @GetMapping("/ranking")
+    public ResponseEntity<?> getRanking(@RequestParam(value = "month", required = false) Integer month) {
+        try {
+            List<Task> completedTasks = taskRepo.findAll().stream()
+                    .filter(t -> t.getStatus() != null && t.getStatus().name().equals("COMPLETED"))
+                    .filter(t -> {
+                        if (month == null || month == 0) return true;
+
+                        // 🔥 ĐỔI SANG LỌC THEO createdAt (Vì task nào cũng có ngày tạo)
+                        // Nếu bác dùng LocalDateTime thì dùng getMonthValue()
+                        if (t.getCreatedAt() == null) return false;
+                        return t.getCreatedAt().getMonthValue() == month;
+                    })
+                    .toList();
+
+            // -- ĐOẠN DƯỚI NÀY GIỮ NGUYÊN --
+            java.util.Map<Integer, Integer> pointsMap = new java.util.HashMap<>();
+            java.util.Map<Integer, Integer> countMap = new java.util.HashMap<>();
+
+            for (Task t : completedTasks) {
+                if (t.getEmployeeId() != null) {
+                    pointsMap.put(t.getEmployeeId(), pointsMap.getOrDefault(t.getEmployeeId(), 0) + (t.getPoint() != null ? t.getPoint() : 0));
+                    countMap.put(t.getEmployeeId(), countMap.getOrDefault(t.getEmployeeId(), 0) + 1);
+                }
+            }
+
+            List<Map<String, Object>> ranking = new java.util.ArrayList<>();
+            for (Integer empId : pointsMap.keySet()) {
+                Map<String, Object> rank = new java.util.HashMap<>();
+                rank.put("employeeId", empId);
+                rank.put("totalPoints", pointsMap.get(empId));
+                rank.put("completedTasks", countMap.get(empId));
+                ranking.add(rank);
+            }
+
+            ranking.sort((a, b) -> ((Integer) b.get("totalPoints")).compareTo((Integer) a.get("totalPoints")));
+
+            return ResponseEntity.ok(ranking);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi: " + e.getMessage());
+        }
+    }
+
+    // 🔥 API YÊU CẦU NHÂN VIÊN LÀM LẠI TASK (TỪ DONE -> IN_PROGRESS)
+    @PutMapping("/{id}/reopen")
+    public ResponseEntity<?> reopenTask(@PathVariable Integer id) {
+        try {
+            Task task = taskRepo.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy Task"));
+
+            // Đẩy trạng thái quay ngược lại Đang làm
+            task.setStatus(poly.edu.vantix_hrm.entity.TaskStatus.IN_PROGRESS);
+            taskRepo.save(task);
+
+            return ResponseEntity.ok("Đã trả lại task cho nhân viên!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi: " + e.getMessage());
         }
     }
 }
