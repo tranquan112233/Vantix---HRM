@@ -7,6 +7,7 @@ class TaskService {
     // 🔥 GET ALL TASKS
     async getAll() {
         try {
+            // Đã bỏ /api vì baseURL đã có rồi
             return await api.get("/tasks");
         } catch (error) {
             console.error("Error getAll:", error);
@@ -56,40 +57,34 @@ class TaskService {
 
     /* ================= EMPLOYEE ================= */
 
-    // 🔥 GET EMPLOYEES (FIX QUAN TRỌNG)
     async getEmployees() {
-        return await api.get("/api/employees") // 🔥 đúng với backend
+        // Bỏ /api/ ở đầu
+        return await api.get("/employees")
     }
 
     /* ================= ASSIGN ================= */
 
-    // 🔥 ASSIGN TASK
     async assign(data) {
-        try {
-            return await api.post("/tasks/assign", data);
-        } catch (error) {
-            console.error("Error assign:", error);
-            throw error;
-        }
+        // Gọi thẳng sang cổng Backend
+        return await api.post("http://localhost:8080/api/tasks/assign", data);
     }
 
     /* ================= REPORT ================= */
 
-    // 🔥 REPORT TASK
-    async report(data) {
-        try {
-            return await api.post("/tasks/report", data);
-        } catch (error) {
-            console.error("Error report:", error);
-            throw error;
-        }
+    async report(reportData) {
+        console.log("Dữ liệu gửi đi nè:", reportData);
+        return api.post('/tasks/report', reportData, {
+            headers: {
+                'Content-Type': 'multipart/form-data' // 🔥 Ép kiểu multipart cho chuẩn
+            }
+        });
     }
 
     /* ================= MY TASK ================= */
 
-    // 🔥 GET MY TASKS
     async myTasks(employeeId) {
         try {
+            // 🔥 SỬA TẠI ĐÂY: Bỏ /api ở đầu để tránh lỗi /api/api
             return await api.get(`/tasks/my?employeeId=${employeeId}`);
         } catch (error) {
             console.error("Error myTasks:", error);
@@ -99,7 +94,6 @@ class TaskService {
 
     /* ================= KPI ================= */
 
-    // 🔥 KPI 1 EMPLOYEE
     async getKPI(employeeId) {
         try {
             return await api.get(`/tasks/kpi?employeeId=${employeeId}`);
@@ -109,7 +103,6 @@ class TaskService {
         }
     }
 
-    // 🔥 KPI RANKING
     async getRanking() {
         try {
             return await api.get("/tasks/ranking");
@@ -118,7 +111,6 @@ class TaskService {
             throw error;
         }
     }
-
 }
 
 export default new TaskService();

@@ -3,6 +3,7 @@ package poly.edu.vantix_hrm.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import poly.edu.vantix_hrm.dto.task.TaskResponseDTO;
 import poly.edu.vantix_hrm.entity.Task;
 
 import java.util.List;
@@ -36,4 +37,11 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
     GROUP BY t.task_id, t.task_title, t.point
 """, nativeQuery = true)
     List<Object[]> getMyTasksWithProgress(@Param("employeeId") Integer employeeId);
+
+
+    @Query("SELECT new poly.edu.vantix_hrm.dto.task.TaskResponseDTO(" +
+            "t.taskId, t.taskTitle, t.description, t.difficultyLevel, t.urgencyLevel, " +
+            "t.point, t.status, t.fileUrl, t.employeeId, e.fullName) " + // Đảm bảo t.employeeId tồn tại
+            "FROM Task t LEFT JOIN Employee e ON t.employeeId = e.employeeId")
+    List<TaskResponseDTO> findAllWithEmployeeName();
 }

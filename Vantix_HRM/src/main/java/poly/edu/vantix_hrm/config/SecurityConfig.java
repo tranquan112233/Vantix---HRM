@@ -23,27 +23,21 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-
         http
                 .csrf(csrf -> csrf.disable())
-
-                // 🔥 BẬT CORS
-                .cors(cors -> {})
-
+                // 🔥 Cấu hình CORS chi tiết để cho phép gửi file từ cổng 5173
+                .cors(cors -> cors.configurationSource(request -> {
+                    var config = new org.springframework.web.cors.CorsConfiguration();
+                    config.setAllowedOrigins(java.util.List.of("http://localhost:5173"));
+                    config.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                    config.setAllowedHeaders(java.util.List.of("*"));
+                    config.setAllowCredentials(true);
+                    return config;
+                }))
                 .authorizeHttpRequests(auth -> auth
-                        // 🔥 AUTH
-                        .requestMatchers("/api/auth/**").permitAll()
-
-                        // 🔥 TASK
-                        .requestMatchers("/api/tasks/**").permitAll()
-
-                        // 🔥 FIX QUAN TRỌNG
-                        .requestMatchers("/api/employees/**").permitAll()
-
-                        // các API khác
+                        .requestMatchers("/api/auth/**", "/api/tasks/**", "/api/employees/**").permitAll()
                         .anyRequest().authenticated()
                 )
-
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtService, userDetailsService),
                         UsernamePasswordAuthenticationFilter.class

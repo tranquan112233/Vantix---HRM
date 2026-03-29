@@ -2,7 +2,6 @@ package poly.edu.vantix_hrm.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -13,7 +12,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Builder
 public class Task {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer taskId;
@@ -27,7 +25,7 @@ public class Task {
 
     private Integer urgencyLevel;
 
-    private Integer point; // 🔥 thêm để tính KPI
+    private Integer point;
 
     private Integer createdBy;
 
@@ -35,12 +33,26 @@ public class Task {
 
     private LocalDate dueDate;
 
+    // Trong file Task.java
+    @Column(name = "employee_id") // Nếu trong DB bác đã thêm cột này vào bảng Tasks
+    private Integer employeeId;
+
     @Enumerated(EnumType.STRING)
     private TaskStatus status;
 
     private LocalDateTime createdAt;
 
-    // 🔥 AUTO TÍNH POINT (chuẩn pro)
+    @Column(name = "file_url", length = 500)
+    private String fileUrl;
+
+    // Giữ nguyên Getter/Setter viết tay của bạn ở đây nếu Controller vẫn đỏ
+    public void setFileUrl(String fileUrl) {
+        this.fileUrl = fileUrl;
+    }
+    public String getFileUrl() {
+        return fileUrl;
+    }
+
     @PrePersist
     @PreUpdate
     public void calculatePoint() {
@@ -50,4 +62,6 @@ public class Task {
             this.point = 0;
         }
     }
+
+
 }
