@@ -25,6 +25,7 @@ import LeaveManagement from "@/views/main/LeaveManagement.vue";
 import LeaveRequest from "@/views/main/LeaveRequest.vue";
 import Schedules from "@/views/Schedules.vue";
 import AttendanceManagement from "@/views/main/AttendanceManagement.vue";
+import ContractAnnex from "@/views/main/ContractAnnex.vue";
 /* ================= ROUTES ================= */
 const routes = [
 
@@ -54,7 +55,7 @@ const routes = [
         }, {
             path: "attendances", component: Attendance, meta: {roles: ["ADMIN", "EMPLOYEE"]}
         }, {
-            path: "contracts", component: Contract, meta: {roles: ["ADMIN", "EMPLOYEE"]}
+            path: "contracts", name: "Contract", component: Contract, meta: {roles: ["ADMIN", "EMPLOYEE"]}
         }, {
             path: "leaves", component: LeaveManagement, meta: {roles: ["ADMIN"]}
         }, {
@@ -63,6 +64,8 @@ const routes = [
             path: "schedules", component: Schedules, meta: {roles: ["EMPLOYEE"]}
         }, {
             path: "addtendance-management", component: AttendanceManagement, meta: {roles: ["EMPLOYEE"]}
+        }, {
+            path: "contract-annexes/:id", name: "ContractAnnex", component: ContractAnnex, meta: {roles: ["EMPLOYEE"]}
         }
 
         ]

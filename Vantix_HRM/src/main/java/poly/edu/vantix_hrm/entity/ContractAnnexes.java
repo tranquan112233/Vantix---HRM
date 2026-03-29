@@ -9,11 +9,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "ContractAnnexes") // Công dụng: Bảng phụ lục hợp đồng
+@Table(name = "contract_annexes") // Đã sửa tên bảng cho khớp với SQL
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ContractAnnexes {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "annex_id")
@@ -21,7 +22,7 @@ public class ContractAnnexes {
 
     @ManyToOne
     @JoinColumn(name = "contract_id", nullable = false)
-    private Contract contract; // Hợp đồng gốc
+    private Contract contract; // Hợp đồng gốc (Foreign Key)
 
     @Column(name = "effective_date")
     private LocalDate effectiveDate; // Ngày hiệu lực
@@ -36,5 +37,5 @@ public class ContractAnnexes {
     private String content; // Nội dung
 
     @Column(name = "is_active")
-    private boolean isActive; // Kích hoạt
+    private Boolean isActive;
 }

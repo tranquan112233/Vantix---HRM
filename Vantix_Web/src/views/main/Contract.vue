@@ -164,7 +164,6 @@
                 {{ c.status === 'ACTIVE' ? 'Hiệu lực' : 'Hết hạn' }}
               </span>
             </td>
-
             <td>
               <div class="action-buttons justify-content-center">
                 <button class="action-btn edit-btn" @click="toggleContractStatus(c.contractId)" title="Đổi trạng thái">

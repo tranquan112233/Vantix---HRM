@@ -65,6 +65,14 @@ export const menuItems = [
 
 
     // ================= ATTENDANCE =================
+    // {
+    //     section: "Attendance & Leave",
+    //     key: "contract-annexes",
+    //     label: "Contract Annexes",
+    //     icon: "bi bi-calendar-check",
+    //     to: "/contract-annexes",
+    //     roles: ["ADMIN", "HR", "EMPLOYEE"]
+    // },
     {
         section: "Attendance & Leave",
         key: "contracts",
