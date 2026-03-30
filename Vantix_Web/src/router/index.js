@@ -19,6 +19,9 @@ import Schedules from "@/views/main/Schedules.vue";
 import LeaveTypes from "@/views/main/LeaveTypes.vue";
 import LeaveRequest from "@/views/main/LeaveRequest.vue";
 import LeaveManagement from "@/views/main/LeaveManagement.vue";
+import ContractAnnex from "@/views/main/ContractAnnex.vue";
+import Contract from "@/views/main/Contract.vue";
+import AttendanceManagement from "@/views/main/AttendanceManagement.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -112,6 +115,21 @@ const router = createRouter({
                     component: Schedules,
                     meta: { title: 'Schedules Management' }
                 },
+                {
+                    path: 'contract-annexes',
+                    component: ContractAnnex,
+                    meta: { title: 'Contract Annex' }
+                },
+                {
+                    path: 'contracts',
+                    component: Contract,
+                    meta: { title: 'Contract' }
+                },
+                {
+                    path: 'attendance-management',
+                    component: AttendanceManagement,
+                    meta: { title: 'Attendance Management' }
+                }
 
 
                 // Ví dụ thêm

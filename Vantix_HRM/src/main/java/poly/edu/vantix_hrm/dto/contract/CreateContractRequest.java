@@ -13,7 +13,7 @@ import java.time.LocalDate;
 public class CreateContractRequest {
 
     @NotNull(message = "ID nhân viên không được để trống")
-    private Integer employeeId;
+    private Long employeeId;
 
     @NotBlank(message = "Vị trí công việc không được để trống")
     private String position;

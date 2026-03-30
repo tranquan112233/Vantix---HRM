@@ -35,7 +35,7 @@ public class ContractsService {
     // Kiểm tra trạng thái Hợp Đồng của nhân viên
     public void validateEmployeeContractEligibility(Long employeeId) {
         // Lấy toàn bộ Hợp Đồng của nhân viên kèm trạng thái phiếu
-        List<Contract> contracts = contractsRepository.findByEmployee_EmployeeId(employeeId);
+        List<Contract> contracts = contractsRepository.findByEmployee_Id(employeeId);
 
         // Kiểm tra nếu có Hợp Đồng có trạng thái Active
         boolean hasActiveContract = contracts.stream().anyMatch(c -> c.getStatus() == Contract.ContractStatus.ACTIVE);

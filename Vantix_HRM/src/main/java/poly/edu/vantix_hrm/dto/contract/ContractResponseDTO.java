@@ -17,7 +17,7 @@ public class ContractResponseDTO {
 
     private Integer contractId;
 
-    private Integer employeeId;
+    private Long employeeId;
     
     private String fullName;
 

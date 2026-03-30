@@ -16,7 +16,7 @@ public interface ContractsRepository extends JpaRepository<Contract, Integer> {
     List<Contract> findAllContractsWithEmployee();
 
     // Các hàm có sẵn của bạn
-    List<Contract> findByEmployee_EmployeeId(Long employeeId);
+    List<Contract> findByEmployee_Id(Long employeeId);
 
     List<Contract> findByStatusAndEndDateBefore(Contract.ContractStatus status, LocalDate date);
 }

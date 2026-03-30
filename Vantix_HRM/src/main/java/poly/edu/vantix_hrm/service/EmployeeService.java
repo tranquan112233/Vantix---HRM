@@ -224,4 +224,17 @@ public class EmployeeService {
                 .updatedBy(employee.getUpdatedBy())
                 .build();
     }
+
+    // Trong EmployeeService.java
+    public boolean isValidEmployee(Long employeeId) {
+        if (employeeId == null) return false;
+        return employeeRepository.existsById(employeeId);
+    }
+
+    public Employee getValidEmployee(Long employeeId) {
+        if (employeeId == null) {
+            throw new BusinessException("employeeId", "Mã nhân viên không được để trống!", HttpStatus.BAD_REQUEST);
+        }
+        return findById(employeeId);
+    }
 }

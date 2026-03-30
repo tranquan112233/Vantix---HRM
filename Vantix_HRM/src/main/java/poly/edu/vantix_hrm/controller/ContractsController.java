@@ -2,12 +2,14 @@ package poly.edu.vantix_hrm.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import poly.edu.vantix_hrm.dto.contract.ContractResponseDTO;
 import poly.edu.vantix_hrm.dto.contract.CreateContractRequest;
 import poly.edu.vantix_hrm.entity.Contract;
 import poly.edu.vantix_hrm.entity.Employee;
+import poly.edu.vantix_hrm.exception.BusinessException;
 import poly.edu.vantix_hrm.service.ContractsService;
 import poly.edu.vantix_hrm.service.EmployeeService;
 
@@ -34,7 +36,11 @@ public class ContractsController {
     public ResponseEntity<?> createContract(@Valid @RequestBody CreateContractRequest request) {
         try {
             // Kiểm tra nhân viên có tồn tại không
-            Employee employee = employeeService.isEmployeeValid(request.getEmployeeId());
+            if (!employeeService.isValidEmployee(request.getEmployeeId())) {
+                throw new BusinessException("employee","Nhân viên không hợp lệ!", HttpStatus.NOT_FOUND);
+            }
+
+            Employee employee = employeeService.getValidEmployee(request.getEmployeeId());
 
             // Kiểm tra trạng thái Hợp Đồng của nhân viên
             contractsService.validateEmployeeContractEligibility(request.getEmployeeId());
