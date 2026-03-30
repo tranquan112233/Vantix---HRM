@@ -2,11 +2,14 @@ package poly.edu.vantix_hrm.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import poly.edu.vantix_hrm.dto.page.PageRequestDTO;
+import poly.edu.vantix_hrm.dto.page.PageResponseDTO;
 import poly.edu.vantix_hrm.dto.user.*;
+import poly.edu.vantix_hrm.entity.User.UserStatus;
 import poly.edu.vantix_hrm.service.UserService;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -15,34 +18,47 @@ public class UserController {
 
     private final UserService userService;
 
+    // GET /api/users?keyword=&status=&page=0&size=10&sortBy=createdAt&sortDir=desc
     @GetMapping
-    public List<UserResponse> findAll() {
-        return userService.findAll();
+    public ResponseEntity<PageResponseDTO<UserResponseDTO>> getAll(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) UserStatus status,
+            @ModelAttribute PageRequestDTO pageRequest) {
+        return ResponseEntity.ok(userService.getAll(keyword, status, pageRequest));
     }
 
+    // GET /api/users/{id}
     @GetMapping("/{id}")
-    public UserResponse findById(@PathVariable Integer id) {
-        return userService.findById(id);
+    public ResponseEntity<UserResponseDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getById(id));
     }
 
+    // POST /api/users
     @PostMapping
-    public UserResponse create(@Valid @RequestBody CreateUserRequest request) {
-        return userService.create(request);
+    public ResponseEntity<UserResponseDTO> create(@Valid @RequestBody UserRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.create(request));
     }
 
+    // PUT /api/users/{id}
     @PutMapping("/{id}")
-    public UserResponse update(@PathVariable Integer id,
-                               @Valid @RequestBody UpdateUserRequest request) {
-        return userService.update(id, request);
+    public ResponseEntity<UserResponseDTO> update(
+            @PathVariable Long id,
+            @Valid @RequestBody UserRequestDTO request) {
+        return ResponseEntity.ok(userService.update(id, request));
     }
 
-    @PutMapping("/{id}/lock")
-    public void lock(@PathVariable Integer id) {
-        userService.lock(id);
+    // DELETE /api/users/{id}
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        userService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/{id}/unlock")
-    public void unlock(@PathVariable Integer id) {
-        userService.unlock(id);
+    // PATCH /api/users/{id}/status?status=LOCKED
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<UserResponseDTO> changeStatus(
+            @PathVariable Long id,
+            @RequestParam UserStatus status) {
+        return ResponseEntity.ok(userService.changeStatus(id, status));
     }
 }

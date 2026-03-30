@@ -6,22 +6,38 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "departments")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-// Công dụng: Quản lý phòng ban
-public class Department {
+public class Department extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "department_id")
-    private Integer departmentId;
+    private Long id;
 
-    @Column(name = "department_name", nullable = false, length = 100 , unique = true)
-    private String departmentName;
+    @Column(nullable = false, unique = true, length = 100)
+    private String name;
 
-    @Column(name = "description")
     private String description;
+
+    // Trưởng phòng
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "manager_id")
+    private Employee manager;
+
+    // Danh sách nhân viên thuộc phòng ban
+    @OneToMany(mappedBy = "department", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Employee> employees = new ArrayList<>();
+
+    // Danh sách vị trí thuộc phòng ban
+    @OneToMany(mappedBy = "department", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Position> positions = new ArrayList<>();
 }

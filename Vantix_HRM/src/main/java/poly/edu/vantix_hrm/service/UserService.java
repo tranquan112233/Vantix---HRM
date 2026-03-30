@@ -1,134 +1,149 @@
 package poly.edu.vantix_hrm.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import poly.edu.vantix_hrm.dto.user.*;
+import org.springframework.transaction.annotation.Transactional;
+import poly.edu.vantix_hrm.dto.page.PageRequestDTO;
+import poly.edu.vantix_hrm.dto.page.PageResponseDTO;
+import poly.edu.vantix_hrm.dto.user.UserRequestDTO;
+import poly.edu.vantix_hrm.dto.user.UserResponseDTO;
 import poly.edu.vantix_hrm.entity.Role;
 import poly.edu.vantix_hrm.entity.User;
+import poly.edu.vantix_hrm.entity.User.UserStatus;
 import poly.edu.vantix_hrm.exception.BusinessException;
 import poly.edu.vantix_hrm.repository.RoleRepository;
 import poly.edu.vantix_hrm.repository.UserRepository;
-
-import java.util.List;
+import poly.edu.vantix_hrm.utils.BaseSpecification;
+import poly.edu.vantix_hrm.utils.PageHelper;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    /* ================= FIND ================= */
+    // ─── Lấy danh sách phân trang + lọc động ─────────────────────────────────
 
-    public List<UserResponse> findAll() {
-        return userRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+    @Transactional(readOnly = true)
+    public PageResponseDTO<UserResponseDTO> getAll(String keyword, UserStatus status, PageRequestDTO pageRequest) {
+        Specification<User> spec = Specification
+                .where(BaseSpecification.<User>search(keyword, "username", "email"))
+                .and(BaseSpecification.equal("status", status))
+                .and(BaseSpecification.isNotDeleted());
+
+        return PageHelper.toResponse(
+                userRepository.findAll(spec, PageHelper.createPageable(pageRequest))
+                        .map(this::toResponse)
+        );
     }
 
-    public UserResponse findById(Integer id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("user","User not found"));
+    // ─── Lấy chi tiết 1 user ──────────────────────────────────────────────────
 
-        return mapToResponse(user);
+    @Transactional(readOnly = true)
+    public UserResponseDTO getById(Long id) {
+        return toResponse(findById(id));
     }
 
-    /* ================= CREATE ================= */
+    // ─── Tạo mới ──────────────────────────────────────────────────────────────
 
-    public UserResponse create(CreateUserRequest request) {
-
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new BusinessException("username","Username already exists");
+    public UserResponseDTO create(UserRequestDTO request) {
+        if (userRepository.existsByUsernameAndDeletedFalse(request.getUsername())) {
+            throw new BusinessException("username", "Username already exists", HttpStatus.BAD_REQUEST);
+        }
+        if (userRepository.existsByEmailAndDeletedFalse(request.getEmail())) {
+            throw new BusinessException("email", "Email already exists", HttpStatus.BAD_REQUEST);
         }
 
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException("email","Email already exists");
-        }
+        User user = User.builder()
+                .username(request.getUsername())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .email(request.getEmail())
+                .role(findRoleById(request.getRoleId()))
+                .status(request.getStatus() != null ? request.getStatus() : UserStatus.ACTIVE)
+                .build();
 
-        Role role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new BusinessException("role","Role not found"));
-
-        User user = new User();
-        user.setUsername(request.getUsername().trim());
-        user.setEmail(request.getEmail().trim());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setRole(role);
-        user.setStatus(User.UserStatus.ACTIVE);
-
-        userRepository.save(user);
-
-        return mapToResponse(user);
+        return toResponse(userRepository.save(user));
     }
 
-    /* ================= UPDATE ================= */
+    // ─── Cập nhật ─────────────────────────────────────────────────────────────
 
-    public UserResponse update(Integer id, UpdateUserRequest request) {
+    public UserResponseDTO update(Long id, UserRequestDTO request) {
+        User user = findById(id);
 
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("user","User not found"));
-
-        if (!user.getUsername().equals(request.getUsername())
-                && userRepository.existsByUsername(request.getUsername())) {
-
-            throw new BusinessException("username","Username already exists");
+        if (userRepository.existsByUsernameAndIdNotAndDeletedFalse(request.getUsername(), id)) {
+            throw new BusinessException("username", "Username already exists", HttpStatus.BAD_REQUEST);
+        }
+        if (userRepository.existsByEmailAndIdNotAndDeletedFalse(request.getEmail(), id)) {
+            throw new BusinessException("email", "Email already exists", HttpStatus.BAD_REQUEST);
         }
 
-        if (!user.getEmail().equals(request.getEmail())
-                && userRepository.existsByEmail(request.getEmail())) {
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setRole(findRoleById(request.getRoleId()));
 
-            throw new BusinessException("email","Email already exists");
+        if (request.getStatus() != null) {
+            user.setStatus(request.getStatus());
         }
-
-        Role role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new BusinessException("role","Role not found"));
-
-        user.setUsername(request.getUsername().trim());
-        user.setEmail(request.getEmail().trim());
-        user.setRole(role);
-        user.setStatus(request.getStatus());
-
+        // Chỉ đổi password nếu client gửi lên
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
 
-        userRepository.save(user);
-
-        return mapToResponse(user);
+        return toResponse(userRepository.save(user));
     }
 
-    /* ================= LOCK ================= */
+    // ─── Xóa mềm ──────────────────────────────────────────────────────────────
 
-    public void lock(Integer id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("user","User not found"));
-
-        user.setStatus(User.UserStatus.LOCKED);
+    public void delete(Long id) {
+        User user = findById(id);
+        user.setDeleted(true);
         userRepository.save(user);
     }
 
-    public void unlock(Integer id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("user","User not found"));
+    // ─── Thay đổi trạng thái ACTIVE / LOCKED ─────────────────────────────────
 
-        user.setStatus(User.UserStatus.ACTIVE);
-        userRepository.save(user);
+    public UserResponseDTO changeStatus(Long id, UserStatus status) {
+        User user = findById(id);
+        user.setStatus(status);
+        return toResponse(userRepository.save(user));
     }
 
-    /* ================= MAPPER ================= */
+    // ─── Helper ───────────────────────────────────────────────────────────────
 
-    private UserResponse mapToResponse(User user) {
-        return UserResponse.builder()
-                .userId(user.getUserId())
+    private User findById(Long id) {
+        return userRepository.findById(id)
+                .filter(u -> !Boolean.TRUE.equals(u.getDeleted()))
+                .orElseThrow(() -> new BusinessException("id", "User not found", HttpStatus.NOT_FOUND));
+    }
+
+    private Role findRoleById(Long roleId) {
+        if (roleId == null) return null;
+        return roleRepository.findById(roleId)
+                .filter(r -> !Boolean.TRUE.equals(r.getDeleted()))
+                .orElseThrow(() -> new BusinessException("roleId", "Role not found", HttpStatus.NOT_FOUND));
+    }
+
+    // ─── Map Entity → Response DTO ────────────────────────────────────────────
+
+    private UserResponseDTO toResponse(User user) {
+        return UserResponseDTO.builder()
+                .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .roleId(user.getRole().getRoleId())
-                .roleName(user.getRole().getRoleName())
-                .status(user.getStatus().name())
-                .lastLogin(user.getLastLogin())
+                .status(user.getStatus())
+                .lastActive(user.getLastActive())
+                .roleId(user.getRole() != null ? user.getRole().getId() : null)
+                .roleName(user.getRole() != null ? user.getRole().getName() : null)
                 .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .createdBy(user.getCreatedBy())
+                .updatedBy(user.getUpdatedBy())
                 .build();
     }
 }

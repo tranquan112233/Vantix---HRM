@@ -1,27 +1,46 @@
 package poly.edu.vantix_hrm.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
+/*
+ * Role — vai trò trong hệ thống
+ *
+ * Ví dụ: ADMIN, MANAGER, EMPLOYEE
+ *
+ * Quan hệ:
+ *   Role → User       : 1 Role có nhiều User
+ *   Role ←→ Permission : nhiều-nhiều
+ */
 @Entity
 @Table(name = "roles")
-@Data
-@AllArgsConstructor
+@Getter
+@Setter
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
-// Công dụng: Lưu vai trò người dùng (Admin, HR, Employee)
-public class Role {
+public class Role extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "role_id")
-    private Integer roleId; // ID vai trò
+    private Long id;
 
-    @Column(name = "role_name", nullable = false, unique = true, length = 50)
-    private String roleName; // Tên vai trò
+    // Tên role — ví dụ: ADMIN, MANAGER, EMPLOYEE
+    @Column(nullable = false, unique = true)
+    private String name;
 
-    @Column(name = "description", length = 255)
-    private String description; // Mô tả vai trò (Chứa các thông tin như quyền truy cập, v.v)
+    private String description;
+
+    // Danh sách quyền của role này
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "role_permissions",
+            joinColumns = @JoinColumn(name = "role_id"),
+            inverseJoinColumns = @JoinColumn(name = "permission_id")
+    )
+    @Builder.Default
+    private Set<Permission> permissions = new HashSet<>();
 }

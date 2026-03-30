@@ -2,14 +2,15 @@ package poly.edu.vantix_hrm.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import poly.edu.vantix_hrm.dto.employee.EmployeeCreateRequest;
-import poly.edu.vantix_hrm.dto.employee.EmployeeResponse;
-import poly.edu.vantix_hrm.dto.employee.EmployeeUpdateRequest;
+import poly.edu.vantix_hrm.dto.employee.EmployeeRequestDTO;
+import poly.edu.vantix_hrm.dto.employee.EmployeeResponseDTO;
+import poly.edu.vantix_hrm.dto.page.PageRequestDTO;
+import poly.edu.vantix_hrm.dto.page.PageResponseDTO;
+import poly.edu.vantix_hrm.entity.Employee.WorkStatus;
 import poly.edu.vantix_hrm.service.EmployeeService;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/employees")
@@ -18,50 +19,46 @@ public class EmployeeController {
 
     private final EmployeeService employeeService;
 
-    /* ================= FIND ALL ================= */
-
+    // GET /api/employees?keyword=&workStatus=&departmentId=&page=0&size=10&sortBy=createdAt&sortDir=desc
     @GetMapping
-    public ResponseEntity<List<EmployeeResponse>> findAll() {
-
-        return ResponseEntity.ok(employeeService.findAll());
+    public ResponseEntity<PageResponseDTO<EmployeeResponseDTO>> getAll(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) WorkStatus workStatus,
+            @RequestParam(required = false) Long departmentId,
+            @ModelAttribute PageRequestDTO pageRequest) {
+        return ResponseEntity.ok(employeeService.getAll(keyword, workStatus, departmentId, pageRequest));
     }
 
-    /* ================= FIND BY ID ================= */
-
+    // GET /api/employees/{id}
     @GetMapping("/{id}")
-    public ResponseEntity<EmployeeResponse> findById(
-            @PathVariable Integer id) {
-
-        return ResponseEntity.ok(employeeService.findById(id));
+    public ResponseEntity<EmployeeResponseDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(employeeService.getById(id));
     }
 
-    /* ================= CREATE ================= */
+    // GET /api/employees/user/{userId}
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<EmployeeResponseDTO> getByUserId(@PathVariable Long userId) {
+        return ResponseEntity.ok(employeeService.getByUserId(userId));
+    }
 
+    // POST /api/employees
     @PostMapping
-    public ResponseEntity<EmployeeResponse> create(
-            @Valid @RequestBody EmployeeCreateRequest request) {
-
-        return ResponseEntity.ok(employeeService.create(request));
+    public ResponseEntity<EmployeeResponseDTO> create(@Valid @RequestBody EmployeeRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(employeeService.create(request));
     }
 
-    /* ================= UPDATE ================= */
-
+    // PUT /api/employees/{id}
     @PutMapping("/{id}")
-    public ResponseEntity<EmployeeResponse> update(
-            @PathVariable Integer id,
-            @Valid @RequestBody EmployeeUpdateRequest request) {
-
+    public ResponseEntity<EmployeeResponseDTO> update(
+            @PathVariable Long id,
+            @Valid @RequestBody EmployeeRequestDTO request) {
         return ResponseEntity.ok(employeeService.update(id, request));
     }
 
-    /* ================= DELETE ================= */
-
+    // DELETE /api/employees/{id}
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(
-            @PathVariable Integer id) {
-
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         employeeService.delete(id);
-
         return ResponseEntity.noContent().build();
     }
 }

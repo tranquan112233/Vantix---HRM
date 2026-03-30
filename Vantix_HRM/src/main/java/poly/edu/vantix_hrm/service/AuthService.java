@@ -1,194 +1,200 @@
 package poly.edu.vantix_hrm.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import poly.edu.vantix_hrm.dto.auth.*;
+import poly.edu.vantix_hrm.entity.AuthToken;
+import poly.edu.vantix_hrm.entity.Permission;
 import poly.edu.vantix_hrm.entity.User;
-import poly.edu.vantix_hrm.entity.VerificationToken;
 import poly.edu.vantix_hrm.exception.BusinessException;
+import poly.edu.vantix_hrm.repository.AuthTokenRepository;
 import poly.edu.vantix_hrm.repository.UserRepository;
-import poly.edu.vantix_hrm.repository.VerificationTokenRepository;
+import poly.edu.vantix_hrm.security.JwtService;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.List;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserRepository userRepository;
-    private final JwtService jwtService;
-    private final BCryptPasswordEncoder passwordEncoder;
-    private final VerificationTokenRepository tokenRepository;
-    private final EmailService emailService;
+    private final UserRepository      userRepository;
+    private final AuthTokenRepository authTokenRepository;
+    private final PasswordEncoder     passwordEncoder;
+    private final JwtService          jwtService;
+    private final EmailService        emailService;
 
-    // =====================================================
-    // LOGIN
-    // =====================================================
+    private static final int OTP_EXPIRY_MINUTES = 5;
 
-    public LoginResponse login(LoginRequest request) {
+    // ─── Đăng nhập ────────────────────────────────────────────────────────────
 
-        User user = userRepository
-                .findByEmail(request.getEmail())
-                .orElseThrow(() ->
-                        new BusinessException("email","Email not found"));
+    @Transactional(readOnly = true)
+    public LoginResponseDTO login(LoginRequestDTO request) {
+        User user = userRepository.findByUsername(request.getUsernameOrEmail())
+                .or(() -> userRepository.findByEmail(request.getUsernameOrEmail()))
+                .orElseThrow(() -> new BusinessException(
+                        "usernameOrEmail", "User not found!", HttpStatus.NOT_FOUND));
 
-        boolean isMatch = passwordEncoder.matches(
-                request.getPassword(),
-                user.getPasswordHash()
-        );
-
-        if (!isMatch) {
-            throw new BusinessException("password","Wrong password");
+        if (Boolean.TRUE.equals(user.getDeleted())) {
+            throw new BusinessException("usernameOrEmail", "User not found!", HttpStatus.NOT_FOUND);
         }
 
         if (user.getStatus() == User.UserStatus.LOCKED) {
-            throw new BusinessException(
-                    "general",
-                    "Account is locked. Please contact admin."
-            );
+            throw new BusinessException("usernameOrEmail", "User is locked!", HttpStatus.FORBIDDEN);
         }
 
-        user.setLastLogin(LocalDateTime.now());
-        userRepository.save(user);
-        String token = jwtService.generateToken(user);
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new BusinessException("password", "Invalid password!", HttpStatus.UNAUTHORIZED);
+        }
 
-        return new LoginResponse(token);
+        user.setLastActive(LocalDateTime.now());
+        userRepository.save(user);
+
+        String token = jwtService.generateToken(user.getId());
+        return LoginResponseDTO.from(user, token);
     }
 
+    // ─── Lấy thông tin user hiện tại (dùng cho /auth/me sau F5) ──────────────
+    // Trả UserProfileResponse (có permissions) thay vì LoginResponseDTO
 
-    // =====================================================
-    // FORGOT PASSWORD
-    // =====================================================
+    @Transactional(readOnly = true)
+    public UserProfileResponse me(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(
+                        "user", "User not found!", HttpStatus.NOT_FOUND));
 
-    public String forgotPassword(ForgotPasswordRequest request) {
+        if (Boolean.TRUE.equals(user.getDeleted()) || user.getStatus() == User.UserStatus.LOCKED) {
+            throw new BusinessException("user", "Invalid User", HttpStatus.FORBIDDEN);
+        }
 
+        // Lấy danh sách permission từ role (điều chỉnh theo entity thực tế của bạn)
+        List<String> permissions = user.getRole() != null
+                ? user.getRole().getPermissions().stream()
+                .map(Permission::getName)
+                .toList()
+                : List.of();
+
+        return UserProfileResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .role(user.getRole() != null ? user.getRole().getName() : null)
+                .permissions(permissions)
+                .build();
+    }
+
+    // ─── Quên mật khẩu ───────────────────────────────────────────────────────
+
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequestDTO request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() ->
-                        new BusinessException("email","Email not found"));
+                .orElseThrow(() -> new BusinessException(
+                        "email", "Email not found", HttpStatus.NOT_FOUND));
 
-        String otp = String.valueOf(
-                (int) ((Math.random() * 900000) + 100000)
-        );
+        authTokenRepository.deleteAllByUserAndType(user, AuthToken.TokenType.OTP);
 
-        VerificationToken otpToken = new VerificationToken();
+        String otp = generateOtp();
 
-        otpToken.setUser(user);
-        otpToken.setToken(otp);
-        otpToken.setTokenType(VerificationToken.TokenType.OTP);
-        otpToken.setExpiresAt(LocalDateTime.now().plusMinutes(5));
-        otpToken.setUsed(false);
+        AuthToken authToken = AuthToken.builder()
+                .user(user)
+                .token(otp)
+                .type(AuthToken.TokenType.OTP)
+                .expiryDate(LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES))
+                .used(false)
+                .build();
 
-        tokenRepository.save(otpToken);
-
-        emailService.sendOtpEmail(user.getEmail(), otp);
-
-        // KHÔNG return OTP
-        return "OTP sent to email";
+        authTokenRepository.save(authToken);
+        emailService.sendOtp(user.getEmail(), otp);
     }
 
+    // ─── Xác thực OTP ────────────────────────────────────────────────────────
 
-    // =====================================================
-    // VERIFY OTP
-    // =====================================================
+    @Transactional
+    public String verifyOtp(VerifyOtpRequestDTO request) {
+        User user = findUserByEmail(request.getEmail());
+        AuthToken otpToken = findAndValidateOtp(user, request.getOtp());
 
-    public String verifyOtp(VerifyOtpRequest request) {
-
-        VerificationToken otpToken =
-                tokenRepository
-                        .findByTokenAndTokenTypeAndUsedFalse(
-                                request.getOtp(),
-                                VerificationToken.TokenType.OTP
-                        )
-                        .orElseThrow(() ->
-                                new BusinessException("otp","Invalid OTP"));
-
-        if (otpToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new BusinessException("otp","OTP expired");
-        }
-
-        if (!otpToken.getUser().getEmail()
-                .equals(request.getEmail())) {
-
-            throw new BusinessException("email","Email mismatch");
-        }
-
+        // ❌ đánh dấu OTP đã dùng
         otpToken.setUsed(true);
+        authTokenRepository.save(otpToken);
 
-        tokenRepository.save(otpToken);
+        // ❗ tạo reset token
+        String resetToken = generateResetToken();
 
-        String resetToken = UUID.randomUUID().toString();
+        AuthToken resetAuthToken = AuthToken.builder()
+                .user(user)
+                .token(resetToken)
+                .type(AuthToken.TokenType.RESET_PASSWORD)
+                .expiryDate(LocalDateTime.now().plusMinutes(10)) // reset token sống lâu hơn OTP
+                .used(false)
+                .build();
 
-        VerificationToken resetPasswordToken =
-                new VerificationToken();
+        authTokenRepository.save(resetAuthToken);
 
-        resetPasswordToken.setUser(otpToken.getUser());
-        resetPasswordToken.setToken(resetToken);
-        resetPasswordToken.setTokenType(
-                VerificationToken.TokenType.RESET_PASSWORD
-        );
-        resetPasswordToken.setExpiresAt(
-                LocalDateTime.now().plusMinutes(10)
-        );
-        resetPasswordToken.setUsed(false);
-
-        tokenRepository.save(resetPasswordToken);
-
-        return resetToken;
+        return resetToken; // trả về cho FE
     }
 
+    // ─── Đặt lại mật khẩu ────────────────────────────────────────────────────
 
-    // =====================================================
-    // RESET PASSWORD
-    // =====================================================
+    @Transactional
+    public void resetPassword(ResetPasswordRequestDTO request) {
 
-    public String resetPassword(
-            ResetPasswordRequest request
-    ) {
-
-        if (!request.getNewPassword()
-                .equals(request.getConfirmPassword())) {
-
-            throw new BusinessException(
-                    "confirmPassword","Passwords do not match"
-            );
-        }
-
-        VerificationToken resetToken =
-                tokenRepository
-                        .findByTokenAndTokenTypeAndUsedFalse(
-                                request.getResetToken(),
-                                VerificationToken.TokenType.RESET_PASSWORD
-                        )
-                        .orElseThrow(() ->
-                                new BusinessException(
-                                        "token","Invalid reset token"
-                                ));
-
-        if (resetToken.getExpiresAt()
-                .isBefore(LocalDateTime.now())) {
-
-            throw new BusinessException(
-                    "token","Reset token expired"
-            );
-        }
-
-        User user = resetToken.getUser();
-
-        user.setPasswordHash(
-                passwordEncoder.encode(
-                        request.getNewPassword()
+        AuthToken token = authTokenRepository
+                .findTopByTokenAndTypeAndUsedFalseOrderByCreatedAtDesc(
+                        request.getToken(),
+                        AuthToken.TokenType.RESET_PASSWORD
                 )
-        );
+                .orElseThrow(() -> new BusinessException(
+                        "token", "Invalid token", HttpStatus.BAD_REQUEST));
 
+        if (!token.isValid()) {
+            throw new BusinessException("token", "Token has expired or already been used", HttpStatus.BAD_REQUEST);
+        }
+
+        User user = token.getUser();
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
-        resetToken.setUsed(true);
-
-        tokenRepository.save(resetToken);
-
-        return "Password reset successfully";
+        token.setUsed(true);
+        authTokenRepository.save(token);
     }
 
+    // ─── Helper ──────────────────────────────────────────────────────────────
+
+    private User findUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(
+                        "email", "Email not found", HttpStatus.NOT_FOUND));
+    }
+
+    private AuthToken findAndValidateOtp(User user, String otp) {
+        AuthToken authToken = authTokenRepository
+                .findTopByUserAndTypeAndUsedFalseOrderByCreatedAtDesc(user, AuthToken.TokenType.OTP)
+                .orElseThrow(() -> new BusinessException(
+                        "otp", "Invalid OTP", HttpStatus.BAD_REQUEST));
+
+        if (LocalDateTime.now().isAfter(authToken.getExpiryDate())) {
+            throw new BusinessException("otp", "OTP has expired", HttpStatus.BAD_REQUEST);
+        }
+
+        if (!authToken.getToken().equals(otp)) {
+            throw new BusinessException("otp", "Incorrect OTP", HttpStatus.BAD_REQUEST);
+        }
+
+        return authToken;
+    }
+
+    private String generateOtp() {
+        int otp = 100000 + new Random().nextInt(900000);
+        return String.valueOf(otp);
+    }
+
+    private String generateResetToken() {
+        return java.util.UUID.randomUUID().toString();
+    }
 }

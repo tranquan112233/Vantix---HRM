@@ -2,14 +2,14 @@ package poly.edu.vantix_hrm.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import poly.edu.vantix_hrm.dto.department.DepartmentRequest;
-import poly.edu.vantix_hrm.dto.department.DepartmentResponse;
+import poly.edu.vantix_hrm.dto.department.DepartmentRequestDTO;
+import poly.edu.vantix_hrm.dto.department.DepartmentResponseDTO;
+import poly.edu.vantix_hrm.dto.page.PageRequestDTO;
+import poly.edu.vantix_hrm.dto.page.PageResponseDTO;
 import poly.edu.vantix_hrm.service.DepartmentService;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/departments")
@@ -18,62 +18,37 @@ public class DepartmentController {
 
     private final DepartmentService departmentService;
 
-    // =====================================================
-    // GET ALL DEPARTMENTS
-    // =====================================================
-
+    // GET /api/departments?keyword=&page=0&size=10&sortBy=createdAt&sortDir=desc
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<DepartmentResponse>> getAll() {
-        return ResponseEntity.ok(departmentService.findAll());
+    public ResponseEntity<PageResponseDTO<DepartmentResponseDTO>> getAll(
+            @RequestParam(required = false) String keyword,
+            @ModelAttribute PageRequestDTO pageRequest) {
+        return ResponseEntity.ok(departmentService.getAll(keyword, pageRequest));
     }
 
-    // =====================================================
-    // GET DEPARTMENT BY ID
-    // =====================================================
-
+    // GET /api/departments/{id}
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<DepartmentResponse> getById(
-            @PathVariable Integer id
-    ) {
-        return ResponseEntity.ok(departmentService.findById(id));
+    public ResponseEntity<DepartmentResponseDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(departmentService.getById(id));
     }
 
-    // =====================================================
-    // CREATE DEPARTMENT
-    // =====================================================
-
+    // POST /api/departments
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<DepartmentResponse> create(
-            @Valid @RequestBody DepartmentRequest request
-    ) {
-        return ResponseEntity.ok(departmentService.create(request));
+    public ResponseEntity<DepartmentResponseDTO> create(@Valid @RequestBody DepartmentRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(departmentService.create(request));
     }
 
-    // =====================================================
-    // UPDATE DEPARTMENT
-    // =====================================================
-
+    // PUT /api/departments/{id}
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<DepartmentResponse> update(
-            @PathVariable Integer id,
-            @Valid @RequestBody DepartmentRequest request
-    ) {
+    public ResponseEntity<DepartmentResponseDTO> update(
+            @PathVariable Long id,
+            @Valid @RequestBody DepartmentRequestDTO request) {
         return ResponseEntity.ok(departmentService.update(id, request));
     }
 
-    // =====================================================
-    // DELETE DEPARTMENT
-    // =====================================================
-
+    // DELETE /api/departments/{id}
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> delete(
-            @PathVariable Integer id
-    ) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         departmentService.delete(id);
         return ResponseEntity.noContent().build();
     }

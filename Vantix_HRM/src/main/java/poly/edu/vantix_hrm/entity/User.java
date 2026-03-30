@@ -1,53 +1,61 @@
 package poly.edu.vantix_hrm.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+
 import java.time.LocalDateTime;
 
+/*
+ * User — tài khoản người dùng trong hệ thống
+ *
+ * Ví dụ: Admin, Manager, Employee
+ *
+ * Quan hệ:
+ *   User → Role : nhiều User thuộc 1 Role
+ */
 @Entity
 @Table(name = "users")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-// Công dụng: Tài khoản đăng nhập hệ thống
-public class User {
+public class User extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_id")
-    private Integer userId; // ID người dùng
+    private Long id;
 
-    @Column(name = "username", nullable = false, unique = true)
-    private String username; // Tên đăng nhập
+    // Tên đăng nhập — không được trùng
+    @Column(nullable = false, unique = true)
+    private String username;
 
-    @Column(name = "email", unique = true, nullable = false)
-    private String email; // Email đăng nhập / nhận thông báo
+    // Mật khẩu — mã hóa bằng BCrypt
+    @Column(nullable = false)
+    private String password;
 
-    @Column(name = "password_hash", nullable = false)
-    private String passwordHash; // Mật khẩu đã mã hóa
+    // Email — không được trùng
+    @Column(nullable = false, unique = true)
+    private String email;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "role_id", nullable = false)
-    private Role role; // Vai trò người dùng
+    // Role của user — nhiều user có thể có cùng 1 role
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_id")
+    private Role role;
 
-    public enum UserStatus {ACTIVE, LOCKED} // Trạng thái (Hoạt động, Bị Khóa)
+    // Thời điểm hoạt động gần nhất — dùng để xác định online/offline
+    private LocalDateTime lastActive;
 
+    // Trạng thái tài khoản
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private UserStatus status = UserStatus.ACTIVE; // Trạng thái người dùng
+    @Column(nullable = false)
+    @Builder.Default
+    private UserStatus status = UserStatus.ACTIVE;
 
-    @Column(name = "last_login")
-    private LocalDateTime lastLogin; // Lần đăng nhập gần nhất
+    // ─── Enum trạng thái ─────────────────────────────────────────────────────
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now(); // Ngày tạo
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
+    public enum UserStatus {
+        ACTIVE,  // Đang hoạt động
+        LOCKED   // Bị khóa
     }
-
 }
