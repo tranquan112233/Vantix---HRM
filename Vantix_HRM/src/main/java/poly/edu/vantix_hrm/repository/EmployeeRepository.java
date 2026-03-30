@@ -7,11 +7,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import poly.edu.vantix_hrm.entity.Employee;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long>,
         JpaSpecificationExecutor<Employee> {
+
+    Optional <Employee> findByUser_Email(String email);
 
     // Kiểm tra user_id đã có employee chưa
     boolean existsByUserIdAndDeletedFalse(Long userId);
@@ -34,4 +37,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>,
     // Đếm số nhân viên theo chức vụ
     @Query("SELECT COUNT(e) FROM Employee e WHERE e.position.id = :positionId AND e.deleted = false")
     long countByPositionId(@Param("positionId") Long positionId);
+
+    List<Employee> findByDepartment_Id(Long departmentId);
 }

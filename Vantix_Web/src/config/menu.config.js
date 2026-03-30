@@ -55,7 +55,7 @@ export const menuSections = [
             {
                 label: 'Leave', icon: 'bi-box-arrow-right',
                 children: [
-                    { label: 'Leave Requests', icon: 'bi-send',       to: '/leave-requests', permission: 'LEAVE_VIEW'   },
+                    { label: 'Leave Requests', icon: 'bi-send',       to: '/leaves', permission: 'LEAVE_VIEW'   },
                     { label: 'Leave Manager',  icon: 'bi-inbox',      to: '/leave-manager',  permission: 'LEAVE_MANAGE' },
                     { label: 'Leave Types',    icon: 'bi-list-check', to: '/leave-types',    permission: 'LEAVE_VIEW'   },
                 ]
@@ -72,6 +72,7 @@ export const menuSections = [
         section: 'OTHERS',
         items: [
             { label: 'Settings', icon: 'bi-setting', to: '/settings'},
+            { label: 'Schedules', icon: 'bi-setting', to: '/schedules'},
         ]
     },
 ]

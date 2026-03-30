@@ -15,6 +15,10 @@ import RoleManagement from "@/views/main/RoleManagement.vue";
 import DepartmentManagement from "@/views/main/DepartmentManagement.vue";
 import PositionManagement from "@/views/main/PositionManagement.vue";
 import EmployeeManagement from "@/views/main/EmployeeManagement.vue";
+import Schedules from "@/views/main/Schedules.vue";
+import LeaveTypes from "@/views/main/LeaveTypes.vue";
+import LeaveRequest from "@/views/main/LeaveRequest.vue";
+import LeaveManagement from "@/views/main/LeaveManagement.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -87,6 +91,26 @@ const router = createRouter({
                     path: 'employees',
                     component: EmployeeManagement,
                     meta: { title: 'Employees Management' }
+                },
+                {
+                    path: 'leaves',
+                    component: LeaveRequest,
+                    meta: { title: 'Leaves Request' }
+                },
+                {
+                    path: 'leaves-manager',
+                    component: LeaveManagement,
+                    meta: { title: 'Leaves Management' }
+                },
+                {
+                    path: 'leave-types',
+                    component: LeaveTypes,
+                    meta: { title: 'Leaves Types' }
+                },
+                {
+                    path: 'schedules',
+                    component: Schedules,
+                    meta: { title: 'Schedules Management' }
                 },
 
 
