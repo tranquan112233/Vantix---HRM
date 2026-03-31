@@ -5,7 +5,7 @@ import java.time.LocalDate;
 
 @Data
 public class UserProfileDTO {
-    private Integer employeeId;
+    private Long employeeId;
     private String fullName;
     private String email;
     private String phone;

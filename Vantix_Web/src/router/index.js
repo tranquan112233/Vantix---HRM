@@ -22,6 +22,7 @@ import LeaveManagement from "@/views/main/LeaveManagement.vue";
 import ContractAnnex from "@/views/main/ContractAnnex.vue";
 import Contract from "@/views/main/Contract.vue";
 import AttendanceManagement from "@/views/main/AttendanceManagement.vue";
+import Profile from "@/views/main/Profile.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -129,6 +130,11 @@ const router = createRouter({
                     path: 'attendance-management',
                     component: AttendanceManagement,
                     meta: { title: 'Attendance Management' }
+                },
+                {
+                    path: 'profile',
+                    component: Profile,
+                    meta: { title: 'Profile' }
                 }
 
 

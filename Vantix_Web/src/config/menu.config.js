@@ -50,22 +50,18 @@ export const menuSections = [
     {
         section: 'ATTENDANCE & LEAVE',
         items: [
-            { label: 'Attendances', icon: 'bi-calendar-check', to: '/attendance-management', permission: 'ATTENDANCE_VIEW' },
+            { label: 'Attendances', icon: 'bi-calendar-check', to: '/leaves', permission: 'ATTENDANCE_VIEW' },
             { label: 'Shifts',      icon: 'bi-clock',          to: '/shifts',     permission: 'SHIFT_VIEW'      },
-            {
-                label: 'Leave', icon: 'bi-box-arrow-right',
-                children: [
-                    { label: 'Leave Requests', icon: 'bi-send',       to: '/leaves', permission: 'LEAVE_VIEW'   },
-                    { label: 'Leave Manager',  icon: 'bi-inbox',      to: '/leave-manager',  permission: 'LEAVE_MANAGE' },
-                    { label: 'Leave Types',    icon: 'bi-list-check', to: '/leave-types',    permission: 'LEAVE_VIEW'   },
-                ]
-            },
+
+            { label: 'Leave Requests', icon: 'bi-send',       to: '/leaves', permission: 'LEAVE_VIEW'   },
+            { label: 'Leave Manager',  icon: 'bi-inbox',      to: '/leaves-manager',  permission: 'LEAVE_MANAGE' },
+            { label: 'Leave Types',    icon: 'bi-list-check', to: '/leave-types',    permission: 'LEAVE_VIEW'   },
         ]
     },
     {
         section: 'PAYROLL',
         items: [
-            { label: 'Salaries', icon: 'bi-cash-coin', to: '/salaries', permission: 'SALARY_VIEW' },
+            { label: 'Salaries', icon: 'bi-cash-coin', to: '/leaves-manager', permission: 'SALARY_VIEW' },
         ]
     },
     {

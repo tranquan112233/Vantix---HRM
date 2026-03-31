@@ -33,7 +33,7 @@ public class LeaveRequestService {
                 .getContext().getAuthentication().getName();
 
         // 2. Tìm Employee dựa trên Email (thông qua bảng User)
-        Employee employee = employeeRepository.findByUser_Email(email)
+        Employee employee = employeeRepository.findByUser_Username(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên ứng với tài khoản này"));
         // 3. Tìm loại nghỉ phép
         LeaveType leaveType = leaveTypeRepository.findById(dto.getLeaveTypeId())
@@ -54,12 +54,12 @@ public class LeaveRequestService {
 
     // 2. Lấy danh sách đơn của 1 nhân viên
     public List<LeaveResponseDTO> getMyLeaveRequests() {
-        // 1. Xem ai đang đăng nhập
-        String currentEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        String username = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication().getName();
 
-        // 2. Tìm hồ sơ Employee của người đó
-        Employee employee = employeeRepository.findByUser_Email(currentEmail)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ nhân viên"));
+// Đổi findByUser_Email thành findByUser_Username
+        Employee employee = employeeRepository.findByUser_Username(username)
+                .orElseThrow(() -> new RuntimeException("Tài khoản này chưa có hồ sơ Nhân viên!"));
 
         // 3. Lấy danh sách đơn dựa trên ID vừa tìm được
         List<LeaveRequest> requests = leaveRequestRepository
@@ -83,11 +83,11 @@ public class LeaveRequestService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn xin nghỉ"));
 
         // 2. Lấy Email của HR/Admin đang đăng nhập từ Token
-        String currentEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        // 3. Tìm Employee (người duyệt) từ Email đó
-        Employee approver = employeeRepository.findByUser_Email(currentEmail)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin người duyệt"));
+        // Dùng hàm findByUser_Username bác vừa tạo ban nãy
+        Employee approver = employeeRepository.findByUser_Username(username)
+                .orElseThrow(() -> new RuntimeException("Tài khoản HR/Admin này chưa có hồ sơ Nhân viên!"));
 
         // 4. Cập nhật trạng thái và người duyệt
         request.setStatus(status);

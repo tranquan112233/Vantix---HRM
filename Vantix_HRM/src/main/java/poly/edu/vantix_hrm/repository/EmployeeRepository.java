@@ -15,6 +15,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>,
         JpaSpecificationExecutor<Employee> {
 
     Optional <Employee> findByUser_Email(String email);
+    Optional<Employee> findByUser_Username(String username);
 
     // Kiểm tra user_id đã có employee chưa
     boolean existsByUserIdAndDeletedFalse(Long userId);

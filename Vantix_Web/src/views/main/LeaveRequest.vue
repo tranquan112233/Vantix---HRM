@@ -145,11 +145,20 @@ const fetchLeaveTypes = async () => {
   }
 }
 
-// 3. 🔥 HÀM GỬI ĐƠN (ĐÃ ĐƯỢC KHÔI PHỤC)
+// 3. 🔥 HÀM GỬI ĐƠN (ĐÃ FIX LỖI THIẾU ID NHÂN VIÊN)
 const submitLeaveRequest = async () => {
   try {
     isSubmitting.value = true
-    await LeaveService.createLeaveRequest(formData)
+
+    // Gộp dữ liệu từ form và ID của người đang đăng nhập
+    const payload = {
+      ...formData,
+      // Bác check kỹ xem currentUser lưu ID là employeeId hay id nhé
+      employeeId: currentUser?.employeeId || currentUser?.id
+    }
+
+    // Gửi payload có chứa employeeId đi thay vì formData trống không
+    await LeaveService.createLeaveRequest(payload)
 
     alert('Nộp đơn xin nghỉ thành công!')
 
@@ -160,7 +169,7 @@ const submitLeaveRequest = async () => {
     formData.leaveTypeId = ''
     formData.totalShift = 1
 
-    // QUAN TRỌNG: Gọi lại hàm fetch để cập nhật danh sách lịch sử ngay lập tức
+    // Gọi lại hàm fetch để cập nhật danh sách lịch sử ngay lập tức
     await fetchMyRequests()
 
   } catch (error) {

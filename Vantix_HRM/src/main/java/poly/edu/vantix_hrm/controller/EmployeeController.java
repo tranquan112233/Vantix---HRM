@@ -9,8 +9,10 @@ import poly.edu.vantix_hrm.dto.employee.EmployeeRequestDTO;
 import poly.edu.vantix_hrm.dto.employee.EmployeeResponseDTO;
 import poly.edu.vantix_hrm.dto.page.PageRequestDTO;
 import poly.edu.vantix_hrm.dto.page.PageResponseDTO;
+import poly.edu.vantix_hrm.dto.profile.UserProfileDTO;
 import poly.edu.vantix_hrm.entity.Employee.WorkStatus;
 import poly.edu.vantix_hrm.service.EmployeeService;
+
 
 @RestController
 @RequestMapping("/api/employees")
@@ -60,5 +62,10 @@ public class EmployeeController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         employeeService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+    // API Lấy hồ sơ cá nhân theo Token
+    @GetMapping("/my-profile")
+    public ResponseEntity<UserProfileDTO> getMyProfile() {
+        return ResponseEntity.ok(employeeService.getMyProfile());
     }
 }

@@ -3,6 +3,7 @@ package poly.edu.vantix_hrm.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,11 +11,13 @@ import poly.edu.vantix_hrm.dto.employee.EmployeeRequestDTO;
 import poly.edu.vantix_hrm.dto.employee.EmployeeResponseDTO;
 import poly.edu.vantix_hrm.dto.page.PageRequestDTO;
 import poly.edu.vantix_hrm.dto.page.PageResponseDTO;
+import poly.edu.vantix_hrm.dto.profile.UserProfileDTO;
 import poly.edu.vantix_hrm.entity.*;
 import poly.edu.vantix_hrm.exception.BusinessException;
 import poly.edu.vantix_hrm.repository.*;
 import poly.edu.vantix_hrm.utils.BaseSpecification;
 import poly.edu.vantix_hrm.utils.PageHelper;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -237,4 +240,40 @@ public class EmployeeService {
         }
         return findById(employeeId);
     }
+    @Transactional(readOnly = true)
+    public UserProfileDTO getMyProfile() {
+        // 1. Lấy Username từ Token
+        String currentIdentifier = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        // 2. Tìm Employee
+        Employee employee = employeeRepository.findByUser_Username(currentIdentifier)
+                .orElseThrow(() -> new BusinessException(
+                        "profile",
+                        "Không tìm thấy hồ sơ cá nhân!",
+                        HttpStatus.NOT_FOUND // Thêm cái này vào là hết gạch đỏ
+                ));
+
+        // 3. Đổ dữ liệu từ Entity sang DTO
+        UserProfileDTO dto = new UserProfileDTO();
+        // Không ép kiểu gì nữa, Long nhét vào Long là vừa khít!
+        dto.setEmployeeId(employee.getId());
+        dto.setFullName(employee.getFullName());
+
+        if (employee.getUser() != null) {
+            dto.setEmail(employee.getUser().getEmail());
+        }
+
+        dto.setPhone(employee.getPhone());
+        dto.setAddress(employee.getAddress());
+        dto.setBirthDate(employee.getBirthDate());
+        dto.setGender(employee.getGender() != null ? employee.getGender().name() : "OTHER");
+
+        // Lấy thông tin LAZY (Sẽ an toàn vì đã có @Transactional)
+        dto.setDepartmentName(employee.getDepartment() != null ? employee.getDepartment().getName() : "Chưa cập nhật");
+        dto.setPositionName(employee.getPosition() != null ? employee.getPosition().getName() : "Chưa cập nhật");
+        dto.setWorkStatus(employee.getWorkStatus() != null ? employee.getWorkStatus().name() : "WORKING");
+
+        return dto;
+    }
+
 }
