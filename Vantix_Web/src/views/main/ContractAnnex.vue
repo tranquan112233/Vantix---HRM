@@ -1,5 +1,5 @@
 <script setup>
-import {ref, reactive, onMounted, computed} from 'vue';
+import {ref, reactive, onMounted, computed, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useToast} from 'vue-toastification';
 
@@ -32,9 +32,18 @@ const contractInfo = ref({
   currentSalary: 0
 });
 
+// 🌟 Lấy ngày hôm nay dưới chuẩn YYYY-MM-DD để giới hạn ô input Date 🌟
+const todayFormatted = computed(() => {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+});
+
 // Form Model
 const form = ref({
-  effectiveDate: '',
+  effectiveDate: todayFormatted.value, // Khởi tạo mặc định là hôm nay
   newSalary: null,
   newPositions: '',
   content: '',
@@ -42,11 +51,22 @@ const form = ref({
   contractId: Number(contractId)
 });
 
-// 🌟 Computed Formatting tiền tệ (Thêm dấu chấm tự động khi nhập) 🌟
+// 🌟 THEO DÕI NGÀY ĐỂ AUTO ĐỔI TRẠNG THÁI 🌟
+watch(() => form.value.effectiveDate, (newVal) => {
+  if (!newVal) return;
+  // Nếu ngày được chọn lớn hơn ngày hôm nay -> Ép false (Chờ duyệt)
+  if (newVal > todayFormatted.value) {
+    form.value.isActive = false;
+  } else {
+    // Nếu là hôm nay -> Ép true (Áp dụng ngay)
+    form.value.isActive = true;
+  }
+});
+
+// Computed Formatting tiền tệ (Thêm dấu chấm tự động khi nhập)
 const newSalaryFormatted = computed({
   get: () => form.value.newSalary ? new Intl.NumberFormat('vi-VN').format(form.value.newSalary) : '',
   set: (val) => {
-    // Xóa mọi ký tự không phải là số trước khi lưu vào biến thật
     const rawValue = val.toString().replace(/\D/g, '');
     form.value.newSalary = rawValue ? Number(rawValue) : null;
   }
@@ -99,7 +119,7 @@ const fetchAnnexes = async () => {
 
 const openCreateModal = async () => {
   form.value = {
-    effectiveDate: '',
+    effectiveDate: todayFormatted.value, // Đặt lại về hôm nay mỗi khi mở
     newSalary: null,
     newPositions: '',
     content: '',
@@ -127,7 +147,6 @@ const handleSubmit = async () => {
   const hasSalary = form.value.newSalary !== null && form.value.newSalary !== '';
   const hasPosition = form.value.newPositions !== null && form.value.newPositions.trim() !== '';
 
-  // Bắt lỗi Frontend (quên nhập), vẫn giữ nguyên form
   if (!hasSalary && !hasPosition) {
     toast.warning("Vui lòng nhập ít nhất Mức lương mới hoặc Chức vụ mới!");
     return;
@@ -148,12 +167,10 @@ const handleSubmit = async () => {
     await contractAnnexService.create(payload);
     await fetchAnnexes();
 
-    // NẾU THÀNH CÔNG -> Đóng Modal và bắn Toast xanh
     showModal.value = false;
     toast.success('Đã thêm phụ lục thành công!');
 
   } catch (error) {
-    // NẾU LỖI TỪ BACKEND -> Đóng luôn Modal rồi mới bắn Toast đỏ
     showModal.value = false;
 
     let errorMsg = 'Không thể tạo phụ lục mới. Vui lòng thử lại!';
@@ -367,27 +384,28 @@ onMounted(() => {
             <form @submit.prevent="handleSubmit">
               <div class="modal-body">
                 <div class="form-row">
+                  <!-- 🌟 GẮN THUỘC TÍNH MIN VÀO INPUT DATE 🌟 -->
                   <div class="form-group">
                     <label>Ngày hiệu lực <span class="required">*</span></label>
                     <div class="input-wrapper">
                       <i class="bi bi-calendar-event"></i>
-                      <input v-model="form.effectiveDate" type="date" required/>
+                      <input v-model="form.effectiveDate" type="date" :min="todayFormatted" required/>
                     </div>
                   </div>
+
+                  <!-- 🌟 Ô TRẠNG THÁI BIẾN THÀNH READ-ONLY 🌟 -->
                   <div class="form-group">
-                    <label>Trạng thái</label>
-                    <div class="select-wrapper-modal">
-                      <select v-model="form.isActive" class="modal-select">
-                        <option :value="true">Áp dụng ngay</option>
-                        <option :value="false">Chờ duyệt</option>
-                      </select>
-                      <i class="bi bi-chevron-down select-icon-modal"></i>
+                    <label>Trạng thái tự động</label>
+                    <div class="input-wrapper status-readonly-wrapper">
+                      <i class="bi"
+                         :class="form.isActive ? 'bi-check-circle-fill status-active-icon' : 'bi-clock-history status-pending-icon'"></i>
+                      <input type="text" :value="form.isActive ? 'Áp dụng ngay' : 'Chờ đến ngày'" disabled
+                             class="status-readonly-input"/>
                     </div>
                   </div>
                 </div>
 
                 <div class="form-row">
-                  <!-- 🌟 Lương trong Form cũng hỗ trợ auto format dấu chấm -->
                   <div class="form-group">
                     <label>Mức lương mới (VNĐ)</label>
                     <div class="input-wrapper">
@@ -1136,6 +1154,24 @@ onMounted(() => {
   font-size: 11px;
   pointer-events: none;
 }
+
+/* 🌟 Custom Status Readonly CSS 🌟 */
+.status-readonly-input {
+  background: #f8fafc !important;
+  color: #64748b !important;
+  font-weight: 600;
+  border-color: #e2e8f0 !important;
+  cursor: not-allowed;
+}
+
+.status-active-icon {
+  color: #10b981 !important; /* Xanh lá */
+}
+
+.status-pending-icon {
+  color: #f59e0b !important; /* Vàng cam */
+}
+
 
 /* Modal Xóa */
 .delete-body {

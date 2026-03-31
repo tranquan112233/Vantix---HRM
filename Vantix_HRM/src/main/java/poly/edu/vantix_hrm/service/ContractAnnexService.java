@@ -3,7 +3,6 @@ package poly.edu.vantix_hrm.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import poly.edu.vantix_hrm.dto.contractannex.ContractAnnexRequestDTO;
 import poly.edu.vantix_hrm.dto.contractannex.ContractAnnexResponseDTO;
 import poly.edu.vantix_hrm.dto.contractannex.PositionsContractAnnexResponseDTO;
 import poly.edu.vantix_hrm.entity.Contract;
@@ -13,6 +12,8 @@ import poly.edu.vantix_hrm.repository.ContractsRepository;
 import poly.edu.vantix_hrm.repository.PositionRepository;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,175 +26,227 @@ public class ContractAnnexService {
     private final ContractsRepository contractRepository;
     private final PositionRepository positionRepository;
 
-    // Load phụ lục
-    public ContractAnnexResponseDTO getAnnexesByContractId(Integer contractId) {
-        Contract contract = contractRepository.findById(contractId).orElseThrow(() -> new RuntimeException("Không tìm thấy Hợp đồng với ID: " + contractId));
+    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
-        // Lưu ý: Nhớ đảm bảo Repository đã được thêm sắp xếp theo ca.annexId DESC như hướng dẫn ở trên nhé
+    // ================== CÁC HÀM TÌM KIẾM CƠ BẢN ==================
+
+    // Tìm kiếm hợp đồng gốc theo ID. Ném lỗi nếu không tồn tại trong database.
+    public Contract findContractById(Integer contractId) {
+        return contractRepository.findById(contractId).orElseThrow(() -> new RuntimeException("Không tìm thấy Hợp đồng gốc với ID: " + contractId));
+    }
+
+    // Tìm kiếm phụ lục hợp đồng theo ID. Ném lỗi nếu không tồn tại.
+    public ContractAnnexes findAnnexById(Integer annexId) {
+        return contractAnnexesRepository.findById(annexId).orElseThrow(() -> new RuntimeException("Không tìm thấy phụ lục với ID: " + annexId));
+    }
+
+    // Lấy danh sách tất cả các tên chức vụ có trong hệ thống (dùng để đổ vào dropdown chọn chức vụ mới).
+    public List<PositionsContractAnnexResponseDTO> getAllPositionNames() {
+        return positionRepository.findAll().stream().map(position -> new PositionsContractAnnexResponseDTO(position.getPositionName())).collect(Collectors.toList());
+    }
+
+    // ================== CÁC HÀM XỬ LÝ DỮ LIỆU (GET) ==================
+
+    // Lấy toàn bộ thông tin phụ lục của một hợp đồng (gồm thông tin nhân viên, lương/chức vụ thực tế và danh sách phụ lục).
+    public ContractAnnexResponseDTO getAnnexesByContractId(Integer contractId) {
+        Contract contract = findContractById(contractId);
         List<ContractAnnexes> annexes = contractAnnexesRepository.findByContractIdOrderByEffectiveDateDesc(contractId);
 
         ContractAnnexResponseDTO response = new ContractAnnexResponseDTO();
         response.setContractId(contract.getContractId());
 
-        // 🚨 BẢO VỆ CHỐNG LỖI 500 KHI DỮ LIỆU BỊ RÁCH 🚨
         if (contract.getEmployee() != null) {
             response.setEmployeeId(contract.getEmployee().getEmployeeId());
             response.setEmployeeName(contract.getEmployee().getFullName());
         } else {
-            response.setEmployeeId(null);
             response.setEmployeeName("Nhân viên không tồn tại");
         }
 
-        String currentPosition = contract.getPosition();
-        BigDecimal currentSalary = contract.getBaseSalary();
+        // Tính toán chức vụ và lương hiện tại từ phụ lục
+        calculateCurrentPositionAndSalary(contract, annexes, response);
 
-        // Thêm 2 biến cờ (flag) để theo dõi xem đã tìm thấy cái mới nhất chưa
-        boolean isPositionUpdated = false;
-        boolean isSalaryUpdated = false;
-
-        for (ContractAnnexes annex : annexes) {
-            // Chỉ xét những phụ lục đang ở trạng thái "Áp dụng"
-            if (Boolean.TRUE.equals(annex.getIsActive())) {
-
-                // 1. Tìm chức vụ mới nhất
-                if (!isPositionUpdated && annex.getNewPositions() != null && !annex.getNewPositions().trim().isEmpty()) {
-                    currentPosition = annex.getNewPositions();
-                    isPositionUpdated = true; // Đã tìm thấy chức vụ mới nhất
-                }
-
-                // 2. Tìm mức lương mới nhất
-                if (!isSalaryUpdated && annex.getNewSalary() != null) {
-                    currentSalary = annex.getNewSalary();
-                    isSalaryUpdated = true; // Đã tìm thấy mức lương mới nhất
-                }
-
-                // 3. Nếu đã tìm đủ cả 2 cái mới nhất rồi thì mới được dừng vòng lặp
-                if (isPositionUpdated && isSalaryUpdated) {
-                    break;
-                }
-            }
-        }
-
-        response.setCurrentPosition(currentPosition);
-        response.setCurrentSalary(currentSalary);
-
-        // Map dữ liệu sang DTO để trả về cho Frontend
-        List<ContractAnnexResponseDTO.AnnexDetailDTO> annexDetailDTOs = annexes.stream().map(annex -> {
-            ContractAnnexResponseDTO.AnnexDetailDTO dto = new ContractAnnexResponseDTO.AnnexDetailDTO();
-            dto.setAnnexId(annex.getAnnexId());
-            dto.setEffectiveDate(annex.getEffectiveDate());
-            dto.setNewSalary(annex.getNewSalary());
-            dto.setNewPositions(annex.getNewPositions());
-            dto.setContent(annex.getContent());
-            dto.setActive(Boolean.TRUE.equals(annex.getIsActive()));
-            return dto;
-        }).collect(Collectors.toList());
-
-        response.setAnnexes(annexDetailDTOs);
+        // Map sang DTO
+        List<ContractAnnexResponseDTO.AnnexDetailDTO> detailDTOs = annexes.stream().map(this::mapToAnnexDetailDTO).collect(Collectors.toList());
+        response.setAnnexes(detailDTOs);
 
         return response;
     }
 
-    // Thêm mới phụ lục
-    public ContractAnnexes createAnnex(ContractAnnexRequestDTO request) {
-        if (request.getContractId() == null) {
-            throw new IllegalArgumentException("Thiếu ID hợp đồng!");
-        }
+    // Hàm phụ trợ: Tính toán mức lương và chức vụ đang được áp dụng hiện tại dựa trên các phụ lục đang 'Active'.
+    private void calculateCurrentPositionAndSalary(Contract contract, List<ContractAnnexes> annexes, ContractAnnexResponseDTO response) {
+        String currentPosition = contract.getPosition();
+        BigDecimal currentSalary = contract.getBaseSalary();
+        boolean isPositionUpdated = false;
+        boolean isSalaryUpdated = false;
 
-        boolean hasSalary = request.getNewSalary() != null;
-        boolean hasPosition = request.getNewPositions() != null && !request.getNewPositions().trim().isEmpty();
+        for (ContractAnnexes annex : annexes) {
+            if (Boolean.TRUE.equals(annex.getIsActive())) {
+                if (!isPositionUpdated && annex.getNewPositions() != null && !annex.getNewPositions().trim().isEmpty()) {
+                    currentPosition = annex.getNewPositions();
+                    isPositionUpdated = true;
+                }
+                if (!isSalaryUpdated && annex.getNewSalary() != null) {
+                    currentSalary = annex.getNewSalary();
+                    isSalaryUpdated = true;
+                }
+                if (isPositionUpdated && isSalaryUpdated) break;
+            }
+        }
+        response.setCurrentPosition(currentPosition);
+        response.setCurrentSalary(currentSalary);
+    }
+
+    // Hàm phụ trợ: Chuyển đổi từ Entity (ContractAnnexes) sang DTO để trả về cho Client.
+    private ContractAnnexResponseDTO.AnnexDetailDTO mapToAnnexDetailDTO(ContractAnnexes annex) {
+        ContractAnnexResponseDTO.AnnexDetailDTO dto = new ContractAnnexResponseDTO.AnnexDetailDTO();
+        dto.setAnnexId(annex.getAnnexId());
+        dto.setEffectiveDate(annex.getEffectiveDate());
+        dto.setNewSalary(annex.getNewSalary());
+        dto.setNewPositions(annex.getNewPositions());
+        dto.setContent(annex.getContent());
+        dto.setActive(Boolean.TRUE.equals(annex.getIsActive()));
+        return dto;
+    }
+
+    // ================== CÁC HÀM VALIDATE ==================
+
+    // Kiểm tra tính hợp lệ của nội dung phụ lục: Phải nhập ít nhất lương hoặc chức vụ; Lương mới phải >= 1.000.000 VNĐ.
+    public void validateAnnexContent(BigDecimal newSalary, String newPositions) {
+        boolean hasSalary = newSalary != null;
+        boolean hasPosition = newPositions != null && !newPositions.trim().isEmpty();
 
         if (!hasSalary && !hasPosition) {
             throw new IllegalArgumentException("Vui lòng nhập ít nhất Mức lương mới hoặc Chức vụ mới!");
         }
-
-        // 🚨 ĐIỀU KIỆN KIỂM TRA LƯƠNG TỐI THIỂU 🚨
-        if (hasSalary && request.getNewSalary().compareTo(new BigDecimal("1000000")) < 0) {
+        if (hasSalary && newSalary.compareTo(new BigDecimal("1000000")) < 0) {
             throw new IllegalArgumentException("Mức lương mới phải từ 1.000.000 VNĐ trở lên!");
         }
+    }
 
-        Contract contract = contractRepository.findById(request.getContractId()).orElseThrow(() -> new RuntimeException("Không tìm thấy Hợp đồng gốc với ID: " + request.getContractId()));
+    // Kiểm tra ngày hiệu lực: Không cho phép chọn ngày hiệu lực ở trong quá khứ.
+    public void validateEffectiveDateNotPast(LocalDate effectiveDate) {
+        LocalDate today = LocalDate.now(VIETNAM_ZONE);
+        if (effectiveDate != null && effectiveDate.isBefore(today)) {
+            throw new IllegalArgumentException("Không thể chọn ngày hiệu lực trong quá khứ!");
+        }
+    }
 
-        // 🚨 KIỂM TRA HỢP ĐỒNG HẾT HẠN 🚨
+    // Kiểm tra hợp đồng gốc: Nếu hợp đồng đã hết hạn hoặc quá ngày kết thúc thì chặn không cho thao tác thêm/bật phụ lục.
+    public void validateContractNotExpired(Contract contract) {
         if (contract.getStatus() != null && "EXPIRED".equalsIgnoreCase(contract.getStatus().toString())) {
-            throw new IllegalArgumentException("Hợp đồng gốc đã hết hạn. Không thể tạo thêm phụ lục!");
+            throw new IllegalArgumentException("Hợp đồng gốc đã hết hạn!");
         }
+        if (contract.getEndDate() != null && contract.getEndDate().isBefore(LocalDate.now(VIETNAM_ZONE))) {
+            throw new IllegalArgumentException("Hợp đồng gốc đã quá hạn ngày kết thúc!");
+        }
+    }
 
-        // 🌟 BẮT LỖI TRÙNG LẶP PHỤ LỤC ĐANG ÁP DỤNG 🌟
-        // Chỉ cần kiểm tra nếu người dùng chọn trạng thái là "Áp dụng ngay" (isActive = true)
-        if (request.isActive()) {
-            List<ContractAnnexes> existingAnnexes = contractAnnexesRepository.findByContractIdOrderByEffectiveDateDesc(request.getContractId());
+    // Kiểm tra xung đột: Đảm bảo không có 2 phụ lục cùng loại (cùng đổi lương hoặc cùng đổi chức vụ) đang 'Active' cùng lúc.
+    public void validateNoConflictingActiveAnnex(Integer contractId, boolean hasSalary, boolean hasPosition, Integer excludeAnnexId) {
+        List<ContractAnnexes> existingAnnexes = contractAnnexesRepository.findByContractIdOrderByEffectiveDateDesc(contractId);
+        for (ContractAnnexes existing : existingAnnexes) {
+            // Bỏ qua chính nó nếu đang update
+            if (excludeAnnexId != null && existing.getAnnexId().equals(excludeAnnexId)) continue;
 
-            for (ContractAnnexes annex : existingAnnexes) {
-                if (Boolean.TRUE.equals(annex.getIsActive())) {
-                    // Nếu đang muốn tạo PL tăng lương, mà đã có 1 PL Lương khác đang active -> CHẶN
-                    if (hasSalary && annex.getNewSalary() != null) {
-                        throw new IllegalArgumentException("Đang có một phụ lục LƯƠNG khác đang được áp dụng! Vui lòng chuyển phụ lục cũ sang 'Chờ duyệt / Hủy' trước khi áp dụng phụ lục mới.");
-                    }
-                    // Nếu đang muốn tạo PL chức vụ, mà đã có 1 PL Chức vụ khác đang active -> CHẶN
-                    if (hasPosition && annex.getNewPositions() != null && !annex.getNewPositions().trim().isEmpty()) {
-                        throw new IllegalArgumentException("Đang có một phụ lục CHỨC VỤ khác đang được áp dụng! Vui lòng chuyển phụ lục cũ sang 'Chờ duyệt / Hủy' trước khi áp dụng phụ lục mới.");
-                    }
+            if (Boolean.TRUE.equals(existing.getIsActive())) {
+                if (hasSalary && existing.getNewSalary() != null) {
+                    throw new IllegalArgumentException("Đang có một phụ lục LƯƠNG khác đang áp dụng. Vui lòng tắt nó trước!");
+                }
+                if (hasPosition && existing.getNewPositions() != null && !existing.getNewPositions().trim().isEmpty()) {
+                    throw new IllegalArgumentException("Đang có một phụ lục CHỨC VỤ khác đang áp dụng. Vui lòng tắt nó trước!");
                 }
             }
         }
-
-        ContractAnnexes newAnnex = new ContractAnnexes();
-        newAnnex.setContract(contract);
-        newAnnex.setEffectiveDate(request.getEffectiveDate());
-        newAnnex.setNewSalary(request.getNewSalary());
-        newAnnex.setNewPositions(request.getNewPositions());
-        newAnnex.setContent(request.getContent());
-        newAnnex.setIsActive(request.isActive());
-
-        return contractAnnexesRepository.save(newAnnex);
     }
 
-    // Load Position cho chức năng thêm mới phụ lục
-    public List<PositionsContractAnnexResponseDTO> getAllPositionNames() {
-        return positionRepository.findAll().stream().map(position -> new PositionsContractAnnexResponseDTO(position.getPositionName())).collect(Collectors.toList());
+    // Xác định trạng thái 'Active' ban đầu: Nếu ngày hiệu lực ở tương lai, tự động ép thành 'False' chờ đến ngày mới bật.
+    public boolean determineInitialActiveStatus(LocalDate effectiveDate, boolean requestedActiveStatus) {
+        LocalDate today = LocalDate.now(VIETNAM_ZONE);
+        // Nếu ngày hiệu lực ở tương lai, tự động ép thành FALSE
+        if (effectiveDate != null && effectiveDate.isAfter(today)) {
+            return false;
+        }
+        return requestedActiveStatus;
     }
 
-    // Cập nhật trạng thái Phụ lục (Toggle true/false)
-    public void updateAnnexStatus(Integer annexId) {
-        ContractAnnexes annexToUpdate = contractAnnexesRepository.findById(annexId).orElseThrow(() -> new RuntimeException("Không tìm thấy phụ lục với ID: " + annexId));
+    // ================== CÁC HÀM THAO TÁC (SAVE, UPDATE, DELETE) ==================
 
-        boolean newStatus = !Boolean.TRUE.equals(annexToUpdate.getIsActive());
+    // Lưu phụ lục mới hoặc cập nhật phụ lục đã có vào database.
+    public ContractAnnexes saveAnnex(ContractAnnexes annex) {
+        return contractAnnexesRepository.save(annex);
+    }
 
-        // 🌟 BẮT LỖI TRÙNG LẶP KHI BẬT TRẠNG THÁI TỪ FALSE LÊN TRUE 🌟
-        if (newStatus) {
-            boolean hasSalary = annexToUpdate.getNewSalary() != null;
-            boolean hasPosition = annexToUpdate.getNewPositions() != null && !annexToUpdate.getNewPositions().trim().isEmpty();
+    // Bật/tắt trạng thái 'Active' của phụ lục. Kiểm tra nghiêm ngặt trước khi cho phép bật (TRUE).
+    public ContractAnnexes toggleAnnexStatus(ContractAnnexes annex) {
+        boolean newStatus = !Boolean.TRUE.equals(annex.getIsActive());
 
-            List<ContractAnnexes> existingAnnexes = contractAnnexesRepository.findByContractIdOrderByEffectiveDateDesc(annexToUpdate.getContract().getContractId());
-
-            for (ContractAnnexes existing : existingAnnexes) {
-                // Kiểm tra những phụ lục KHÁC với phụ lục mình đang thao tác, xem có thằng nào đang TRUE không
-                if (!existing.getAnnexId().equals(annexId) && Boolean.TRUE.equals(existing.getIsActive())) {
-                    if (hasSalary && existing.getNewSalary() != null) {
-                        throw new IllegalArgumentException("Đã có một phụ lục LƯƠNG khác đang áp dụng. Hãy tắt nó trước khi bật phụ lục này!");
-                    }
-                    if (hasPosition && existing.getNewPositions() != null && !existing.getNewPositions().trim().isEmpty()) {
-                        throw new IllegalArgumentException("Đã có một phụ lục CHỨC VỤ khác đang áp dụng. Hãy tắt nó trước khi bật phụ lục này!");
-                    }
-                }
+        if (newStatus) { // Đang cố bật từ FALSE -> TRUE
+            LocalDate today = LocalDate.now(VIETNAM_ZONE);
+            if (annex.getEffectiveDate() != null && annex.getEffectiveDate().isAfter(today)) {
+                throw new IllegalArgumentException("Chưa tới ngày hiệu lực (" + annex.getEffectiveDate() + "), không thể Áp dụng!");
             }
+            validateContractNotExpired(annex.getContract());
+
+            boolean hasSalary = annex.getNewSalary() != null;
+            boolean hasPosition = annex.getNewPositions() != null && !annex.getNewPositions().trim().isEmpty();
+            validateNoConflictingActiveAnnex(annex.getContract().getContractId(), hasSalary, hasPosition, annex.getAnnexId());
         }
 
-        annexToUpdate.setIsActive(newStatus);
-        contractAnnexesRepository.save(annexToUpdate);
+        annex.setIsActive(newStatus);
+        return contractAnnexesRepository.save(annex);
     }
 
-    // Xóa Phụ lục (Có điều kiện)
-    public void deleteAnnex(Integer annexId) {
-        ContractAnnexes annex = contractAnnexesRepository.findById(annexId).orElseThrow(() -> new RuntimeException("Không tìm thấy phụ lục với ID: " + annexId));
-
-        // Kiểm tra trạng thái: Nếu đang là TRUE (Áp dụng) thì KHÔNG cho xóa
-        // Dùng Boolean.TRUE.equals để tránh lỗi NullPointerException nếu cột này trong DB bị null
+    // Xóa phụ lục. Chỉ cho phép xóa khi phụ lục đang ở trạng thái Tắt (False).
+    public void deleteAnnex(ContractAnnexes annex) {
         if (Boolean.TRUE.equals(annex.getIsActive())) {
-            throw new IllegalArgumentException("Không thể xóa! Chỉ được phép xóa phụ lục đang ở trạng thái 'Áp Dụng'.");
+            throw new IllegalArgumentException("Chỉ được phép xóa phụ lục đang ở trạng thái 'Chờ duyệt / Hủy'.");
         }
-
         contractAnnexesRepository.delete(annex);
+    }
+
+    // ================== HÀM CHO SCHEDULER ==================
+
+    // Hàm tổng hợp chạy định kỳ (Cron Job): Tự động xử lý trạng thái phụ lục mỗi ngày.
+    @Transactional
+    public void autoProcessScheduledAnnexes() {
+        LocalDate today = LocalDate.now(VIETNAM_ZONE);
+        deactivateAnnexesForExpiredContracts();
+        activateReadyAnnexes(today);
+    }
+
+    // Hàm phụ trợ (Scheduler): Quét và tắt toàn bộ các phụ lục thuộc về những hợp đồng đã hết hạn.
+    private void deactivateAnnexesForExpiredContracts() {
+        List<ContractAnnexes> activeAnnexesInExpiredContracts = contractAnnexesRepository.findByIsActiveTrueAndContract_Status(Contract.ContractStatus.EXPIRED);
+        for (ContractAnnexes annex : activeAnnexesInExpiredContracts) {
+            annex.setIsActive(false);
+        }
+        contractAnnexesRepository.saveAll(activeAnnexesInExpiredContracts);
+    }
+
+    // Hàm phụ trợ (Scheduler): Quét và tự động bật các phụ lục đã đến ngày hiệu lực, đồng thời tắt các phụ lục cũ trùng lặp.
+    private void activateReadyAnnexes(LocalDate today) {
+        List<ContractAnnexes> readyToActivate = contractAnnexesRepository.findByIsActiveFalseAndEffectiveDateLessThanEqualAndContract_StatusNot(today, Contract.ContractStatus.EXPIRED);
+
+        for (ContractAnnexes annexToActivate : readyToActivate) {
+            Contract parentContract = annexToActivate.getContract();
+            if (parentContract.getEndDate() != null && parentContract.getEndDate().isBefore(today)) continue;
+
+            boolean hasSalary = annexToActivate.getNewSalary() != null;
+            boolean hasPosition = annexToActivate.getNewPositions() != null && !annexToActivate.getNewPositions().trim().isEmpty();
+
+            // Tự động tắt các phụ lục cũ trùng lặp
+            List<ContractAnnexes> existingAnnexes = contractAnnexesRepository.findByContractIdOrderByEffectiveDateDesc(parentContract.getContractId());
+            for (ContractAnnexes existing : existingAnnexes) {
+                if (!existing.getAnnexId().equals(annexToActivate.getAnnexId()) && Boolean.TRUE.equals(existing.getIsActive())) {
+                    boolean conflict = (hasSalary && existing.getNewSalary() != null) || (hasPosition && existing.getNewPositions() != null && !existing.getNewPositions().trim().isEmpty());
+                    if (conflict) {
+                        existing.setIsActive(false);
+                        contractAnnexesRepository.save(existing);
+                    }
+                }
+            }
+            annexToActivate.setIsActive(true);
+            contractAnnexesRepository.save(annexToActivate);
+        }
     }
 }
