@@ -1,8 +1,8 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '@/stores/auth.store'
+import {createRouter, createWebHistory} from 'vue-router'
+import {useAuthStore} from '@/stores/auth.store'
 
-import MainLayout  from '@/layouts/MainLayout.vue'
-import AuthLayout  from '@/layouts/AuthLayout.vue'
+import MainLayout from '@/layouts/MainLayout.vue'
+import AuthLayout from '@/layouts/AuthLayout.vue'
 
 // Auth pages
 import Login from "@/views/auth/Login.vue"
@@ -22,6 +22,7 @@ import LeaveManagement from "@/views/main/LeaveManagement.vue";
 import ContractAnnex from "@/views/main/ContractAnnex.vue";
 import Contract from "@/views/main/Contract.vue";
 import AttendanceManagement from "@/views/main/AttendanceManagement.vue";
+import Salarie from "@/views/main/Salarie.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -36,25 +37,25 @@ const router = createRouter({
                     path: 'login',
                     name: 'login',
                     component: Login,
-                    meta: { title: 'Login' }
+                    meta: {title: 'Login'}
                 },
                 {
                     path: 'forgot-password',
                     name: 'forgot-password',
                     component: ForgotPassword,
-                    meta: { title: 'Forgot Password' }
+                    meta: {title: 'Forgot Password'}
                 },
                 {
                     path: 'verify-otp',
                     name: 'verify-otp',
                     component: VerifyOTP,
-                    meta: { title: 'Verify OTP' }
+                    meta: {title: 'Verify OTP'}
                 },
                 {
                     path: 'reset-password',
                     name: 'reset-password',
                     component: ResetPassword,
-                    meta: { title: 'Reset Password' }
+                    meta: {title: 'Reset Password'}
                 }
             ]
         },
@@ -63,74 +64,78 @@ const router = createRouter({
         {
             path: '/',
             component: MainLayout,
-            meta: { requiresAuth: true },
+            meta: {requiresAuth: true},
             children: [
                 {
                     path: '',
                     component: Dashboard,
-                    meta: { title: 'Dashboard' }
+                    meta: {title: 'Dashboard'}
                 },
                 {
                     path: 'users',
                     component: UserManagement,
-                    meta: { title: 'Users Management' }
+                    meta: {title: 'Users Management'}
                 },
                 {
                     path: 'roles',
                     component: RoleManagement,
-                    meta: { title: 'Roles Management' }
+                    meta: {title: 'Roles Management'}
                 },
                 {
                     path: 'departments',
                     component: DepartmentManagement,
-                    meta: { title: 'Departments Management' }
+                    meta: {title: 'Departments Management'}
                 },
                 {
                     path: 'positions',
                     component: PositionManagement,
-                    meta: { title: 'Positions Management' }
+                    meta: {title: 'Positions Management'}
                 },
                 {
                     path: 'employees',
                     component: EmployeeManagement,
-                    meta: { title: 'Employees Management' }
+                    meta: {title: 'Employees Management'}
                 },
                 {
                     path: 'leaves',
                     component: LeaveRequest,
-                    meta: { title: 'Leaves Request' }
+                    meta: {title: 'Leaves Request'}
                 },
                 {
                     path: 'leaves-manager',
                     component: LeaveManagement,
-                    meta: { title: 'Leaves Management' }
+                    meta: {title: 'Leaves Management'}
                 },
                 {
                     path: 'leave-types',
                     component: LeaveTypes,
-                    meta: { title: 'Leaves Types' }
+                    meta: {title: 'Leaves Types'}
                 },
                 {
                     path: 'schedules',
                     component: Schedules,
-                    meta: { title: 'Schedules Management' }
+                    meta: {title: 'Schedules Management'}
                 },
                 {
                     path: 'contract-annexes',
                     component: ContractAnnex,
-                    meta: { title: 'Contract Annex' }
+                    meta: {title: 'Contract Annex'}
                 },
                 {
                     path: 'contracts',
                     component: Contract,
-                    meta: { title: 'Contract' }
+                    meta: {title: 'Contract'}
                 },
                 {
                     path: 'attendance-management',
                     component: AttendanceManagement,
-                    meta: { title: 'Attendance Management' }
+                    meta: {title: 'Attendance Management'}
+                },
+                {
+                    path: 'salary',
+                    component: Salarie,
+                    meta: {title: 'Salaries'}
                 }
-
 
                 // Ví dụ thêm
                 // {
@@ -145,10 +150,10 @@ const router = createRouter({
         {
             path: '/403',
             component: () => import('@/views/errors/Forbidden.vue'),
-            meta: { title: 'Forbidden' }
+            meta: {title: 'Forbidden'}
         },
 
-        { path: '/:pathMatch(.*)*', redirect: '/' }
+        {path: '/:pathMatch(.*)*', redirect: '/'}
     ]
 })
 
@@ -156,7 +161,7 @@ const router = createRouter({
 // ── Navigation Guard ──────────────────────────────────────
 router.beforeEach(async (to) => {
     const token = localStorage.getItem('token')
-    const auth  = useAuthStore()
+    const auth = useAuthStore()
 
     // Chưa login → login
     if (to.meta.requiresAuth && !token) return '/auth/login'

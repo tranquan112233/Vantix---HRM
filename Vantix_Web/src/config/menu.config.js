@@ -45,6 +45,7 @@ export const menuSections = [
             { label: 'Employees',        icon: 'bi-people',    to: '/employees',        permission: 'EMPLOYEE_VIEW' },
             { label: 'Contracts',        icon: 'bi-file-text', to: '/contracts',        permission: 'CONTRACT_VIEW' },
             { label: 'Contract Annexes', icon: 'bi-file-plus', to: '/contract-annexes', permission: 'CONTRACT_VIEW' },
+            { label: 'salary', icon: 'bi-file-plus', to: '/salary', permission: 'CONTRACT_VIEW' },
         ]
     },
     {
