@@ -73,9 +73,9 @@
         <div class="select-wrapper">
           <select v-model="filters.department" class="filter-select">
             <option value="">Tất cả Phòng ban</option>
-            <option value="IT">Công nghệ thông tin</option>
-            <option value="HR">Nhân sự</option>
-            <option value="KD">Kinh doanh</option>
+            <option v-for="dept in departments" :key="dept.departmentName" :value="dept.departmentName">
+              {{ dept.departmentName }}
+            </option>
           </select>
           <i class="bi bi-chevron-down select-icon"></i>
         </div>
@@ -119,9 +119,7 @@
                 </div>
                 <div class="user-info">
                   <span class="user-name">{{ salary.employeeName }}</span>
-                  <span class="user-email">ID: {{ salary.employeeId }} - {{
-                      getDepartmentName(salary.department)
-                    }}</span>
+                  <span class="user-email">ID: {{ salary.employeeId }} - {{ salary.department }}</span>
                 </div>
               </div>
             </td>
@@ -283,14 +281,28 @@
 </template>
 
 <script setup>
-import {ref, reactive, computed} from 'vue'
+import {ref, reactive, computed, onMounted} from 'vue'
+import salariesService from '@/services/salaries.service'
 
 const monthInput = ref(null)
+
+const departments = ref([])
+
+onMounted(async () => {
+  try {
+    const res = await salariesService.getDepartmentNames()
+    if (res.data) {
+      departments.value = res.data
+    }
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách phòng ban", error)
+  }
+})
 
 // Dữ liệu giả lập (Thêm field department)
 const salaries = ref([
   {
-    salaryId: 1, employeeId: 'EMP001', employeeName: 'Nguyễn Văn Bảo', department: 'IT', salaryMonth: '2026-03-01',
+    salaryId: 1, employeeId: 'EMP001', employeeName: 'Nguyễn Văn Bảo', department: 'Phòng Kỹ Thuật', salaryMonth: '2026-03-01',
     baseSalarySnapshot: 15000000, standardWorkDays: 22, actualWorkDays: 22,
     allowance: 1000000, bonus: 500000,
     bhxhAmount: 1200000, bhytAmount: 225000, bhtnAmount: 150000, taxAmount: 300000,
@@ -298,7 +310,7 @@ const salaries = ref([
     status: 'PAID', note: 'Đã thanh toán qua VCB'
   },
   {
-    salaryId: 2, employeeId: 'EMP002', employeeName: 'Trần Thị Hà', department: 'HR', salaryMonth: '2026-03-01',
+    salaryId: 2, employeeId: 'EMP002', employeeName: 'Trần Thị Hà', department: 'Phòng Nhân Sự', salaryMonth: '2026-03-01',
     baseSalarySnapshot: 12000000, standardWorkDays: 22, actualWorkDays: 20,
     allowance: 500000, bonus: 0,
     bhxhAmount: 960000, bhytAmount: 180000, bhtnAmount: 120000, taxAmount: 0,
@@ -348,11 +360,6 @@ function formatMonth(dateStr) {
 
 function getInitials(name) {
   return name ? name.charAt(0).toUpperCase() : '?'
-}
-
-function getDepartmentName(code) {
-  const map = {'IT': 'Công nghệ thông tin', 'HR': 'Nhân sự', 'KD': 'Kinh doanh'}
-  return map[code] || code
 }
 
 function getStatusClass(status) {

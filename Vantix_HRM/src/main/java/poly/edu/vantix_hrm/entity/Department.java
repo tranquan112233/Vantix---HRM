@@ -26,18 +26,20 @@ public class Department extends BaseEntity {
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
 
     /**
      * Tên phòng ban (Ví dụ: IT, Nhân sự, Kế toán).
      * Ràng buộc: Không được để trống và không được trùng lặp.
      */
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(name = "name", nullable = false, unique = true, length = 100)
     private String name;
 
     /**
      * Mô tả chi tiết về chức năng hoặc nhiệm vụ của phòng ban.
      */
+    @Column(name = "description", length = 255)
     private String description;
 
     /**

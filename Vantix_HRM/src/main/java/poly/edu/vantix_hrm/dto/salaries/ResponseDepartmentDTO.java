@@ -10,5 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class ResponseDepartmentDTO {
-    private Long id;
+
+    private String departmentName;
+
 }
