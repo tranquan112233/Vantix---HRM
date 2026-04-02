@@ -52,7 +52,7 @@ const features = [
 .auth-shell {
   display: flex;
   min-height: 100vh;
-  background: #f8fafc;
+  background: var(--background-color);
 }
 
 /* ── Left panel ──────────────────────────────────────────────────────────── */
@@ -60,7 +60,7 @@ const features = [
   position: relative;
   width: 420px;
   flex-shrink: 0;
-  background: linear-gradient(145deg, #6366f1 0%, #4f46e5 55%, #3730a3 100%);
+  background: linear-gradient(145deg, var(--primary-color) 0%, var(--primary-color-dark) 55%, var(--primary-color-darker) 100%);
   display: flex;
   flex-direction: column;
   padding: 40px 44px;
@@ -77,7 +77,7 @@ const features = [
 .brand-name {
   font-size: 16px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-color-light);
   letter-spacing: -.3px;
 }
 
@@ -91,7 +91,7 @@ const features = [
 .brand-logo {
   padding: 6px;
   border-radius: 10px;
-  background: rgba(255,255,255,0.12);
+  background: var(--white-with-opacity-12);
 }
 
 .panel-body {
@@ -102,14 +102,14 @@ const features = [
 .panel-headline {
   font-size: 32px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-color-light);
   line-height: 1.2;
   margin: 0 0 12px;
   letter-spacing: -.5px;
 }
 .panel-sub {
   font-size: 14px;
-  color: rgba(255,255,255,.7);
+  color: var(--text-color-lightest);
   margin: 0 0 36px;
   line-height: 1.6;
 }
@@ -119,7 +119,7 @@ const features = [
   display: flex;
   align-items: center;
   gap: 12px;
-  color: rgba(255,255,255,.9);
+  color: var(--text-color-lighter);
   font-size: 13.5px;
   font-weight: 500;
 }
@@ -127,7 +127,7 @@ const features = [
   width: 34px;
   height: 34px;
   border-radius: 9px;
-  background: rgba(255,255,255,.15);
+  background: var(--white-with-opacity-15);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -140,8 +140,8 @@ const features = [
   border-radius: 50%;
   pointer-events: none;
 }
-.deco-1 { width: 300px; height: 300px; bottom: -80px; right: -80px; background: rgba(255,255,255,.06); }
-.deco-2 { width: 180px; height: 180px; top: 60px;    right: -40px; background: rgba(255,255,255,.04); }
+.deco-1 { width: 300px; height: 300px; bottom: -80px; right: -80px; background: var(--white-with-opacity-6); }
+.deco-2 { width: 180px; height: 180px; top: 60px;    right: -40px; background: var(--white-with-opacity-4); }
 
 /* ── Right panel ─────────────────────────────────────────────────────────── */
 .auth-right {

@@ -32,7 +32,9 @@ public class AttendanceService {
 
 
     public List<Attendance> getMonthlyAttendance(Employee employee, LocalDate monthAndYear) {
-        return attendanceRepository.getMonthlyAttendance(employee.getId(), monthAndYear.getMonthValue(), monthAndYear.getYear());
+        LocalDate startDate = monthAndYear.withDayOfMonth(1);
+        LocalDate endDate = monthAndYear.withDayOfMonth(monthAndYear.lengthOfMonth());
+        return attendanceRepository.getMonthlyAttendance(employee.getId(), startDate, endDate);
     }
 
     public Employee isEmployeeValid(Long id) {

@@ -2,6 +2,7 @@ package poly.edu.vantix_hrm.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import poly.edu.vantix_hrm.dto.schedule.DailyScheduleDTO;
 import poly.edu.vantix_hrm.dto.schedule.EmployeeScheduleDTO;
@@ -17,6 +18,7 @@ public class ScheduleController {
 
     private final ScheduleService scheduleService;
 
+    @PreAuthorize("hasAuthority('SCHEDULE_VIEW')")
     @GetMapping
     public ResponseEntity<List<EmployeeScheduleDTO>> getSchedules(@RequestParam Long viewerId, @RequestParam int month, @RequestParam int year) {
         try {
@@ -32,6 +34,7 @@ public class ScheduleController {
         }
     }
 
+    @PreAuthorize("hasAuthority('SCHEDULE_CREATE')")
     @PostMapping("/{employeeId}/{month}/{year}/daily")
     public ResponseEntity<String> saveDailySchedules(@PathVariable Long employeeId, @PathVariable int month, @PathVariable int year, @RequestBody List<DailyScheduleDTO> dailySchedules) {
         try {
@@ -43,8 +46,9 @@ public class ScheduleController {
         }
     }
 
+    @PreAuthorize("hasAuthority('SCHEDULE_STATUS_UPDATE')")
     @PutMapping("/{monthlyScheduleId}/status")
-    public ResponseEntity<String> updateScheduleStatus(@PathVariable Integer monthlyScheduleId, @RequestParam String status) {
+    public ResponseEntity<String> updateScheduleStatus(@PathVariable Long monthlyScheduleId, @RequestParam String status) {
         try {
             scheduleService.updateScheduleStatus(monthlyScheduleId, status);
             return ResponseEntity.ok("Cập nhật trạng thái thành công!");

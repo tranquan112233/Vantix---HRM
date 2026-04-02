@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import poly.edu.vantix_hrm.dto.contract.ContractResponseDTO;
 import poly.edu.vantix_hrm.dto.contract.CreateContractRequest;
@@ -26,12 +27,14 @@ public class ContractsController {
     private final EmployeeService employeeService;
 
     // Tải toàn bộ Hợp Đồng lên
+    @PreAuthorize("hasAuthority('CONTRACT_VIEW')")
     @GetMapping("/all")
     public ResponseEntity<List<ContractResponseDTO>> getAllContracts() {
         return ResponseEntity.ok(contractsService.getAllContracts());
     }
 
     // Tạo mới Hợp Đồng
+    @PreAuthorize("hasAuthority('CONTRACT_CREATE')")
     @PostMapping("/create")
     public ResponseEntity<?> createContract(@Valid @RequestBody CreateContractRequest request) {
         try {
@@ -61,7 +64,19 @@ public class ContractsController {
             // Lưu Hợp Đồng
             Contract saved = contractsService.saveContract(contract);
 
-            return ResponseEntity.ok(saved);
+            ContractResponseDTO responseDTO = ContractResponseDTO.builder()
+                    .contractId(saved.getContractId())
+                    .employeeId(saved.getEmployee().getId())
+                    .fullName(saved.getEmployee().getFullName())
+                    .type(saved.getType())
+                    .startDate(saved.getStartDate())
+                    .endDate(saved.getEndDate())
+                    .position(saved.getPosition())
+                    .baseSalary(saved.getBaseSalary())
+                    .status(saved.getStatus())
+                    .build();
+
+            return ResponseEntity.ok(responseDTO);
 
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -71,8 +86,9 @@ public class ContractsController {
     }
 
     // Xóa Hợp Đồng
+    @PreAuthorize("hasAuthority('CONTRACT_DELETE')")
     @DeleteMapping("/{contractId}")
-    public ResponseEntity<?> deleteContract(@PathVariable Integer contractId) {
+    public ResponseEntity<?> deleteContract(@PathVariable Long contractId) {
         try {
             // Tìm Hợp Đồng từ mã
             Contract contract = contractsService.findById(contractId);
@@ -88,8 +104,9 @@ public class ContractsController {
     }
 
     // Cập nhật trạng thái Hợp Đồng
+    @PreAuthorize("hasAuthority('CONTRACT_STATUS_UPDATE')")
     @PutMapping("/{contractId}/status")
-    public ResponseEntity<?> updateContractStatus(@PathVariable Integer contractId) {
+    public ResponseEntity<?> updateContractStatus(@PathVariable Long contractId) {
         try {
             // Tìm Hợp Đồng
             Contract contract = contractsService.findById(contractId);

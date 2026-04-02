@@ -145,15 +145,24 @@ const fetchLeaveTypes = async () => {
   }
 }
 
-// 3. 🔥 HÀM GỬI ĐƠN (ĐÃ FIX LỖI THIẾU ID NHÂN VIÊN)
+// 3. HÀM GỬI ĐƠN
 const submitLeaveRequest = async () => {
+  // Validate ngày ở frontend trước khi gọi API
+  const today = new Date().toISOString().split('T')[0]
+  if (formData.startDate < today) {
+    alert('Ngày bắt đầu không được trong quá khứ!')
+    return
+  }
+  if (formData.endDate < formData.startDate) {
+    alert('Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu!')
+    return
+  }
+
   try {
     isSubmitting.value = true
 
-    // Gộp dữ liệu từ form và ID của người đang đăng nhập
     const payload = {
       ...formData,
-      // Bác check kỹ xem currentUser lưu ID là employeeId hay id nhé
       employeeId: currentUser?.employeeId || currentUser?.id
     }
 

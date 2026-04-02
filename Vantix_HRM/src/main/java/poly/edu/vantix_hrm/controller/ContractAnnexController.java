@@ -2,6 +2,7 @@ package poly.edu.vantix_hrm.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import poly.edu.vantix_hrm.dto.contractannex.ContractAnnexRequestDTO;
 import poly.edu.vantix_hrm.dto.contractannex.ContractAnnexResponseDTO;
@@ -21,19 +22,22 @@ public class ContractAnnexController {
     private final ContractAnnexService contractAnnexService;
 
     // API: Lấy danh sách phụ lục và thông tin tổng quan dựa vào ID của Hợp đồng gốc.
+    @PreAuthorize("hasAuthority('CONTRACT_ANNEX_VIEW')")
     @GetMapping("/contract/{contractId}")
-    public ResponseEntity<ContractAnnexResponseDTO> getAnnexesByContract(@PathVariable Integer contractId) {
+    public ResponseEntity<ContractAnnexResponseDTO> getAnnexesByContract(@PathVariable Long contractId) {
         ContractAnnexResponseDTO response = contractAnnexService.getAnnexesByContractId(contractId);
         return ResponseEntity.ok(response);
     }
 
     // API: Lấy danh sách tên các chức vụ để hiển thị trên form dropdown tạo/sửa phụ lục.
+    @PreAuthorize("hasAuthority('CONTRACT_ANNEX_VIEW')")
     @GetMapping("/positions")
     public ResponseEntity<List<PositionsContractAnnexResponseDTO>> getPositionsForAnnex() {
         return ResponseEntity.ok(contractAnnexService.getAllPositionNames());
     }
 
     // API: Tạo mới một phụ lục hợp đồng. Controller đóng vai trò điều phối các luồng validate từ Service trước khi lưu.
+    @PreAuthorize("hasAuthority('CONTRACT_ANNEX_CREATE')")
     @PostMapping
     public ResponseEntity<?> createAnnex(@RequestBody ContractAnnexRequestDTO request) {
         try {
@@ -76,8 +80,9 @@ public class ContractAnnexController {
     }
 
     // API: Thay đổi trạng thái (Bật/Tắt) của một phụ lục cụ thể.
+    @PreAuthorize("hasAuthority('CONTRACT_ANNEX_UPDATE')")
     @PutMapping("/{annexId}/status")
-    public ResponseEntity<?> updateAnnexStatus(@PathVariable Integer annexId) {
+    public ResponseEntity<?> updateAnnexStatus(@PathVariable Long annexId) {
         try {
             // Tìm phụ lục
             ContractAnnexes annex = contractAnnexService.findAnnexById(annexId);
@@ -94,8 +99,9 @@ public class ContractAnnexController {
     }
 
     // API: Xóa một phụ lục cụ thể ra khỏi hệ thống.
+    @PreAuthorize("hasAuthority('CONTRACT_ANNEX_DELETE')")
     @DeleteMapping("/{annexId}")
-    public ResponseEntity<?> deleteAnnex(@PathVariable Integer annexId) {
+    public ResponseEntity<?> deleteAnnex(@PathVariable Long annexId) {
         try {
             // Tìm phụ lục
             ContractAnnexes annex = contractAnnexService.findAnnexById(annexId);

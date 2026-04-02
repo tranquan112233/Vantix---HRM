@@ -1,5 +1,9 @@
 package poly.edu.vantix_hrm.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +18,14 @@ import java.util.Optional;
 public interface EmployeeRepository extends JpaRepository<Employee, Long>,
         JpaSpecificationExecutor<Employee> {
 
+    // Tìm employee với tất cả associations được fetch JOIN để tránh N+1
+    @EntityGraph(attributePaths = {"user", "department", "position", "department.manager"})
+    Optional<Employee> findByIdAndDeletedFalse(Long id);
+
+    // Tìm danh sách employee với fetch joins
+    @EntityGraph(attributePaths = {"user", "department", "position", "department.manager"})
+    Page<Employee> findAll(Specification<Employee> spec, Pageable pageable);
+
     Optional <Employee> findByUser_Email(String email);
     Optional<Employee> findByUser_Username(String username);
 
@@ -25,10 +37,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>,
             "WHERE e.user.email = :email AND e.deleted = false")
     boolean existsByEmailAndDeletedFalse(@Param("email") String email);
 
-    // Tìm employee chưa xóa
-    Optional<Employee> findByIdAndDeletedFalse(Long id);
-
     // Tìm employee theo user_id
+    @EntityGraph(attributePaths = {"user", "department", "position", "department.manager"})
     Optional<Employee> findByUserIdAndDeletedFalse(Long userId);
 
     // Đếm số nhân viên theo phòng ban

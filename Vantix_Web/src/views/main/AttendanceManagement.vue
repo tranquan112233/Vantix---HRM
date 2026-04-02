@@ -1,9 +1,12 @@
 <script setup>
-import {ref, computed, onMounted} from 'vue';
+import {ref, computed, onMounted, watch} from 'vue';
 import attendanceManagementService from "@/services/attendancemanagement.service.js";
+import { useAuthStore } from '@/stores/auth.store';
 
 // --- CẤU HÌNH ---
-const managerId = ref(13);
+const auth = useAuthStore();
+const managerId  = computed(() => auth.user?.employeeId ?? null);
+const canApprove = computed(() => auth.can('ATTENDANCE_MANAGEMENT_APPROVE'));
 
 // --- FORMATTER & HELPERS ---
 const formatTime = (timeStr) => {
@@ -16,16 +19,15 @@ const formatTime = (timeStr) => {
 
 const getShiftLabel = (shiftObj) => {
   if (!shiftObj) return 'Khác';
-  if (shiftObj.shiftId === 1) return 'Ca sáng';
-  if (shiftObj.shiftId === 2) return 'Ca chiều';
-  if (shiftObj.shiftId === 3) return 'Hành chính';
   return shiftObj.shiftName || 'Khác';
 };
 
-const getShiftBadgeClass = (shiftId) => {
-  if (shiftId === 1) return 'shift-morning';
-  if (shiftId === 2) return 'shift-afternoon';
-  if (shiftId === 3) return 'shift-full';
+const getShiftBadgeClass = (shiftObj) => {
+  if (!shiftObj) return 'badge-gray';
+  const name = (shiftObj.shiftName || '').toLowerCase();
+  if (name.includes('sáng') || name.includes('sang')) return 'shift-morning';
+  if (name.includes('chiều') || name.includes('chieu')) return 'shift-afternoon';
+  if (name.includes('hành chính') || name.includes('hanh chinh') || name.includes('full')) return 'shift-full';
   return 'badge-gray';
 };
 
@@ -62,10 +64,11 @@ const showMessage = (text, type = 'success') => {
 
 // --- API CALLS ---
 const fetchData = async () => {
+  if (!managerId.value) return;
   loading.value = true;
   try {
     // Chỉ gọi 1 API duy nhất
-    const response = await attendanceManagementService.getRejectedAttendances(managerId.value);
+    const response = await attendanceManagementService.getPendingAttendances(managerId.value);
     const data = response.data;
 
     const uniqueEmployees = new Map();
@@ -113,17 +116,17 @@ const fetchData = async () => {
 // --- COMPUTED: Xử lý logic đếm và lọc ---
 const employeesWithStats = computed(() => {
   return departmentEmployees.value.map(emp => {
-    const rejectedCount = attendanceList.value.filter(
-        att => att.employee.id === emp.id && att.status === 'REJECTED'
+    const pendingCount = attendanceList.value.filter(
+        att => att.employee.id === emp.id && att.status === 'PENDING'
     ).length;
-    return {...emp, rejectedCount};
+    return {...emp, pendingCount};
   });
 });
 
 const currentEmployeeAttendances = computed(() => {
   if (!selectedEmployee.value) return [];
   return attendanceList.value.filter(
-      att => att.employee.id === selectedEmployee.value.id && att.status === 'REJECTED'
+      att => att.employee.id === selectedEmployee.value.id && att.status === 'PENDING'
   );
 });
 
@@ -153,12 +156,31 @@ const handleApprove = async () => {
   }
 };
 
+const handleReject = async () => {
+  try {
+    await attendanceManagementService.rejectAttendance(selectedRecord.value.attendanceId);
+    showMessage(`Đã từ chối chấm công của ${selectedRecord.value.employee.name} (Ngày ${selectedRecord.value.workDate}).`, 'error');
+
+    const index = attendanceList.value.findIndex(a => a.attendanceId === selectedRecord.value.attendanceId);
+    if (index !== -1) attendanceList.value.splice(index, 1);
+
+    showDetailModal.value = false;
+  } catch (error) {
+    console.error("Lỗi từ chối công:", error);
+    showMessage("Từ chối thất bại.", "error");
+  }
+};
+
 const handleCancel = () => {
   showDetailModal.value = false;
 };
 
 onMounted(() => {
   fetchData();
+});
+
+watch(managerId, (newVal) => {
+  if (newVal) fetchData();
 });
 </script>
 
@@ -203,8 +225,8 @@ onMounted(() => {
                 <div class="emp-code">{{ emp.code }}</div>
               </div>
             </div>
-            <span v-if="emp.rejectedCount > 0" class="badge-notification">
-              {{ emp.rejectedCount }}
+            <span v-if="emp.pendingCount > 0" class="badge-notification">
+              {{ emp.pendingCount }}
             </span>
             <span v-else class="status-ok">✔️</span>
           </div>
@@ -239,7 +261,7 @@ onMounted(() => {
               >
                 <td class="fw-600">{{ att.workDate }}</td>
                 <td>
-                    <span :class="['vt-badge', getShiftBadgeClass(att.shift?.shiftId)]">
+                    <span :class="['vt-badge', getShiftBadgeClass(att.shift)]">
                       {{ getShiftLabel(att.shift) }}
                     </span>
                 </td>
@@ -281,7 +303,7 @@ onMounted(() => {
           <div class="info-group">
             <label>Ngày / Ca làm:</label>
             <span>{{ selectedRecord.workDate }} -
-              <span :class="['vt-badge', getShiftBadgeClass(selectedRecord.shift?.shiftId)]">
+              <span :class="['vt-badge', getShiftBadgeClass(selectedRecord.shift)]">
                 {{ getShiftLabel(selectedRecord.shift) }}
               </span>
             </span>
@@ -306,14 +328,14 @@ onMounted(() => {
           </div>
 
           <p class="warning-text mt-3">
-            * Hệ thống đã đánh dấu <b>REJECTED</b> do vi phạm thời gian làm việc. Bạn có muốn du di và phê duyệt cho
-            nhân viên này không?
+            * Ca làm việc đang chờ phê duyệt (<b>PENDING</b>). Vui lòng xem xét và chọn Duyệt hoặc Từ chối.
           </p>
         </div>
 
         <div class="modal-actions mt-3">
-          <button class="btn btn-outline" @click="handleCancel">Cancel</button>
-          <button class="btn btn-primary" @click="handleApprove">Đồng Ý Duyệt</button>
+          <button class="btn btn-outline" @click="handleCancel">Hủy</button>
+          <button v-if="canApprove" class="btn btn-danger" @click="handleReject">Từ Chối</button>
+          <button v-if="canApprove" class="btn btn-primary" @click="handleApprove">Đồng Ý Duyệt</button>
         </div>
       </div>
     </div>
@@ -321,13 +343,15 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Biến toàn cục & Layout */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+* { box-sizing: border-box; }
+
 .page-wrapper {
-  padding: 24px;
-  background-color: #f5f7fa;
-  min-height: calc(100vh - 60px);
-  font-family: 'Inter', 'Segoe UI', sans-serif;
-  box-sizing: border-box;
+  padding: 28px 32px;
+  background: #f0f4ff;
+  min-height: 100vh;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 .layout-container {
@@ -336,31 +360,38 @@ onMounted(() => {
   align-items: flex-start;
 }
 
-/* Header Chung */
+/* Header */
 .header-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .header-icon {
-  font-size: 24px;
-  background: #fff2e8;
-  padding: 8px 12px;
-  border-radius: 8px;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+  flex-shrink: 0;
 }
 
 .header-title h2 {
   margin: 0;
-  font-size: 20px;
-  color: #303133;
-  font-weight: 600;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.5px;
 }
 
 .header-title p {
-  margin: 4px 0 0 0;
-  font-size: 14px;
-  color: #909399;
+  margin: 2px 0 0 0;
+  font-size: 13px;
+  color: #64748b;
 }
 
 .mb-4 {
@@ -368,419 +399,280 @@ onMounted(() => {
 }
 
 .text-primary {
-  color: #409eff;
+  color: #4f46e5;
 }
 
-/* Cột Trái: Sidebar danh sách nhân viên */
+/* Sidebar */
 .sidebar-card {
-  width: 320px;
+  width: 300px;
   flex-shrink: 0;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  border: 1px solid #ebeef5;
+  background: white;
+  border-radius: 16px;
+  border: 1.5px solid #e8edff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   overflow: hidden;
 }
 
 .sidebar-header {
   padding: 16px 20px;
-  border-bottom: 1px solid #ebeef5;
-  background: #fafafa;
+  border-bottom: 1.5px solid #e8edff;
+  background: #fafbff;
 }
 
 .sidebar-header h3 {
   margin: 0;
-  font-size: 15px;
-  color: #303133;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
 }
 
-.employee-list {
-  max-height: 600px;
-  overflow-y: auto;
-}
+.employee-list { max-height: 600px; overflow-y: auto; }
 
 .employee-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 20px;
-  border-bottom: 1px solid #f0f2f5;
+  padding: 13px 18px;
+  border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.employee-item:hover {
-  background-color: #f5f7fa;
-}
+.employee-item:hover { background: #fafbff; }
 
 .employee-item.active {
-  background-color: #ecf5ff;
-  border-left: 4px solid #409eff;
-  padding-left: 16px;
+  background: #eef2ff;
+  border-left: 3px solid #6366f1;
+  padding-left: 15px;
 }
 
-.emp-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+.emp-info { display: flex; align-items: center; gap: 11px; }
 
 .emp-avatar {
-  font-size: 24px;
-  background: #f0f2f5;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 20px;
 }
 
-.emp-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #303133;
-}
+.emp-name { font-size: 13px; font-weight: 600; color: #1e293b; }
+.emp-code { font-size: 11px; color: #94a3b8; margin-top: 1px; }
 
-.emp-code {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 2px;
-}
-
-/* Chấm đỏ Badge */
 .badge-notification {
-  background-color: #f56c6c;
+  background: linear-gradient(135deg, #f43f5e, #dc2626);
   color: white;
-  font-size: 12px;
-  font-weight: bold;
-  padding: 2px 8px;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(245, 108, 108, 0.2);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
 }
 
-.status-ok {
-  font-size: 14px;
-  opacity: 0.5;
-}
+.status-ok { font-size: 16px; opacity: 0.4; }
 
-/* Cột Phải: Bảng chi tiết */
+/* Main Card */
 .main-card {
   flex-grow: 1;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  border: 1px solid #ebeef5;
+  background: white;
+  border-radius: 16px;
+  border: 1.5px solid #e8edff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   min-height: 400px;
+  overflow: hidden;
 }
 
 .main-header {
-  padding: 20px;
-  border-bottom: 1px solid #ebeef5;
+  padding: 18px 22px;
+  border-bottom: 1.5px solid #e8edff;
+  background: #fafbff;
 }
 
 .main-header h3 {
   margin: 0;
-  font-size: 16px;
-  color: #303133;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
 }
 
-.table-responsive {
-  width: 100%;
-  overflow-x: auto;
-}
+.table-responsive { width: 100%; overflow-x: auto; }
 
-.vantix-table {
-  width: 100%;
-  border-collapse: collapse;
-}
+.vantix-table { width: 100%; border-collapse: collapse; font-family: inherit; }
 
 .vantix-table th {
-  padding: 12px 20px;
+  padding: 12px 18px;
   text-align: left;
-  font-size: 13px;
-  font-weight: 600;
-  color: #909399;
-  border-bottom: 1px solid #ebeef5;
-  background-color: #fafafa;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  border-bottom: 1.5px solid #e8edff;
+  background: #fafbff;
 }
 
 .vantix-table td {
-  padding: 16px 20px;
+  padding: 14px 18px;
   font-size: 14px;
-  color: #606266;
-  border-bottom: 1px solid #ebeef5;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
   vertical-align: middle;
 }
 
-.clickable-row {
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.clickable-row:hover {
-  background-color: #f0f7ff !important;
-}
+.clickable-row { cursor: pointer; transition: background 0.15s; }
+.clickable-row:hover { background: #fafbff !important; }
 
 /* Empty States */
-.empty-state {
-  text-align: center;
-  padding: 40px 20px;
-  color: #909399;
-}
-
+.empty-state { text-align: center; padding: 40px 20px; color: #94a3b8; }
 .select-prompt {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  min-height: 300px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 100%; min-height: 300px;
 }
+.empty-icon { font-size: 36px; display: block; margin-bottom: 12px; }
 
-.empty-icon {
-  font-size: 32px;
-  display: block;
-  margin-bottom: 12px;
-}
-
-/* Badges & Text */
-.time-text {
-  font-family: monospace;
-  font-size: 14px;
-}
+/* Badges */
+.time-text { font-family: 'Courier New', monospace; font-size: 14px; }
 
 .vt-badge {
-  display: inline-block;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  border-radius: 6px;
-}
-
-.shift-morning {
-  background: #eef5fe;
-  color: #5097fa;
-}
-
-.shift-afternoon {
-  background: #fff2e8;
-  color: #f89e5a;
-}
-
-.shift-full {
-  background: #eaf5e8;
-  color: #62a353;
-}
-
-.badge-gray {
-  background: #f0f2f5;
-  color: #606266;
-}
-
-.badge-success {
-  background: #e1f3d8;
-  color: #67c23a;
-}
-
-.badge-warning {
-  background: #fdf0e6;
-  color: #e6a23c;
-}
-
-.badge-danger {
-  background: #fde2e2;
-  color: #f56c6c;
-}
-
-.badge-default {
-  background: #f4f4f5;
-  color: #909399;
-}
-
-.text-danger {
-  color: #f56c6c;
-}
-
-.text-success {
-  color: #67c23a;
-}
-
-.fw-600 {
-  font-weight: 600;
-}
-
-/* Modal & Component nhỏ */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  justify-content: center;
+  display: inline-flex;
   align-items: center;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+}
+
+.shift-morning  { background: #ede9fe; color: #5b21b6; }
+.shift-afternoon{ background: #fef3c7; color: #92400e; }
+.shift-full     { background: #d1fae5; color: #065f46; }
+.badge-gray     { background: #f1f5f9; color: #64748b; }
+.badge-success  { background: #d1fae5; color: #065f46; }
+.badge-warning  { background: #fef3c7; color: #92400e; }
+.badge-danger   { background: #fee2e2; color: #991b1b; }
+.badge-default  { background: #f1f5f9; color: #64748b; }
+
+.text-danger  { color: #dc2626; }
+.text-success { color: #059669; }
+.fw-600       { font-weight: 600; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex; justify-content: center; align-items: center;
   z-index: 1000;
+  backdrop-filter: blur(4px);
 }
 
 .modal-content {
   background: white;
-  padding: 24px;
-  border-radius: 8px;
+  border-radius: 20px;
   width: 90%;
-  max-width: 450px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  max-width: 460px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+  animation: modalIn 0.25s ease-out;
+  overflow: hidden;
+}
+
+@keyframes modalIn {
+  from { transform: translateY(-16px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 .modal-header-custom {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #ebeef5;
-  padding-bottom: 16px;
-  margin-bottom: 16px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.modal-header-custom h3 {
-  margin: 0;
-  font-size: 18px;
-  color: #303133;
-}
+.modal-header-custom h3 { margin: 0; font-size: 17px; font-weight: 700; color: #0f172a; }
 
 .close-btn {
-  background: none;
+  background: #f1f5f9;
   border: none;
-  font-size: 24px;
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  font-size: 18px;
   cursor: pointer;
-  color: #909399;
-  line-height: 1;
+  color: #64748b;
+  display: flex; align-items: center; justify-content: center;
 }
+.close-btn:hover { background: #fee2e2; color: #dc2626; }
 
-.close-btn:hover {
-  color: #f56c6c;
-}
-
-.info-group {
-  margin-bottom: 12px;
-  font-size: 14px;
-}
-
-.info-group label {
-  color: #909399;
-  display: inline-block;
-  width: 100px;
-}
+.info-group { margin-bottom: 12px; font-size: 14px; color: #334155; }
+.info-group label { color: #64748b; display: inline-block; width: 110px; font-size: 13px; }
 
 .time-breakdown {
-  display: flex;
-  gap: 16px;
-  background: #f8f9fa;
+  display: flex; gap: 16px;
+  background: #f8faff;
   padding: 16px;
-  border-radius: 8px;
-  border: 1px solid #ebeef5;
+  border-radius: 12px;
+  border: 1.5px solid #e8edff;
 }
 
-.time-box {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.box-label {
-  font-size: 13px;
-  color: #909399;
-  font-weight: 500;
-}
-
-.box-value {
-  font-size: 18px;
-  font-weight: 600;
-  color: #303133;
-}
-
-.box-alert {
-  font-size: 12px;
-  font-weight: 600;
-}
+.time-box { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.box-label { font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.box-value { font-size: 20px; font-weight: 700; color: #0f172a; font-family: 'Courier New', monospace; }
+.box-alert { font-size: 12px; font-weight: 700; }
 
 .warning-text {
-  font-size: 13px;
-  color: #e6a23c;
-  line-height: 1.5;
-  background: #fdf6ec;
-  padding: 10px;
-  border-radius: 6px;
+  font-size: 13px; color: #92400e; line-height: 1.5;
+  background: #fefce8; padding: 12px 14px;
+  border-radius: 10px; border: 1px solid #fde68a;
 }
 
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.mt-3 { margin-top: 20px; }
 
-.mt-3 {
-  margin-top: 24px;
-}
-
-/* Buttons & Alerts */
+/* Buttons */
 .btn {
-  padding: 8px 16px;
-  border-radius: 4px;
+  padding: 9px 18px;
+  border-radius: 10px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
+  font-family: inherit;
   cursor: pointer;
   border: none;
+  transition: all 0.2s;
 }
 
 .btn-primary {
-  background: #409eff;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
   color: white;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
 }
-
-.btn-primary:hover {
-  background: #66b1ff;
-}
+.btn-primary:hover { box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4); transform: translateY(-1px); }
 
 .btn-outline {
   background: white;
-  border: 1px solid #dcdfe6;
-  color: #606266;
+  border: 1.5px solid #e2e8f0;
+  color: #475569;
 }
+.btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
 
-.btn-outline:hover {
-  color: #409eff;
-  border-color: #c6e2ff;
-  background-color: #ecf5ff;
+.btn-danger {
+  background: linear-gradient(135deg, #f43f5e, #dc2626);
+  color: white;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
 }
+.btn-danger:hover { box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35); transform: translateY(-1px); }
 
+/* Toast */
 .alert-toast {
-  padding: 12px 20px;
-  border-radius: 6px;
-  margin-bottom: 24px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  margin-bottom: 20px;
   font-size: 14px;
   font-weight: 500;
 }
+.alert-toast.success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+.alert-toast.error   { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
 
-.alert-toast.success {
-  background: #f0f9eb;
-  color: #67c23a;
-  border: 1px solid #e1f3d8;
-}
-
-.alert-toast.error {
-  background: #fef0f0;
-  color: #f56c6c;
-  border: 1px solid #fde2e2;
-}
-
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.3s;
-}
-
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
-}
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

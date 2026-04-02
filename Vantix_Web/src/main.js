@@ -8,6 +8,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 import Toast from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 
+import './assets/css/variables.css'
 import './style.css'
 
 createApp(App)

@@ -2,6 +2,7 @@ package poly.edu.vantix_hrm.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -13,14 +14,15 @@ import java.time.LocalDate;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ContractAnnexes {
+@Builder
+public class ContractAnnexes extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "annex_id")
-    private Integer annexId; // Mã phụ lục
+    private Long annexId; // Mã phụ lục
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "contract_id", nullable = false)
     private Contract contract; // Hợp đồng gốc (Foreign Key)
 

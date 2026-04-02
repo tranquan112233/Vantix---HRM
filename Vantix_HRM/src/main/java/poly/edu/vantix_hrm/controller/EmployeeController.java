@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import poly.edu.vantix_hrm.dto.employee.EmployeeRequestDTO;
 import poly.edu.vantix_hrm.dto.employee.EmployeeResponseDTO;
@@ -22,6 +23,7 @@ public class EmployeeController {
     private final EmployeeService employeeService;
 
     // GET /api/employees?keyword=&workStatus=&departmentId=&page=0&size=10&sortBy=createdAt&sortDir=desc
+    @PreAuthorize("hasAuthority('EMPLOYEE_VIEW')")
     @GetMapping
     public ResponseEntity<PageResponseDTO<EmployeeResponseDTO>> getAll(
             @RequestParam(required = false) String keyword,
@@ -32,24 +34,28 @@ public class EmployeeController {
     }
 
     // GET /api/employees/{id}
+    @PreAuthorize("hasAuthority('EMPLOYEE_VIEW')")
     @GetMapping("/{id}")
     public ResponseEntity<EmployeeResponseDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(employeeService.getById(id));
     }
 
     // GET /api/employees/user/{userId}
+    @PreAuthorize("hasAuthority('EMPLOYEE_VIEW')")
     @GetMapping("/user/{userId}")
     public ResponseEntity<EmployeeResponseDTO> getByUserId(@PathVariable Long userId) {
         return ResponseEntity.ok(employeeService.getByUserId(userId));
     }
 
     // POST /api/employees
+    @PreAuthorize("hasAuthority('EMPLOYEE_CREATE')")
     @PostMapping
     public ResponseEntity<EmployeeResponseDTO> create(@Valid @RequestBody EmployeeRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(employeeService.create(request));
     }
 
     // PUT /api/employees/{id}
+    @PreAuthorize("hasAuthority('EMPLOYEE_UPDATE')")
     @PutMapping("/{id}")
     public ResponseEntity<EmployeeResponseDTO> update(
             @PathVariable Long id,
@@ -58,6 +64,7 @@ public class EmployeeController {
     }
 
     // DELETE /api/employees/{id}
+    @PreAuthorize("hasAuthority('EMPLOYEE_DELETE')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         employeeService.delete(id);

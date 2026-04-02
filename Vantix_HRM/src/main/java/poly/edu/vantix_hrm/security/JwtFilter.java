@@ -4,6 +4,8 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -57,19 +59,27 @@ public class JwtFilter extends OncePerRequestFilter {
         // Chưa có authentication trong context → set vào
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
             Long userId = jwtService.extractUserId(token);
-            User user = userRepository.findById(userId).orElse(null);
+            // Sử dụng phương thức với EntityGraph để fetch role và permissions
+            User user = userRepository.findByIdWithRoleAndPermissions(userId).orElse(null);
 
-            if (user != null) {
+            if (user != null && Boolean.FALSE.equals(user.getDeleted()) && user.getStatus() != User.UserStatus.LOCKED) {
+                // Map permissions → authorities
+                List<GrantedAuthority> authorities = user.getRole() != null
+                        ? user.getRole().getPermissions().stream()
+                                .<GrantedAuthority>map(permission -> new SimpleGrantedAuthority(permission.getName()))
+                                .toList()
+                        : List.of();
+
                 CustomUserPrincipal principal = new CustomUserPrincipal(
                         user.getId(),
                         user.getUsername(),
                         user.getPassword(),
-                        List.of()
+                        authorities
                 );
 
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(
-                                principal, null, principal.getAuthorities()
+                                principal, null, authorities
                         );
 
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
@@ -79,4 +89,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
+
+
+
 }

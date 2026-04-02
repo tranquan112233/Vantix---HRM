@@ -24,7 +24,7 @@ public class LeaveTypeService {
     }
 
     // Trong file LeaveTypeService.java (Chỗ hàm update)
-    public LeaveType updateLeaveType(Integer id, LeaveType updatedData) {
+    public LeaveType updateLeaveType(Long id, LeaveType updatedData) {
         LeaveType existing = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy ID: " + id));
 
@@ -36,7 +36,7 @@ public class LeaveTypeService {
         return repository.save(existing);
     }
 
-    public void deleteLeaveType(Integer id) {
+    public void deleteLeaveType(Long id) {
         repository.deleteById(id);
     }
 }

@@ -285,7 +285,7 @@ const auth = useAuthStore()
 const canCreate = computed(() => auth.can('USER_CREATE'))
 const canEdit = computed(() => auth.can('USER_UPDATE'))
 const canDelete = computed(() => auth.can('USER_DELETE'))
-const canChangeStatus = computed(() => auth.can('USER_CHANGE_STATUS'))
+const canChangeStatus = computed(() => auth.can('USER_STATUS_UPDATE'))
 
 const userModalEl = ref(null)
 const deleteModalEl = ref(null)

@@ -17,9 +17,9 @@ class LeaveService {
     }
 
     // 4. Cập nhật trạng thái duyệt đơn (Dành cho Admin/HR)
-    updateLeaveStatus(leaveId, status) {
+    updateLeaveStatus(leaveId, status, rejectionReason = null) {
         return api.put(`/leaves/${leaveId}/status`, null, {
-            params: { status }
+            params: { status, ...(rejectionReason ? { rejectionReason } : {}) }
         })
     }
 

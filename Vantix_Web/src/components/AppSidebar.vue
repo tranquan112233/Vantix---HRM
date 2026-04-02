@@ -127,20 +127,12 @@ watch(
 .sidebar {
   --w:       228px;
   --w-col:   56px;
-  --bg:      #0f1117;
-  --border:  rgba(255,255,255,0.07);
-  --hover:   rgba(255,255,255,0.05);
-  --accent:  #6366f1;
-  --acc-bg:  rgba(99,102,241,0.15);
-  --txt:     #cbd5e1;
-  --txt-dim: #475569;
-  --txt-hi:  #f1f5f9;
 
   width: var(--w);
   height: 100vh;
   flex-shrink: 0;
-  background: var(--bg);
-  border-right: 1px solid var(--border);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   box-shadow: 2px 0 16px rgba(0,0,0,0.2);
   display: flex;
   flex-direction: column;
@@ -157,13 +149,13 @@ watch(
   align-items: center;
   gap: 10px;
   padding: 0 14px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--sidebar-border);
   flex-shrink: 0;
   overflow: hidden;
 }
 .logo-icon {
   width: 28px; height: 28px;
-  background: var(--accent);
+  background: var(--primary-color);
   border-radius: 7px;
   display: flex; align-items: center; justify-content: center;
   font-size: 14px; color: #fff;
@@ -171,7 +163,7 @@ watch(
 }
 .logo-text {
   font-size: 12px; font-weight: 700;
-  letter-spacing: 1.5px; color: var(--txt-hi);
+  letter-spacing: 1.5px; color: var(--sidebar-text-hi);
   white-space: nowrap;
 }
 .sidebar--collapsed:not(.sidebar--hover) .logo-text { display: none; }
@@ -182,19 +174,19 @@ watch(
   overflow-y: auto; overflow-x: hidden;
   padding: 8px;
   scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+  scrollbar-color: var(--sidebar-border) transparent;
 }
 
 .section-label {
   font-size: 10px; font-weight: 600;
   letter-spacing: .8px;
-  color: var(--txt-dim);
+  color: var(--sidebar-text-dim);
   padding: 14px 8px 5px;
   white-space: nowrap;
   text-transform: uppercase;
 }
 .sidebar--collapsed:not(.sidebar--hover) .section-label {
-  height: 1px; background: var(--border);
+  height: 1px; background: var(--sidebar-border);
   margin: 8px 6px; padding: 0;
   font-size: 0; overflow: hidden;
 }
@@ -208,7 +200,7 @@ watch(
   margin: 1px 0;
   border-radius: 7px;
   font-size: 13px;
-  color: var(--txt);
+  color: var(--sidebar-text);
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
@@ -216,9 +208,9 @@ watch(
   text-decoration: none;
   transition: background var(--transition), color var(--transition);
 }
-.menu-item:hover                { background: var(--hover); color: var(--txt-hi); }
-.menu-item--active              { background: var(--acc-bg); color: var(--accent); font-weight: 500; }
-.menu-item--active .item-icon   { color: var(--accent); }
+.menu-item:hover                { background: var(--sidebar-hover); color: var(--sidebar-text-hi); }
+.menu-item--active              { background: var(--sidebar-accent-bg); color: var(--primary-color); font-weight: 500; }
+.menu-item--active .item-icon   { color: var(--primary-color); }
 
 .sidebar--collapsed:not(.sidebar--hover) .menu-item {
   justify-content: center;
@@ -228,17 +220,17 @@ watch(
 .item-icon {
   width: 26px; height: 26px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 15px; color: var(--txt-dim);
+  font-size: 15px; color: var(--sidebar-text-dim);
   flex-shrink: 0;
   transition: color var(--transition);
 }
-.menu-item:hover .item-icon { color: var(--txt-hi); }
+.menu-item:hover .item-icon { color: var(--sidebar-text-hi); }
 
 .item-label { overflow: hidden; flex: 1; }
 .sidebar--collapsed:not(.sidebar--hover) .item-label { display: none; }
 
 .item-arrow {
-  font-size: 10px; color: var(--txt-dim);
+  font-size: 10px; color: var(--sidebar-text-dim);
   transition: transform .2s; flex-shrink: 0;
 }
 .item-arrow--open                                           { transform: rotate(180deg); }
@@ -262,14 +254,14 @@ watch(
   margin: 1px 0;
   border-radius: 7px;
   font-size: 12.5px;
-  color: var(--txt-dim);
+  color: var(--sidebar-text-dim);
   text-decoration: none;
   white-space: nowrap;
   transition: background var(--transition), color var(--transition);
 }
-.submenu-item:hover           { background: var(--hover); color: var(--txt-hi); }
-.submenu-item--active         { color: var(--accent); font-weight: 500; }
-.submenu-item--active .sub-icon { color: var(--accent); }
+.submenu-item:hover           { background: var(--sidebar-hover); color: var(--sidebar-text-hi); }
+.submenu-item--active         { color: var(--primary-color); font-weight: 500; }
+.submenu-item--active .sub-icon { color: var(--primary-color); }
 
 .sub-icon {
   width: 20px; height: 20px;

@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 @Data
 public class LeaveResponseDTO {
-    private Integer leaveId;
+    private Long leaveId;
     private String employeeName;
     private String leaveTypeName;
     private Boolean isPaid;
@@ -18,5 +18,6 @@ public class LeaveResponseDTO {
     private String reason;
     private LeaveStatus status;
     private String approvedByName;
+    private String rejectionReason;
     private LocalDateTime createdAt;
 }

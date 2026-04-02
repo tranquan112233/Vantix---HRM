@@ -5,5 +5,5 @@ import org.springframework.stereotype.Repository;
 import poly.edu.vantix_hrm.entity.Shift;
 
 @Repository
-public interface ShiftsRepository extends JpaRepository<Shift, Integer> {
+public interface ShiftsRepository extends JpaRepository<Shift, Long> {
 }

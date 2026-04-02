@@ -1,10 +1,7 @@
 package poly.edu.vantix_hrm.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
@@ -16,11 +13,12 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class LeaveRequest {
+@Builder
+public class LeaveRequest extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "leave_id")
-    private Integer leaveId;
+    private Long leaveId;
 
     // Liên kết với bảng Employees (Người làm đơn)
     @ManyToOne(fetch = FetchType.LAZY)
@@ -48,12 +46,11 @@ public class LeaveRequest {
     @Column(name = "status", columnDefinition = "ENUM('PENDING','APPROVED','REJECTED') DEFAULT 'PENDING'")
     private LeaveStatus status = LeaveStatus.PENDING;
 
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
     // Liên kết với bảng Employees (Người duyệt đơn)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "approved_by")
     private Employee approvedBy;
-
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
 }

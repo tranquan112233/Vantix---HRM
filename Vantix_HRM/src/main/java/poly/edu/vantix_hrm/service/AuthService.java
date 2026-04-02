@@ -7,10 +7,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import poly.edu.vantix_hrm.dto.auth.*;
 import poly.edu.vantix_hrm.entity.AuthToken;
+import poly.edu.vantix_hrm.entity.Employee;
 import poly.edu.vantix_hrm.entity.Permission;
 import poly.edu.vantix_hrm.entity.User;
 import poly.edu.vantix_hrm.exception.BusinessException;
 import poly.edu.vantix_hrm.repository.AuthTokenRepository;
+import poly.edu.vantix_hrm.repository.EmployeeRepository;
 import poly.edu.vantix_hrm.repository.UserRepository;
 import poly.edu.vantix_hrm.security.JwtService;
 
@@ -23,6 +25,7 @@ import java.util.Random;
 public class AuthService {
 
     private final UserRepository      userRepository;
+    private final EmployeeRepository  employeeRepository;
     private final AuthTokenRepository authTokenRepository;
     private final PasswordEncoder     passwordEncoder;
     private final JwtService          jwtService;
@@ -63,7 +66,7 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public UserProfileResponse me(Long userId) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdWithRoleAndPermissions(userId)
                 .orElseThrow(() -> new BusinessException(
                         "user", "User not found!", HttpStatus.NOT_FOUND));
 
@@ -78,8 +81,13 @@ public class AuthService {
                 .toList()
                 : List.of();
 
+        Long employeeId = employeeRepository.findByUserIdAndDeletedFalse(user.getId())
+                .map(Employee::getId)
+                .orElse(null);
+
         return UserProfileResponse.builder()
                 .id(user.getId())
+                .employeeId(employeeId)
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .role(user.getRole() != null ? user.getRole().getName() : null)

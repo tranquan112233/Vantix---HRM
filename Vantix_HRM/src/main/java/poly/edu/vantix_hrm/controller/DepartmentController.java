@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import poly.edu.vantix_hrm.dto.department.DepartmentRequestDTO;
 import poly.edu.vantix_hrm.dto.department.DepartmentResponseDTO;
@@ -19,6 +20,7 @@ public class DepartmentController {
     private final DepartmentService departmentService;
 
     // GET /api/departments?keyword=&page=0&size=10&sortBy=createdAt&sortDir=desc
+    @PreAuthorize("hasAuthority('DEPARTMENT_VIEW')")
     @GetMapping
     public ResponseEntity<PageResponseDTO<DepartmentResponseDTO>> getAll(
             @RequestParam(required = false) String keyword,
@@ -27,18 +29,21 @@ public class DepartmentController {
     }
 
     // GET /api/departments/{id}
+    @PreAuthorize("hasAuthority('DEPARTMENT_VIEW')")
     @GetMapping("/{id}")
     public ResponseEntity<DepartmentResponseDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(departmentService.getById(id));
     }
 
     // POST /api/departments
+    @PreAuthorize("hasAuthority('DEPARTMENT_CREATE')")
     @PostMapping
     public ResponseEntity<DepartmentResponseDTO> create(@Valid @RequestBody DepartmentRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(departmentService.create(request));
     }
 
     // PUT /api/departments/{id}
+    @PreAuthorize("hasAuthority('DEPARTMENT_UPDATE')")
     @PutMapping("/{id}")
     public ResponseEntity<DepartmentResponseDTO> update(
             @PathVariable Long id,
@@ -47,6 +52,7 @@ public class DepartmentController {
     }
 
     // DELETE /api/departments/{id}
+    @PreAuthorize("hasAuthority('DEPARTMENT_DELETE')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         departmentService.delete(id);

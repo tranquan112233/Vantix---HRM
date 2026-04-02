@@ -11,9 +11,9 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface DailyWorkSchedulesRepository extends JpaRepository<DailyWorkSchedules, Integer> {
+public interface DailyWorkSchedulesRepository extends JpaRepository<DailyWorkSchedules, Long> {
     // Dùng cho Schedules
-    List<DailyWorkSchedules> findByMonthlySchedule_MonthlyScheduleId(Integer monthlyScheduleId);
+    List<DailyWorkSchedules> findByMonthlySchedule_MonthlyScheduleId(Long monthlyScheduleId);
 
     // Dùng cho Attendance
     @Query("SELECT dws FROM DailyWorkSchedules dws " + "WHERE dws.monthlySchedule.employee.id = :employeeId " + "AND dws.workDate = :workDate")

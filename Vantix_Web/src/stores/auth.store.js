@@ -59,12 +59,16 @@ export const useAuthStore = defineStore('auth', () => {
 
     function can(permission) {
         if (!permission) return true
-
         if (!user.value) return false
-
         if (user.value.role === 'ADMIN') return true
 
-        return user.value.permissions?.includes(permission) || false
+        const userPermissions = user.value.permissions || []
+
+        if (Array.isArray(permission)) {
+            return permission.some(p => userPermissions.includes(p))
+        } else {
+            return userPermissions.includes(permission)
+        }
     }
 
     function canAny(permissions) {

@@ -6,6 +6,7 @@ import lombok.Data;
 public class EmployeeScheduleDTO {
     private Long employeeId;
     private String fullName;
-    
+    private boolean manager;
+
     private MonthlyScheduleDTO monthlySchedule;
 }

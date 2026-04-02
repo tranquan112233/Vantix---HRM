@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import poly.edu.vantix_hrm.dto.page.PageRequestDTO;
 import poly.edu.vantix_hrm.dto.page.PageResponseDTO;
@@ -21,6 +22,7 @@ public class PositionController {
     private final PositionService positionService;
 
     // GET /api/positions?keyword=&page=0&size=10&sortBy=createdAt&sortDir=desc
+    @PreAuthorize("hasAuthority('POSITION_VIEW')")
     @GetMapping
     public ResponseEntity<PageResponseDTO<PositionResponseDTO>> getAll(
             @RequestParam(required = false) String keyword,
@@ -29,24 +31,28 @@ public class PositionController {
     }
 
     // GET /api/positions/department/{departmentId}
+    @PreAuthorize("hasAuthority('POSITION_VIEW')")
     @GetMapping("/department/{departmentId}")
     public ResponseEntity<List<PositionResponseDTO>> getByDepartment(@PathVariable Long departmentId) {
         return ResponseEntity.ok(positionService.getByDepartment(departmentId));
     }
 
     // GET /api/positions/{id}
+    @PreAuthorize("hasAuthority('POSITION_VIEW')")
     @GetMapping("/{id}")
     public ResponseEntity<PositionResponseDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(positionService.getById(id));
     }
 
     // POST /api/positions
+    @PreAuthorize("hasAuthority('POSITION_CREATE')")
     @PostMapping
     public ResponseEntity<PositionResponseDTO> create(@Valid @RequestBody PositionRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(positionService.create(request));
     }
 
     // PUT /api/positions/{id}
+    @PreAuthorize("hasAuthority('POSITION_UPDATE')")
     @PutMapping("/{id}")
     public ResponseEntity<PositionResponseDTO> update(
             @PathVariable Long id,
@@ -55,6 +61,7 @@ public class PositionController {
     }
 
     // DELETE /api/positions/{id}
+    @PreAuthorize("hasAuthority('POSITION_DELETE')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         positionService.delete(id);

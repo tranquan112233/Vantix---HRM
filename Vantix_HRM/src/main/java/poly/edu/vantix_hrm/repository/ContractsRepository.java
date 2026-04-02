@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Repository
-public interface ContractsRepository extends JpaRepository<Contract, Integer> {
+public interface ContractsRepository extends JpaRepository<Contract, Long> {
 
     // Lấy danh sách hợp đồng kèm thông tin nhân viên (tránh lỗi N+1) và sắp xếp ID giảm dần
     @Query("SELECT c FROM Contract c JOIN FETCH c.employee e ORDER BY c.contractId DESC")
