@@ -22,7 +22,8 @@ import LeaveManagement from "@/views/main/LeaveManagement.vue";
 import ContractAnnex from "@/views/main/ContractAnnex.vue";
 import Contract from "@/views/main/Contract.vue";
 import AttendanceManagement from "@/views/main/AttendanceManagement.vue";
-import Salarie from "@/views/main/Salarie.vue";
+import Salary from "@/views/main/Salary.vue";
+import Attendance from "@/views/main/Attendance.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -133,8 +134,13 @@ const router = createRouter({
                 },
                 {
                     path: 'salary',
-                    component: Salarie,
+                    component: Salary,
                     meta: {title: 'Salaries'}
+                },
+                {
+                    path: 'attendance',
+                    component: Attendance,
+                    meta: {title: 'Attendance'}
                 }
 
                 // Ví dụ thêm

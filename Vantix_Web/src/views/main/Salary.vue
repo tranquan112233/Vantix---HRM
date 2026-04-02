@@ -1,6 +1,5 @@
 <template>
   <div class="salary-management">
-    <!-- Header -->
     <div class="page-header">
       <div class="header-left">
         <div class="title-icon bg-success-gradient">
@@ -16,7 +15,6 @@
           <i class="bi bi-download"></i>
           <span>Xuất File Bảng Lương</span>
         </button>
-        <!-- Thường làm: Nút tự động tính lương tháng thay vì tạo tay -->
         <button class="btn-primary bg-success-gradient" @click="openGenerateModal">
           <i class="bi bi-calculator"></i>
           <span>Chốt Lương Tháng</span>
@@ -24,7 +22,6 @@
       </div>
     </div>
 
-    <!-- Stats Row -->
     <div class="stats-row">
       <div class="stat-card">
         <div class="stat-icon total-icon"><i class="bi bi-wallet2"></i></div>
@@ -49,7 +46,6 @@
       </div>
     </div>
 
-    <!-- Filter Bar -->
     <div class="filter-card">
       <div class="filter-content">
         <div class="search-wrapper">
@@ -62,10 +58,26 @@
           />
         </div>
 
-        <!-- Filter Tháng -->
         <div class="input-wrapper month-picker">
           <i class="bi bi-calendar-month text-muted ms-2"></i>
-          <input type="month" v-model="filters.month" class="filter-select custom-month"/>
+          <input
+              ref="monthInput"
+              type="month"
+              v-model="filters.month"
+              class="filter-select custom-month"
+              @click="openMonthPicker"
+              @keydown.prevent
+          />
+        </div>
+
+        <div class="select-wrapper">
+          <select v-model="filters.department" class="filter-select">
+            <option value="">Tất cả Phòng ban</option>
+            <option value="IT">Công nghệ thông tin</option>
+            <option value="HR">Nhân sự</option>
+            <option value="KD">Kinh doanh</option>
+          </select>
+          <i class="bi bi-chevron-down select-icon"></i>
         </div>
 
         <div class="select-wrapper">
@@ -81,7 +93,6 @@
       </div>
     </div>
 
-    <!-- Table Container - CHỈ HIỂN THỊ CỘT CHÍNH -->
     <div class="table-container">
       <div class="table-responsive">
         <table class="data-table">
@@ -108,7 +119,9 @@
                 </div>
                 <div class="user-info">
                   <span class="user-name">{{ salary.employeeName }}</span>
-                  <span class="user-email">ID: {{ salary.employeeId }}</span>
+                  <span class="user-email">ID: {{ salary.employeeId }} - {{
+                      getDepartmentName(salary.department)
+                    }}</span>
                 </div>
               </div>
             </td>
@@ -129,7 +142,6 @@
             </td>
             <td>
               <div class="action-buttons justify-content-center">
-                <!-- Nút xem chi tiết (Phiếu lương) -->
                 <button class="action-btn view-btn" @click="openDetail(salary)" title="Xem Phiếu Lương Chi Tiết">
                   <i class="bi bi-file-earmark-spreadsheet"></i>
                 </button>
@@ -145,7 +157,6 @@
       </div>
     </div>
 
-    <!-- Modal Chi Tiết Phiếu Lương (Payslip) - NƠI CHỨA CÁC TRƯỜNG DÀI -->
     <teleport to="body">
       <transition name="modal-fade">
         <div v-if="detailModal.show" class="modal-overlay" @click.self="detailModal.show = false">
@@ -168,7 +179,6 @@
 
             <div class="modal-body payslip-body">
               <div class="payslip-grid">
-                <!-- Cột Thu Nhập -->
                 <div class="payslip-col">
                   <h4 class="payslip-col-title text-success"><i class="bi bi-plus-circle"></i> KHOẢN THU NHẬP</h4>
                   <ul class="payslip-list">
@@ -196,7 +206,6 @@
                   </ul>
                 </div>
 
-                <!-- Cột Khấu trừ -->
                 <div class="payslip-col">
                   <h4 class="payslip-col-title text-danger"><i class="bi bi-dash-circle"></i> KHOẢN KHẤU TRỪ</h4>
                   <ul class="payslip-list">
@@ -225,7 +234,6 @@
                 </div>
               </div>
 
-              <!-- Tổng kết NET -->
               <div class="payslip-net-box">
                 <div class="net-left">
                   <span>THỰC NHẬN (NET SALARY)</span>
@@ -242,7 +250,6 @@
                 </div>
               </div>
 
-              <!-- Ghi chú -->
               <div class="payslip-note mt-3" v-if="detailModal.data.note">
                 <strong><i class="bi bi-pencil-square"></i> Ghi chú:</strong>
                 <p>{{ detailModal.data.note }}</p>
@@ -278,10 +285,12 @@
 <script setup>
 import {ref, reactive, computed} from 'vue'
 
-// Dữ liệu giả lập khớp với cấu trúc Entity Salarie
+const monthInput = ref(null)
+
+// Dữ liệu giả lập (Thêm field department)
 const salaries = ref([
   {
-    salaryId: 1, employeeId: 'EMP001', employeeName: 'Nguyễn Văn Bảo', salaryMonth: '2026-03-01',
+    salaryId: 1, employeeId: 'EMP001', employeeName: 'Nguyễn Văn Bảo', department: 'IT', salaryMonth: '2026-03-01',
     baseSalarySnapshot: 15000000, standardWorkDays: 22, actualWorkDays: 22,
     allowance: 1000000, bonus: 500000,
     bhxhAmount: 1200000, bhytAmount: 225000, bhtnAmount: 150000, taxAmount: 300000,
@@ -289,7 +298,7 @@ const salaries = ref([
     status: 'PAID', note: 'Đã thanh toán qua VCB'
   },
   {
-    salaryId: 2, employeeId: 'EMP002', employeeName: 'Trần Thị Hà', salaryMonth: '2026-03-01',
+    salaryId: 2, employeeId: 'EMP002', employeeName: 'Trần Thị Hà', department: 'HR', salaryMonth: '2026-03-01',
     baseSalarySnapshot: 12000000, standardWorkDays: 22, actualWorkDays: 20,
     allowance: 500000, bonus: 0,
     bhxhAmount: 960000, bhytAmount: 180000, bhtnAmount: 120000, taxAmount: 0,
@@ -298,25 +307,34 @@ const salaries = ref([
   }
 ])
 
-const filters = reactive({keyword: '', status: '', month: '2026-03'})
+const filters = reactive({keyword: '', status: '', month: '2026-03', department: ''})
 const detailModal = reactive({show: false, data: {}})
 
-// Computed Filter
+// Computed Filter (Đã thêm logic phòng ban)
 const filteredSalaries = computed(() => {
   return salaries.value.filter(s => {
     const matchName = s.employeeName.toLowerCase().includes(filters.keyword.toLowerCase()) || s.employeeId.includes(filters.keyword)
     const matchStatus = filters.status ? s.status === filters.status : true
     const matchMonth = filters.month ? s.salaryMonth.startsWith(filters.month) : true
-    return matchName && matchStatus && matchMonth
+    const matchDept = filters.department ? s.department === filters.department : true
+    return matchName && matchStatus && matchMonth && matchDept
   })
 })
 
-// Computed Stats
 const totalPayrollCost = computed(() => filteredSalaries.value.reduce((sum, s) => sum + s.netSalary, 0))
 const pendingCount = computed(() => filteredSalaries.value.filter(s => s.status === 'PENDING').length)
 const paidCount = computed(() => filteredSalaries.value.filter(s => s.status === 'PAID').length)
 
-// Formatters
+function openMonthPicker() {
+  if (monthInput.value && typeof monthInput.value.showPicker === 'function') {
+    try {
+      monthInput.value.showPicker();
+    } catch (e) {
+      // Bỏ qua lỗi nếu trình duyệt không hỗ trợ showPicker
+    }
+  }
+}
+
 function formatCurrency(val) {
   if (val == null) return '0 ₫'
   return new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(val)
@@ -332,6 +350,11 @@ function getInitials(name) {
   return name ? name.charAt(0).toUpperCase() : '?'
 }
 
+function getDepartmentName(code) {
+  const map = {'IT': 'Công nghệ thông tin', 'HR': 'Nhân sự', 'KD': 'Kinh doanh'}
+  return map[code] || code
+}
+
 function getStatusClass(status) {
   const map = {
     'DRAFT': 'status-draft',
@@ -342,7 +365,6 @@ function getStatusClass(status) {
   return map[status] || 'status-draft'
 }
 
-// Avatar Colors
 const GRADIENTS = [
   'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
   'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
@@ -354,7 +376,6 @@ function avatarGradient(name) {
   return GRADIENTS[Math.abs(hash) % GRADIENTS.length]
 }
 
-// Actions
 function openDetail(salary) {
   detailModal.data = {...salary}
   detailModal.show = true
@@ -362,7 +383,6 @@ function openDetail(salary) {
 
 function updateStatus(data, newStatus) {
   data.status = newStatus
-  // Tìm index trong mảng gốc update giả lập
   const idx = salaries.value.findIndex(s => s.salaryId === data.salaryId)
   if (idx !== -1) salaries.value[idx].status = newStatus
   alert(`Cập nhật trạng thái thành: ${newStatus}`)
@@ -389,7 +409,6 @@ function openGenerateModal() {
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-/* ── Kế thừa 100% Style của UserManagement ── */
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -438,7 +457,6 @@ function openGenerateModal() {
   align-items: center;
 }
 
-/* Thay đổi màu chủ đạo cho Lương (Xanh lá) thay vì Xanh tím */
 .bg-success-gradient {
   background: linear-gradient(135deg, #10b981, #059669) !important;
   color: white;
@@ -584,7 +602,8 @@ function openGenerateModal() {
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
-.select-wrapper {
+/* Thêm class này để các wrapper có position relative */
+.input-wrapper, .select-wrapper {
   position: relative;
   min-width: 140px;
 }
@@ -603,14 +622,32 @@ function openGenerateModal() {
   font-weight: 500;
 }
 
+/* CSS Mới: Đưa icon mũi tên vào bên trong select */
+.select-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 12px;
+  pointer-events: none; /* Bấm vào icon xuyên qua select */
+}
+
+/* CSS Chỉnh sửa cho ô Tháng (Ẩn con trỏ, vẫn click được) */
 .custom-month {
   padding-left: 36px;
   padding-right: 12px;
+  caret-color: transparent;
+}
+
+.custom-month:focus {
+  outline: none;
+  border-color: #10b981;
 }
 
 .month-picker i {
   position: absolute;
-  left: 0;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
@@ -769,7 +806,6 @@ function openGenerateModal() {
   font-size: 14px;
 }
 
-/* Custom Status for Salary */
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -863,7 +899,7 @@ function openGenerateModal() {
   color: #7c3aed;
 }
 
-/* ── Modal Phiếu Lương (Payslip) ── */
+/* Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1078,7 +1114,6 @@ function openGenerateModal() {
   margin-top: 16px;
 }
 
-/* Transitions */
 .modal-fade-enter-active, .modal-fade-leave-active {
   transition: opacity 0.25s ease;
 }

@@ -45,13 +45,13 @@ export const menuSections = [
             { label: 'Employees',        icon: 'bi-people',    to: '/employees',        permission: 'EMPLOYEE_VIEW' },
             { label: 'Contracts',        icon: 'bi-file-text', to: '/contracts',        permission: 'CONTRACT_VIEW' },
             { label: 'Contract Annexes', icon: 'bi-file-plus', to: '/contract-annexes', permission: 'CONTRACT_VIEW' },
-            { label: 'salary', icon: 'bi-file-plus', to: '/salary', permission: 'CONTRACT_VIEW' },
         ]
     },
     {
         section: 'ATTENDANCE & LEAVE',
         items: [
-            { label: 'Attendances', icon: 'bi-calendar-check', to: '/attendance-management', permission: 'ATTENDANCE_VIEW' },
+            { label: 'Contract Annexes', icon: 'bi-file-plus', to: '/contract-annexes', permission: 'CONTRACT_VIEW' },
+            { label: 'Attendances', icon: 'bi-calendar-check', to: '/attendance', permission: 'ATTENDANCE_VIEW' },
             { label: 'Shifts',      icon: 'bi-clock',          to: '/shifts',     permission: 'SHIFT_VIEW'      },
             {
                 label: 'Leave', icon: 'bi-box-arrow-right',
@@ -66,7 +66,7 @@ export const menuSections = [
     {
         section: 'PAYROLL',
         items: [
-            { label: 'Salaries', icon: 'bi-cash-coin', to: '/salaries', permission: 'SALARY_VIEW' },
+            { label: 'Salaries', icon: 'bi-cash-coin', to: '/salary', permission: 'SALARY_VIEW' },
         ]
     },
     {
