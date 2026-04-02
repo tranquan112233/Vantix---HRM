@@ -25,6 +25,7 @@ import AttendanceManagement from "@/views/main/AttendanceManagement.vue";
 import Profile from "@/views/main/Profile.vue";
 import Mytask from "@/views/main/MyTaskManagement.vue";
 import TaskListManagement from "@/views/main/TaskListManagement.vue";
+import Salaries from "@/views/main/Salaries.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -148,6 +149,11 @@ const router = createRouter({
                     path: 'my-task',
                     component: Mytask,
                     meta: { title: 'My Task' }
+                },
+                {
+                    path: 'salaries',
+                    component: Salaries,
+                    meta: { title: 'Salaries Management' }
                 }
 
 
