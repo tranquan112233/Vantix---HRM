@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw clean:*)",
+      "Bash(ls *.sql)",
+      "Bash(python3 -c \"import bcrypt; print\\(bcrypt.hashpw\\(b'123456', bcrypt.gensalt\\(10\\)\\).decode\\(\\)\\)\")",
+      "Bash(python -c \"import bcrypt; print\\(bcrypt.hashpw\\(b'123456', bcrypt.gensalt\\(10\\)\\).decode\\(\\)\\)\")",
+      "Bash(node -e \"const bcrypt = require\\('bcrypt'\\); bcrypt.hash\\('123456', 10\\).then\\(h => console.log\\(h\\)\\)\")",
+      "Bash(where mvn:*)",
+      "Bash(where java:*)"
+    ]
+  }
+}
