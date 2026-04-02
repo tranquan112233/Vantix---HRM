@@ -52,7 +52,8 @@ VALUES ('ADMIN', 'Quản trị viên hệ thống - có tất cả quyền', NOW
        ('HR_MANAGER', 'Quản lý nhân sự - quản lý nhân viên, phòng ban, vị trí', NOW(), NOW(), 1, 1, false),
        ('DEPARTMENT_MANAGER', 'Trưởng phòng - quản lý nhân viên trong phòng', NOW(), NOW(), 1, 1, false),
        ('EMPLOYEE', 'Nhân viên - quyền cơ bản', NOW(), NOW(), 1, 1, false),
-       ('ACCOUNTANT', 'Kế Toán - quyền quản lý dòng tiền của công ty', NOW(), NOW(), 1, 1, false);
+       ('ACCOUNTANT', 'Kế Toán - quyền quản lý dòng tiền của công ty', NOW(), NOW(), 1, 1, false),
+       ('CEO', 'Tổng Giám Đốc - Giám Đốc Bướng Bỉnh', NOW(), NOW(), 1, 1, false);
 -- 3. ASSIGN PERMISSIONS TO ROLES (role_permissions)
 -- =====================================================
 -- ADMIN: Tất cả quyền (lấy tất cả permission ID từ 1-26)
