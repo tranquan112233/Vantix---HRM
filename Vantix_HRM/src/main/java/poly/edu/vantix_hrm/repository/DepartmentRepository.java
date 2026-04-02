@@ -29,4 +29,5 @@ public interface DepartmentRepository extends JpaRepository<Department, Long>,
     // Đếm số vị trí trong phòng ban
     @Query("SELECT COUNT(p) FROM Position p WHERE p.department.id = :departmentId AND p.deleted = false")
     long countPositionsByDepartmentId(@Param("departmentId") Long departmentId);
+
 }

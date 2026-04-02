@@ -6,5 +6,5 @@ import poly.edu.vantix_hrm.entity.Salary;
 
 @Repository
 public interface SalariesRepository extends JpaRepository<Salary, Integer> {
-    
+
 }
