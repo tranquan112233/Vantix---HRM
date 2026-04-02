@@ -46,15 +46,10 @@ class TaskService {
     }
 
     /* ================= REPORT ================= */
-    // taskApi.service.js
-    async report(formData) {
-        return await api.post('/tasks/report', formData, {
-            // Bỏ 'Content-Type': 'multipart/form-data' thủ công
-            // để Axios tự động set cùng với 'boundary' (cái này rất quan trọng)
-            headers: {
-                'Content-Type': undefined
-            }
-        });
+    async report(reportData) {
+        // Xóa bỏ phần headers: { 'Content-Type': 'multipart/form-data' }
+        // Để Axios tự xử lý hoàn toàn
+        return api.post('/tasks/report', reportData);
     }
 
     /* ================= MY TASK ================= */

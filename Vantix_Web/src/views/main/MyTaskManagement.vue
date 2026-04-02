@@ -66,6 +66,13 @@
               <input type="range" v-model="report.progressPercent" class="form-range" min="0" max="100" step="5">
             </div>
 
+            <div class="mb-3 mt-4">
+              <label class="form-label fw-bold small text-muted text-uppercase d-block mb-2">
+                Mô tả công việc đã làm <span class="text-danger">*</span>
+              </label>
+              <textarea v-model="report.workDescription" class="form-control rounded-3" rows="3" placeholder="Ví dụ: Đã code xong giao diện UI, fix xong bug..."></textarea>
+            </div>
+
             <div class="mb-4 bg-light p-3 rounded-3 mt-3">
               <label class="form-label fw-bold small text-muted text-uppercase mb-2 d-block">Minh chứng (Bắt buộc nếu 100%)</label>
               <input type="file" class="form-control" @change="handleFileUpload">
@@ -92,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import taskService from "@/services/taskApi.service"
 import { getUser } from "@/utils/jwtDecode"
 
@@ -102,7 +109,6 @@ const showModal = ref(false)
 const loadingReport = ref(false)
 const selectedFile = ref(null)
 
-// 1. Lấy ID chuẩn: Em bọc thêm các trường hợp key phổ biến trong JWT
 const user = getUser()
 const currentEmployeeId = user?.id || user?.employeeId || user?.sub || 6
 
@@ -118,7 +124,6 @@ const loadTasks = async () => {
     console.log("🔍 Đang tải task cho NV ID:", currentEmployeeId);
     const res = await taskService.myTasks(currentEmployeeId)
 
-    // 2. Bóc tách dữ liệu an toàn (Phòng trường hợp API bọc trong field data)
     let rawData = []
     if (Array.isArray(res.data)) {
       rawData = res.data
@@ -128,11 +133,9 @@ const loadTasks = async () => {
 
     console.log("📦 Dữ liệu thô từ server:", rawData);
 
-    // 3. Logic Filter: Nới lỏng một chút để tránh mất task oan
     tasks.value = rawData.filter(t => {
       const progress = Number(t.progressPercent || 0);
       const isNotFinalized = t.status !== 'DONE' && t.status !== 'COMPLETED';
-      // Chỉ ẩn khi đã đạt 100% HOẶC đã chốt trạng thái hoàn thành
       return progress < 100 && isNotFinalized;
     });
 
@@ -144,8 +147,10 @@ const loadTasks = async () => {
 
 // --- XỬ LÝ MODAL & FILE ---
 const openReport = (task) => {
+  console.log("🔍 Task đang chọn:", task);
+
   Object.assign(report, {
-    taskId: task.taskId,
+    taskId: task.id || task.taskId,
     workDescription: "",
     progressPercent: Number(task.progressPercent || 0)
   })
@@ -155,40 +160,49 @@ const openReport = (task) => {
 
 const handleFileUpload = (e) => {
   const file = e.target.files[0];
-  if (file && file.size > 5 * 1024 * 1024) { // Giới hạn 5MB cho an toàn
-    alert("File quá lớn! Vui lòng chọn file dưới 5MB.");
-    e.target.value = "";
-    return;
-  }
-  selectedFile.value = file
+  selectedFile.value = file || null;
 }
 
 const closeModal = () => { showModal.value = false }
 
-// --- GỬI BÁO CÁO ---
-// MyTaskManagement.vue
 const submitReport = async () => {
+  if (!report.taskId) {
+    return alert("❌ Lỗi hệ thống: Không lấy được ID công việc! Vui lòng F5 lại trang.");
+  }
+
+  if (!report.workDescription || !report.workDescription.trim()) {
+    return alert("Vui lòng nhập mô tả công việc đã làm!");
+  }
+
+  const is100 = Number(report.progressPercent) === 100;
+
+  if (is100 && !selectedFile.value) {
+    return alert("⚠️ Bạn phải đính kèm file minh chứng khi hoàn thành 100%!");
+  }
+
+  loadingReport.value = true;
   try {
     const fd = new FormData();
-    // Phải append đúng các key mà Backend đang chờ
     fd.append('taskId', report.taskId);
     fd.append('employeeId', currentEmployeeId);
     fd.append('workDescription', report.workDescription);
     fd.append('progressPercent', report.progressPercent);
-    fd.append('status', Number(report.progressPercent) === 100 ? 'DONE' : 'IN_PROGRESS');
+    fd.append('status', is100 ? 'DONE' : 'IN_PROGRESS');
 
     if (selectedFile.value) {
-      // Key này PHẢI là 'file'
       fd.append('file', selectedFile.value);
-      console.log("File chuẩn bị gửi:", selectedFile.value.name);
     }
 
-    const response = await taskService.report(fd);
-    console.log("Kết quả từ server:", response.data);
-    // ... xử lý thành công
+    await taskService.report(fd);
+
+    alert(is100 ? "🎉 Nộp bài thành công! Task đang chờ Admin duyệt." : "✅ Đã lưu tiến độ.");
+    closeModal();
+    await loadTasks();
   } catch (error) {
-    console.error("Lỗi nộp bài:", error.response?.data || error.message);
-    alert(error.response?.data || "Lỗi nộp bài!");
+    console.error("Lỗi nộp bài:", error);
+    alert(error.response?.data?.message || error.response?.data || "Lỗi nộp bài (400 Bad Request)!");
+  } finally {
+    loadingReport.value = false;
   }
 }
 

@@ -1,7 +1,7 @@
 import { jwtDecode } from "jwt-decode";
 
 export const getUser = () => {
-    // 1. Kiểm tra chính xác tên Key anh lưu trong LocalStorage lúc Login là gì?
+    // 1. Lấy token (hỗ trợ cả 2 trường hợp lưu key là "token" hoặc "accessToken")
     const token = localStorage.getItem("token") || localStorage.getItem("accessToken");
 
     if (!token) {
@@ -11,40 +11,35 @@ export const getUser = () => {
 
     try {
         const decoded = jwtDecode(token);
-        // Log ra để anh nhìn tận mắt các trường trong Token (id, sub, userId, hay employeeId?)
+
+        // 2. Kiểm tra token hết hạn (Code hay từ hàm 2)
+        // Lưu ý: exp tính bằng giây, Date.now() tính bằng mili-giây
+        if (decoded.exp && (decoded.exp * 1000 < Date.now())) {
+            console.warn("⚠️ Token đã hết hạn! Tự động xóa token...");
+            localStorage.removeItem("token");
+            localStorage.removeItem("accessToken");
+            return null;
+        }
+
+        // 3. Log ra để anh nhìn tận mắt các trường trong Token
         console.log("💎 Decoded Token:", decoded);
 
+        // 4. Trả về object đã được chuẩn hóa (Code hay từ hàm 1 + gộp nguyên bản)
         return {
-            // Spring Boot thường để ID vào 'id' hoặc 'sub'. Anh check console rồi sửa chỗ này cho đúng
-            id: decoded.id || decoded.sub || decoded.userId,
+            ...decoded, // Bê nguyên toàn bộ các trường gốc trong token trả về
+            // Tạo thêm trường 'id' dự phòng nếu Spring Boot trả về tên khác
+            id: decoded.id || decoded.sub || decoded.userId || decoded.employeeId,
             fullName: decoded.fullName,
             role: decoded.role
         };
     } catch (error) {
         console.error("❌ Lỗi giải mã Token:", error);
+        // Token sai định dạng thì xóa luôn cho an toàn
+        localStorage.removeItem("token");
+        localStorage.removeItem("accessToken");
         return null;
     }
 };
-
-export function getUser() {
-    const token = localStorage.getItem("token")
-    if (!token) return null
-
-    try {
-        const decoded = jwtDecode(token)
-
-        // kiểm tra hết hạn
-        if (decoded.exp * 1000 < Date.now()) {
-            localStorage.removeItem("token")
-            return null
-        }
-
-        return decoded
-    } catch (error) {
-        localStorage.removeItem("token")
-        return null
-    }
-}
 
 export function getRole() {
     return getUser()?.role || null
