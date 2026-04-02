@@ -1,15 +1,30 @@
 import { jwtDecode } from "jwt-decode";
 
-export function getUserIdFromToken(){
+export const getUser = () => {
+    // 1. Kiểm tra chính xác tên Key anh lưu trong LocalStorage lúc Login là gì?
+    const token = localStorage.getItem("token") || localStorage.getItem("accessToken");
 
-    const token = localStorage.getItem("token");
+    if (!token) {
+        console.warn("⚠️ Không tìm thấy Token trong LocalStorage!");
+        return null;
+    }
 
-    if(!token) return null;
+    try {
+        const decoded = jwtDecode(token);
+        // Log ra để anh nhìn tận mắt các trường trong Token (id, sub, userId, hay employeeId?)
+        console.log("💎 Decoded Token:", decoded);
 
-    const decoded = jwtDecode(token);
-
-    return decoded.sub;
-}
+        return {
+            // Spring Boot thường để ID vào 'id' hoặc 'sub'. Anh check console rồi sửa chỗ này cho đúng
+            id: decoded.id || decoded.sub || decoded.userId,
+            fullName: decoded.fullName,
+            role: decoded.role
+        };
+    } catch (error) {
+        console.error("❌ Lỗi giải mã Token:", error);
+        return null;
+    }
+};
 
 export function getUser() {
     const token = localStorage.getItem("token")

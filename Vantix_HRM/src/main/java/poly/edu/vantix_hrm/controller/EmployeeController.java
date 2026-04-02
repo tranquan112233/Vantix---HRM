@@ -11,8 +11,15 @@ import poly.edu.vantix_hrm.dto.employee.EmployeeResponseDTO;
 import poly.edu.vantix_hrm.dto.page.PageRequestDTO;
 import poly.edu.vantix_hrm.dto.page.PageResponseDTO;
 import poly.edu.vantix_hrm.dto.profile.UserProfileDTO;
+import poly.edu.vantix_hrm.entity.Employee;
 import poly.edu.vantix_hrm.entity.Employee.WorkStatus;
+import poly.edu.vantix_hrm.repository.EmployeeRepository;
 import poly.edu.vantix_hrm.service.EmployeeService;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 
 @RestController
@@ -21,6 +28,7 @@ import poly.edu.vantix_hrm.service.EmployeeService;
 public class EmployeeController {
 
     private final EmployeeService employeeService;
+    private final EmployeeRepository employeeRepository;
 
     // GET /api/employees?keyword=&workStatus=&departmentId=&page=0&size=10&sortBy=createdAt&sortDir=desc
     @PreAuthorize("hasAuthority('EMPLOYEE_VIEW')")
@@ -74,5 +82,21 @@ public class EmployeeController {
     @GetMapping("/my-profile")
     public ResponseEntity<UserProfileDTO> getMyProfile() {
         return ResponseEntity.ok(employeeService.getMyProfile());
+    }
+
+    // API: Lấy danh sách nhân viên để đổ vào Dropdown
+    @GetMapping("/dropdown")
+    public ResponseEntity<List<Map<String, Object>>> getEmployeeDropdown() {
+        List<Employee> employees = employeeRepository.findAll();
+
+        List<Map<String, Object>> result = employees.stream().map(emp -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", emp.getId());
+            map.put("fullName", emp.getFullName());
+            map.put("departmentName", emp.getDepartment() != null ? emp.getDepartment().getName() : "Chưa cập nhật");
+            return map;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(result);
     }
 }

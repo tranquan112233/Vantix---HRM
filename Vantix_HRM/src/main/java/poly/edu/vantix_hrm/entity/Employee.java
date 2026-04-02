@@ -1,5 +1,6 @@
 package poly.edu.vantix_hrm.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Table(name = "employees")
@@ -15,6 +17,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 public class Employee extends BaseEntity {  // ← Thêm extends BaseEntity
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

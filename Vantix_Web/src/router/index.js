@@ -23,6 +23,8 @@ import ContractAnnex from "@/views/main/ContractAnnex.vue";
 import Contract from "@/views/main/Contract.vue";
 import AttendanceManagement from "@/views/main/AttendanceManagement.vue";
 import Profile from "@/views/main/Profile.vue";
+import Mytask from "@/views/main/MyTaskManagement.vue";
+import TaskListManagement from "@/views/main/TaskListManagement.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -136,7 +138,18 @@ const router = createRouter({
                     path: 'profile',
                     component: Profile,
                     meta: { title: 'Profile' }
+                },
+                {
+                    path: 'task-management',
+                    component: TaskListManagement,
+                    meta: { title: 'Task Management' }
+                },
+                {
+                    path: 'my-task',
+                    component: Mytask,
+                    meta: { title: 'My Task' }
                 }
+
 
 
                 // Ví dụ thêm
