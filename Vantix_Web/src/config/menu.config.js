@@ -1,15 +1,5 @@
 /*
- * menu.config.js
- * ─────────────────────────────────────────────────────────────────────────
- * Cấu hình menu sidebar theo section
- *
- * Cấu trúc item:
- *   { label, icon, to, permission? }          ← item đơn
- *   { label, icon, children: [...items] }     ← group có submenu
- *
- * Lưu ý:
- *   - Không có "permission" → mọi user đều thấy
- *   - Tên permission phải KHỚP CHÍNH XÁC với DB (Permission.name)
+ * menu.config.js (Updated)
  * ─────────────────────────────────────────────────────────────────────────
  */
 
@@ -18,6 +8,24 @@ export const menuSections = [
         section: 'DASHBOARD',
         items: [
             { label: 'Dashboard', icon: 'bi-grid-1x2', to: '/' },
+        ]
+    },
+    // --- PHẦN TASK MỚI THÊM VÀO ĐÂY ---
+    {
+        section: 'TASK SYSTEM',
+        items: [
+            {
+                label: 'Task Inventory',
+                icon: 'bi-clipboard-data',
+                to: '/task-management',
+                permission: 'TASK_VIEW' // Quyền dành cho Admin/Manager
+            },
+            {
+                label: 'My Tasks',
+                icon: 'bi-person-workspace',
+                to: '/my-task'
+                // Không để permission hoặc dùng quyền cơ bản để nhân viên nào cũng thấy
+            },
         ]
     },
     {
@@ -50,8 +58,9 @@ export const menuSections = [
     {
         section: 'ATTENDANCE & LEAVE',
         items: [
-            { label: 'Attendances', icon: 'bi-calendar-check', to: '/leaves', permission: 'ATTENDANCE_VIEW' },
-            { label: 'Shifts',      icon: 'bi-clock',          to: '/shifts',     permission: 'SHIFT_VIEW'      },
+            // 🔥 Lưu ý: Em đã sửa lại link "to" ở đây vì nãy anh đang để nhầm sang task-management
+            { label: 'Attendances', icon: 'bi-calendar-check', to: '/attendances', permission: 'ATTENDANCE_VIEW' },
+            { label: 'Shifts',      icon: 'bi-clock',          to: '/shifts',      permission: 'SHIFT_VIEW'      },
 
             { label: 'Leave Requests', icon: 'bi-send',       to: '/leaves', permission: 'LEAVE_VIEW'   },
             { label: 'Leave Manager',  icon: 'bi-inbox',      to: '/leaves-manager',  permission: 'LEAVE_MANAGE' },
@@ -61,14 +70,14 @@ export const menuSections = [
     {
         section: 'PAYROLL',
         items: [
-            { label: 'Salaries', icon: 'bi-cash-coin', to: '/leaves-manager', permission: 'SALARY_VIEW' },
+            { label: 'Salaries', icon: 'bi-cash-coin', to: '/salaries', permission: 'SALARY_VIEW' },
         ]
     },
     {
         section: 'OTHERS',
         items: [
-            { label: 'Settings', icon: 'bi-setting', to: '/settings'},
-            { label: 'Schedules', icon: 'bi-setting', to: '/schedules'},
+            { label: 'Settings', icon: 'bi-gear', to: '/settings'}, // Đổi bi-setting thành bi-gear cho đúng chuẩn Bootstrap Icon
+            { label: 'Schedules', icon: 'bi-calendar3', to: '/schedules'},
         ]
     },
 ]
