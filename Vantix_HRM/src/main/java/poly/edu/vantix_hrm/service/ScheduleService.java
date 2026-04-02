@@ -10,6 +10,7 @@ import poly.edu.vantix_hrm.dto.schedule.MonthlyScheduleDTO;
 import poly.edu.vantix_hrm.entity.DailyWorkSchedules;
 import poly.edu.vantix_hrm.entity.Employee;
 import poly.edu.vantix_hrm.entity.MonthlySchedules;
+import poly.edu.vantix_hrm.entity.Shift;
 import poly.edu.vantix_hrm.repository.DailyWorkSchedulesRepository;
 import poly.edu.vantix_hrm.repository.EmployeeRepository;
 import poly.edu.vantix_hrm.repository.MonthlySchedulesRepository;
@@ -35,14 +36,21 @@ public class ScheduleService {
 
         List<EmployeeScheduleDTO> result = new ArrayList<>();
 
-        // Xác định xem người đang xem có phải Trưởng phòng không
-        boolean isManager = viewer.getPosition().getId() == 1;
+        // Xác định xem người đang xem có phải Manager/Admin không (dựa trên Role)
+        boolean isManager = viewer.getUser() != null
+                && viewer.getUser().getRole() != null
+                && ("MANAGER".equalsIgnoreCase(viewer.getUser().getRole().getName())
+                    || "ADMIN".equalsIgnoreCase(viewer.getUser().getRole().getName()));
 
         if (isManager) {
             List<Employee> staffList = employeeRepository.findByDepartment_Id(viewer.getDepartment().getId());
             for (Employee staff : staffList) {
-                // Truyền isManager vào hàm build
-                result.add(buildEmployeeScheduleDTO(staff, month, year, isManager));
+                EmployeeScheduleDTO dto = buildEmployeeScheduleDTO(staff, month, year, isManager);
+                // Đánh dấu viewer là manager trong response của chính họ
+                if (staff.getId().equals(viewerId)) {
+                    dto.setManager(true);
+                }
+                result.add(dto);
             }
         } else {
             result.add(buildEmployeeScheduleDTO(viewer, month, year, isManager));
@@ -56,7 +64,7 @@ public class ScheduleService {
         dto.setEmployeeId(emp.getId());
         dto.setFullName(emp.getFullName());
 
-        MonthlySchedules monthlyEntity = monthlySchedulesRepository.findByEmployee_EmployeeIdAndMonthAndYear(emp.getId(), month, year);
+        MonthlySchedules monthlyEntity = monthlySchedulesRepository.findByEmployee_IdAndMonthAndYear(emp.getId(), month, year);
 
         // LOGIC LỌC DỮ LIỆU Ở ĐÂY:
         // Nếu có lịch, NHƯNG người xem là Nhân Viên VÀ lịch vẫn đang OPEN -> Coi như chưa có lịch
@@ -80,7 +88,10 @@ public class ScheduleService {
                 dDto.setDailyScheduleId(daily.getDailyScheduleId());
                 dDto.setMonthlyScheduleId(monthlyEntity.getMonthlyScheduleId());
                 dDto.setWorkDate(daily.getWorkDate());
-                if (daily.getShift() != null) dDto.setShiftId(daily.getShift().getShiftId());
+                if (daily.getShift() != null) {
+                    dDto.setShiftId(daily.getShift().getShiftId());
+                    dDto.setShiftName(daily.getShift().getShiftName());
+                }
                 dDto.setDayType(daily.getDayType() != null ? daily.getDayType().name() : null);
                 return dDto;
             }).collect(Collectors.toList());
@@ -94,7 +105,7 @@ public class ScheduleService {
     public void saveDailySchedules(Long employeeId, int month, int year, List<DailyScheduleDTO> incomingDays) {
 
         // 1. Tìm xem nhân viên này đã có lịch của tháng/năm này chưa?
-        MonthlySchedules monthEntity = monthlySchedulesRepository.findByEmployee_EmployeeIdAndMonthAndYear(employeeId, month, year);
+        MonthlySchedules monthEntity = monthlySchedulesRepository.findByEmployee_IdAndMonthAndYear(employeeId, month, year);
 
         // 2. NẾU CHƯA CÓ: Tự động tạo mới một bản ghi lịch tháng
         if (monthEntity == null) {
@@ -110,7 +121,7 @@ public class ScheduleService {
             monthEntity = monthlySchedulesRepository.save(monthEntity);
         }
 
-        Integer monthlyId = monthEntity.getMonthlyScheduleId();
+        Long monthlyId = monthEntity.getMonthlyScheduleId();
 
         // 3. Lấy các ngày làm việc hiện có của tháng này lên để so sánh
         List<DailyWorkSchedules> existingDays = dailyWorkSchedulesRepository.findByMonthlySchedule_MonthlyScheduleId(monthlyId);
@@ -123,7 +134,7 @@ public class ScheduleService {
         for (DailyScheduleDTO dto : incomingDays) {
             DailyWorkSchedules entity = existingDaysMap.get(dto.getWorkDate());
 
-            poly.edu.vantix_hrm.entity.Shift shift = null;
+            Shift shift = null;
             if (dto.getShiftId() != null) {
                 shift = shiftsRepository.findById(dto.getShiftId()).orElseThrow(() -> new RuntimeException("Không tìm thấy ca làm việc: " + dto.getShiftId()));
             }
@@ -162,7 +173,7 @@ public class ScheduleService {
         }
     }
 
-    public void updateScheduleStatus(Integer monthlyScheduleId, String status) {
+    public void updateScheduleStatus(Long monthlyScheduleId, String status) {
         MonthlySchedules monthEntity = monthlySchedulesRepository.findById(monthlyScheduleId).orElseThrow(() -> new RuntimeException("Không tìm thấy lịch tháng này!"));
 
         monthEntity.setStatus(MonthlySchedules.ScheduleStatus.valueOf(status));

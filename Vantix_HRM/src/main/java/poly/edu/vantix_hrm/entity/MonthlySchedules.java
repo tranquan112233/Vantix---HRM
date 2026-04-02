@@ -2,6 +2,7 @@ package poly.edu.vantix_hrm.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -12,14 +13,15 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class MonthlySchedules {
+@Builder
+public class MonthlySchedules extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "monthly_schedule_id")
-    private Integer monthlyScheduleId; // ID lịch tháng
+    private Long monthlyScheduleId; // ID lịch tháng
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee; // Nhân viên
 
@@ -32,9 +34,6 @@ public class MonthlySchedules {
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private ScheduleStatus status; // Trạng thái chốt lịch
-
-    @Column(name = "created_at", insertable = false, updatable = false)
-    private LocalDateTime createdAt; // Thời gian tạo
 
     public enum ScheduleStatus { OPEN, LOCKED }
 }

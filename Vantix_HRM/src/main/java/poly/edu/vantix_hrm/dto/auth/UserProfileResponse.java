@@ -13,6 +13,8 @@ public class UserProfileResponse {
 
     private Long id;
 
+    private Long employeeId;
+
     private String username;
 
     private String email;

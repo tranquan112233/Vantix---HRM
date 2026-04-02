@@ -5,7 +5,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import poly.edu.vantix_hrm.dto.leave.*;
-import poly.edu.vantix_hrm.dto.leave.*;
 import poly.edu.vantix_hrm.entity.Employee;
 import poly.edu.vantix_hrm.entity.LeaveRequest;
 import poly.edu.vantix_hrm.entity.LeaveStatus;
@@ -14,6 +13,8 @@ import poly.edu.vantix_hrm.repository.EmployeeRepository;
 import poly.edu.vantix_hrm.repository.LeaveRequestRepository;
 import poly.edu.vantix_hrm.repository.LeaveTypeRepository;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,6 +39,20 @@ public class LeaveRequestService {
         // 3. Tìm loại nghỉ phép
         LeaveType leaveType = leaveTypeRepository.findById(dto.getLeaveTypeId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy loại nghỉ phép"));
+
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        if (dto.getStartDate().isBefore(today)) {
+            throw new RuntimeException("Ngày bắt đầu không được trong quá khứ");
+        }
+        if (dto.getEndDate().isBefore(dto.getStartDate())) {
+            throw new RuntimeException("Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu");
+        }
+
+        Boolean hasOverlap = leaveRequestRepository.existsOverlappingLeave(
+                employee.getId(), dto.getStartDate(), dto.getEndDate());
+        if (Boolean.TRUE.equals(hasOverlap)) {
+            throw new RuntimeException("Bạn đã có đơn xin nghỉ trong khoảng thời gian này");
+        }
 
         LeaveRequest leaveRequest = new LeaveRequest();
         leaveRequest.setEmployee(employee);
@@ -76,7 +91,7 @@ public class LeaveRequestService {
 
     // 4. Duyệt hoặc Từ chối đơn
     @Transactional
-    public LeaveResponseDTO updateLeaveStatus(Integer leaveId, LeaveStatus status) { // 🔥 Bỏ tham số approverId đi
+    public LeaveResponseDTO updateLeaveStatus(Long leaveId, LeaveStatus status, String rejectionReason) {
 
         // 1. Tìm cái đơn xin nghỉ cần duyệt
         LeaveRequest request = leaveRequestRepository.findById(leaveId)
@@ -85,13 +100,16 @@ public class LeaveRequestService {
         // 2. Lấy Email của HR/Admin đang đăng nhập từ Token
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        // Dùng hàm findByUser_Username bác vừa tạo ban nãy
         Employee approver = employeeRepository.findByUser_Username(username)
                 .orElseThrow(() -> new RuntimeException("Tài khoản HR/Admin này chưa có hồ sơ Nhân viên!"));
 
-        // 4. Cập nhật trạng thái và người duyệt
+        // 3. Cập nhật trạng thái và người duyệt
         request.setStatus(status);
         request.setApprovedBy(approver);
+
+        if (status == LeaveStatus.REJECTED && rejectionReason != null && !rejectionReason.isBlank()) {
+            request.setRejectionReason(rejectionReason);
+        }
 
         LeaveRequest updatedRequest = leaveRequestRepository.save(request);
         return mapToResponseDTO(updatedRequest);
@@ -110,6 +128,8 @@ public class LeaveRequestService {
         dto.setReason(entity.getReason());
         dto.setStatus(entity.getStatus());
         dto.setCreatedAt(entity.getCreatedAt());
+
+        dto.setRejectionReason(entity.getRejectionReason());
 
         if (entity.getApprovedBy() != null) {
             dto.setApprovedByName(entity.getApprovedBy().getFullName());

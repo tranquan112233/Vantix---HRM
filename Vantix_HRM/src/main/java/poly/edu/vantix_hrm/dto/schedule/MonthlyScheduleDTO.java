@@ -6,7 +6,7 @@ import java.util.List;
 
 @Data
 public class MonthlyScheduleDTO {
-    private Integer monthlyScheduleId;
+    private Long monthlyScheduleId;
 
     private Integer month;
     private Integer year;

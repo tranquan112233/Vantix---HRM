@@ -6,7 +6,7 @@ import java.time.LocalDate;
 
 @Data
 public class LeaveRequestDTO {
-    private Integer leaveTypeId;
+    private Long leaveTypeId;
     private LocalDate startDate;
     private LocalDate endDate;
     private Integer totalShift;

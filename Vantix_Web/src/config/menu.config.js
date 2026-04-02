@@ -52,19 +52,18 @@ export const menuSections = [
         items: [
             { label: 'Employees',        icon: 'bi-people',    to: '/employees',        permission: 'EMPLOYEE_VIEW' },
             { label: 'Contracts',        icon: 'bi-file-text', to: '/contracts',        permission: 'CONTRACT_VIEW' },
-            { label: 'Contract Annexes', icon: 'bi-file-plus', to: '/contract-annexes', permission: 'CONTRACT_VIEW' },
+
         ]
     },
     {
         section: 'ATTENDANCE & LEAVE',
         items: [
-            // 🔥 Lưu ý: Em đã sửa lại link "to" ở đây vì nãy anh đang để nhầm sang task-management
-            { label: 'Attendances', icon: 'bi-calendar-check', to: '/attendances', permission: 'ATTENDANCE_VIEW' },
-            { label: 'Shifts',      icon: 'bi-clock',          to: '/shifts',      permission: 'SHIFT_VIEW'      },
 
-            { label: 'Leave Requests', icon: 'bi-send',       to: '/leaves', permission: 'LEAVE_VIEW'   },
-            { label: 'Leave Manager',  icon: 'bi-inbox',      to: '/leaves-manager',  permission: 'LEAVE_MANAGE' },
-            { label: 'Leave Types',    icon: 'bi-list-check', to: '/leave-types',    permission: 'LEAVE_VIEW'   },
+            { label: 'Attendances', icon: 'bi-calendar-check', to: '/attendances', permission: 'ATTENDANCE_VIEW' },
+            { label: 'Shifts',      icon: 'bi-clock',          to: '/shifts',     permission: 'SHIFT_VIEW'      },
+            { label: 'Leave Requests', icon: 'bi-send',       to: '/leaves',         permission: 'LEAVE_VIEW'      },
+            { label: 'Leave Manager',  icon: 'bi-inbox',      to: '/leaves-manager', permission: 'LEAVE_MANAGE'    },
+            { label: 'Leave Types',    icon: 'bi-list-check', to: '/leave-types',    permission: 'LEAVE_TYPE_VIEW' },
         ]
     },
     {
@@ -76,8 +75,9 @@ export const menuSections = [
     {
         section: 'OTHERS',
         items: [
-            { label: 'Settings', icon: 'bi-gear', to: '/settings'}, // Đổi bi-setting thành bi-gear cho đúng chuẩn Bootstrap Icon
-            { label: 'Schedules', icon: 'bi-calendar3', to: '/schedules'},
+            { label: 'Schedules', icon: 'bi-calendar3', to: '/schedules', permission: 'SCHEDULE_VIEW' },
+            { label: 'Settings',  icon: 'bi-gear',      to: '/settings',  permission: 'SYSTEM_CONFIG' },
         ]
     },
 ]
+

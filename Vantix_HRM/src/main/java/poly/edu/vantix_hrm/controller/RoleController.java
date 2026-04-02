@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import poly.edu.vantix_hrm.dto.page.PageRequestDTO;
 import poly.edu.vantix_hrm.dto.page.PageResponseDTO;
@@ -18,6 +19,7 @@ public class RoleController {
     private final RoleService roleService;
 
     // GET /api/roles?keyword=&page=0&size=10&sortBy=createdAt&sortDir=desc
+    @PreAuthorize("hasAuthority('ROLE_VIEW')")
     @GetMapping
     public ResponseEntity<PageResponseDTO<RoleResponseDTO>> getAll(
             @RequestParam(required = false) String keyword,
@@ -26,18 +28,21 @@ public class RoleController {
     }
 
     // GET /api/roles/{id}
+    @PreAuthorize("hasAuthority('ROLE_VIEW')")
     @GetMapping("/{id}")
     public ResponseEntity<RoleResponseDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(roleService.getById(id));
     }
 
     // POST /api/roles
+    @PreAuthorize("hasAuthority('ROLE_CREATE')")
     @PostMapping
     public ResponseEntity<RoleResponseDTO> create(@Valid @RequestBody RoleRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(roleService.create(request));
     }
 
     // PUT /api/roles/{id}
+    @PreAuthorize("hasAuthority('ROLE_UPDATE')")
     @PutMapping("/{id}")
     public ResponseEntity<RoleResponseDTO> update(
             @PathVariable Long id,
@@ -46,6 +51,7 @@ public class RoleController {
     }
 
     // DELETE /api/roles/{id}
+    @PreAuthorize("hasAuthority('ROLE_DELETE')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         roleService.delete(id);

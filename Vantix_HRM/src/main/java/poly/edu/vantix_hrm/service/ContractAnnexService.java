@@ -31,12 +31,12 @@ public class ContractAnnexService {
     // ================== CÁC HÀM TÌM KIẾM CƠ BẢN ==================
 
     // Tìm kiếm hợp đồng gốc theo ID. Ném lỗi nếu không tồn tại trong database.
-    public Contract findContractById(Integer contractId) {
+    public Contract findContractById(Long contractId) {
         return contractRepository.findById(contractId).orElseThrow(() -> new RuntimeException("Không tìm thấy Hợp đồng gốc với ID: " + contractId));
     }
 
     // Tìm kiếm phụ lục hợp đồng theo ID. Ném lỗi nếu không tồn tại.
-    public ContractAnnexes findAnnexById(Integer annexId) {
+    public ContractAnnexes findAnnexById(Long annexId) {
         return contractAnnexesRepository.findById(annexId).orElseThrow(() -> new RuntimeException("Không tìm thấy phụ lục với ID: " + annexId));
     }
 
@@ -48,7 +48,7 @@ public class ContractAnnexService {
     // ================== CÁC HÀM XỬ LÝ DỮ LIỆU (GET) ==================
 
     // Lấy toàn bộ thông tin phụ lục của một hợp đồng (gồm thông tin nhân viên, lương/chức vụ thực tế và danh sách phụ lục).
-    public ContractAnnexResponseDTO getAnnexesByContractId(Integer contractId) {
+    public ContractAnnexResponseDTO getAnnexesByContractId(Long contractId) {
         Contract contract = findContractById(contractId);
         List<ContractAnnexes> annexes = contractAnnexesRepository.findByContractIdOrderByEffectiveDateDesc(contractId);
 
@@ -142,7 +142,7 @@ public class ContractAnnexService {
     }
 
     // Kiểm tra xung đột: Đảm bảo không có 2 phụ lục cùng loại (cùng đổi lương hoặc cùng đổi chức vụ) đang 'Active' cùng lúc.
-    public void validateNoConflictingActiveAnnex(Integer contractId, boolean hasSalary, boolean hasPosition, Integer excludeAnnexId) {
+    public void validateNoConflictingActiveAnnex(Long contractId, boolean hasSalary, boolean hasPosition, Long excludeAnnexId) {
         List<ContractAnnexes> existingAnnexes = contractAnnexesRepository.findByContractIdOrderByEffectiveDateDesc(contractId);
         for (ContractAnnexes existing : existingAnnexes) {
             // Bỏ qua chính nó nếu đang update

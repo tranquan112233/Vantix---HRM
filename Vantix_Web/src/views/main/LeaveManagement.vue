@@ -62,7 +62,7 @@
                   Duyệt
                 </button>
                 <button
-                    @click="updateStatus(req.leaveId, 'REJECTED')"
+                    @click="openRejectModal(req.leaveId)"
                     class="btn-action btn-reject"
                     :disabled="isProcessing"
                     title="Từ chối đơn này"
@@ -83,6 +83,31 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal nhập lý do từ chối -->
+    <div v-if="showRejectModal" class="modal-overlay" @click.self="closeRejectModal">
+      <div class="reject-modal">
+        <div class="reject-modal-header">
+          <h3>Từ chối đơn xin nghỉ</h3>
+          <button class="close-btn" @click="closeRejectModal">&times;</button>
+        </div>
+        <div class="reject-modal-body">
+          <label>Lý do từ chối <span class="text-muted">(tùy chọn)</span></label>
+          <textarea
+            v-model="rejectReason"
+            rows="4"
+            placeholder="Nhập lý do từ chối để nhân viên được biết..."
+            class="reject-textarea"
+          ></textarea>
+        </div>
+        <div class="reject-modal-actions">
+          <button class="btn-modal-cancel" @click="closeRejectModal">Hủy</button>
+          <button class="btn-modal-reject" :disabled="isProcessing" @click="confirmReject">
+            Xác nhận từ chối
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -92,6 +117,11 @@ import LeaveService from '@/services/leaveservice.service.js'
 
 const pendingRequests = ref([])
 const isProcessing = ref(false)
+
+// State cho modal từ chối
+const showRejectModal = ref(false)
+const rejectReason = ref('')
+const rejectingLeaveId = ref(null)
 
 // 1. Lấy danh sách đơn đang chờ duyệt
 const fetchPendingRequests = async () => {
@@ -103,27 +133,44 @@ const fetchPendingRequests = async () => {
   }
 }
 
-// 2. Xử lý Duyệt / Từ chối đơn
+// 2. Duyệt đơn
 const updateStatus = async (leaveId, status) => {
-  const actionText = status === 'APPROVED' ? 'duyệt' : 'từ chối'
-
-  if (!confirm(`Bạn có chắc chắn muốn ${actionText} đơn này không?`)) {
-    return
-  }
+  if (!confirm('Bạn có chắc chắn muốn duyệt đơn này không?')) return
 
   try {
     isProcessing.value = true
-
-    // Backend tự biết ai duyệt thông qua Token, mình chỉ cần gửi leaveId và status
     await LeaveService.updateLeaveStatus(leaveId, status)
-
-    alert(`Đã ${actionText} đơn xin nghỉ thành công!`)
-
-    // Lọc bỏ đơn vừa duyệt khỏi danh sách chờ
     pendingRequests.value = pendingRequests.value.filter(req => req.leaveId !== leaveId)
-
   } catch (error) {
-    console.error(`Lỗi khi ${actionText} đơn:`, error)
+    console.error('Lỗi khi duyệt đơn:', error)
+    alert('Có lỗi xảy ra, vui lòng thử lại!')
+  } finally {
+    isProcessing.value = false
+  }
+}
+
+// 3. Mở modal từ chối
+const openRejectModal = (leaveId) => {
+  rejectingLeaveId.value = leaveId
+  rejectReason.value = ''
+  showRejectModal.value = true
+}
+
+const closeRejectModal = () => {
+  showRejectModal.value = false
+  rejectingLeaveId.value = null
+  rejectReason.value = ''
+}
+
+// 4. Xác nhận từ chối (có lý do)
+const confirmReject = async () => {
+  try {
+    isProcessing.value = true
+    await LeaveService.updateLeaveStatus(rejectingLeaveId.value, 'REJECTED', rejectReason.value || null)
+    pendingRequests.value = pendingRequests.value.filter(req => req.leaveId !== rejectingLeaveId.value)
+    closeRejectModal()
+  } catch (error) {
+    console.error('Lỗi khi từ chối đơn:', error)
     alert('Có lỗi xảy ra, vui lòng thử lại!')
   } finally {
     isProcessing.value = false
@@ -323,4 +370,102 @@ onMounted(() => {
 .empty-icon { font-size: 3.5rem; margin-bottom: 16px; opacity: 0.8; }
 .empty-state p { font-size: 1.1rem; font-weight: 600; margin: 0 0 8px 0; color: var(--text-main); }
 .empty-sub { font-size: 0.9rem; color: var(--text-muted); }
+
+/* Modal từ chối */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.reject-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 480px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+.reject-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.reject-modal-header h3 { margin: 0; font-size: 1.1rem; color: var(--text-main); }
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.close-btn:hover { color: var(--danger-color); }
+
+.reject-modal-body label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-main);
+}
+
+.text-muted { color: var(--text-muted); font-weight: 400; }
+
+.reject-textarea {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.reject-textarea:focus {
+  outline: none;
+  border-color: var(--danger-color);
+}
+
+.reject-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn-modal-cancel {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: white;
+  color: var(--text-main);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-modal-reject {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  background: var(--danger-color);
+  color: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.btn-modal-reject:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-modal-reject:hover:not(:disabled) { background: var(--danger-hover); }
 </style>

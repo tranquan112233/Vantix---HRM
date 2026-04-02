@@ -1,10 +1,7 @@
 package poly.edu.vantix_hrm.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Table(name = "leave_types")
@@ -12,11 +9,12 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class    LeaveType {
+@Builder
+public class LeaveType extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "leave_type_id")
-    private Integer leaveTypeId;
+    private Long leaveTypeId;
 
     @Column(name = "type_name", length = 50)
     private String typeName;

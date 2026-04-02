@@ -70,7 +70,7 @@ public class ContractsService {
     }
 
     // Tìm Hơp Đồng bằng mã
-    public Contract findById(Integer contractId) {
+    public Contract findById(Long contractId) {
         return contractsRepository.findById(contractId).orElseThrow(() -> new RuntimeException("Không tìm thấy hợp đồng ID: " + contractId));
     }
 

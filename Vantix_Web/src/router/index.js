@@ -119,7 +119,8 @@ const router = createRouter({
                     meta: { title: 'Schedules Management' }
                 },
                 {
-                    path: 'contract-annexes',
+                    path: 'contract-annexes/:id',
+                    name: 'ContractAnnex',
                     component: ContractAnnex,
                     meta: { title: 'Contract Annex' }
                 },
@@ -129,7 +130,7 @@ const router = createRouter({
                     meta: { title: 'Contract' }
                 },
                 {
-                    path: 'attendance-management',
+                    path: 'attendances',
                     component: AttendanceManagement,
                     meta: { title: 'Attendance Management' }
                 },
@@ -183,8 +184,9 @@ router.beforeEach(async (to) => {
     // Đã login → không cho vào auth
     if (to.path.startsWith('/auth') && token) return '/'
 
-    // Reload → gọi lại user
-    if (token && !auth.user) await auth.fetchMe()
+    // Luôn đồng bộ user + permissions từ DB mỗi khi navigate
+    // → đảm bảo sidebar/quyền luôn phản ánh đúng DB (kể cả khi admin vừa đổi quyền)
+    if (token) await auth.fetchMe()
 
     // Check permission
     if (to.meta.permission && !auth.can(to.meta.permission)) return '/403'

@@ -8,7 +8,7 @@ import java.util.List;
 
 @Data
 public class ContractAnnexResponseDTO {
-    private Integer contractId; // Mã hợp đồng
+    private Long contractId; // Mã hợp đồng
     private Long employeeId; // ID nhân viên
     private String employeeName; // Tên nhân viên
     private String currentPosition; // Chức vụ hiện tại (áp dụng fallback)
@@ -18,7 +18,7 @@ public class ContractAnnexResponseDTO {
 
     @Data
     public static class AnnexDetailDTO {
-        private Integer annexId;
+        private Long annexId;
         private LocalDate effectiveDate;
         private BigDecimal newSalary;
         private String newPositions;

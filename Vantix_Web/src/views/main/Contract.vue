@@ -15,7 +15,7 @@
           <i class="bi bi-funnel-fill"></i>
           <span>Xóa bộ lọc</span>
         </button>
-        <button class="btn-primary" @click="openCreateModal" :disabled="loading">
+        <button v-if="canCreate" class="btn-primary" @click="openCreateModal" :disabled="loading">
           <i class="bi bi-plus-lg"></i>
           <span>Thêm Hợp Đồng</span>
         </button>
@@ -100,7 +100,7 @@
         <div class="empty-icon"><i class="bi bi-folder-x"></i></div>
         <h3>Không tìm thấy hợp đồng nào</h3>
         <p>Thử thay đổi bộ lọc hoặc tạo mới một hợp đồng.</p>
-        <button class="btn-primary" @click="openCreateModal">
+        <button v-if="canCreate" class="btn-primary" @click="openCreateModal">
           <i class="bi bi-plus-lg"></i>
           Thêm hợp đồng
         </button>
@@ -166,13 +166,13 @@
             </td>
             <td>
               <div class="action-buttons justify-content-center">
-                <button class="action-btn edit-btn" @click="toggleContractStatus(c.contractId)" title="Đổi trạng thái">
+                <button v-if="canStatusUpdate" class="action-btn edit-btn" @click="toggleContractStatus(c.contractId)" title="Đổi trạng thái">
                   <i class="bi bi-arrow-repeat"></i>
                 </button>
                 <button class="action-btn view-btn" @click="viewAnnex(c.contractId)" title="Xem Phụ lục">
                   <i class="bi bi-eye"></i>
                 </button>
-                <button class="action-btn delete-btn" @click="confirmDeleteContract(c.contractId)" title="Xóa">
+                <button v-if="canDelete" class="action-btn delete-btn" @click="confirmDeleteContract(c.contractId)" title="Xóa">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -357,9 +357,15 @@ import {useRouter} from 'vue-router';
 import {useToast} from 'vue-toastification';
 import contractService from "@/services/contract.service";
 import positionsService from "@/services/position.service.js";
+import { useAuthStore } from '@/stores/auth.store.js';
 
 const router = useRouter();
 const toast = useToast();
+const auth = useAuthStore();
+
+const canCreate       = computed(() => auth.can('CONTRACT_CREATE'))
+const canDelete       = computed(() => auth.can('CONTRACT_DELETE'))
+const canStatusUpdate = computed(() => auth.can('CONTRACT_STATUS_UPDATE'))
 
 // --- STATE ---
 const contracts = ref([]);

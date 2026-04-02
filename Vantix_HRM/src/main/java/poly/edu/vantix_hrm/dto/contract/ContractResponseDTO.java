@@ -15,7 +15,7 @@ import java.time.LocalDate;
 @Builder
 public class ContractResponseDTO {
 
-    private Integer contractId;
+    private Long contractId;
 
     private Long employeeId;
     

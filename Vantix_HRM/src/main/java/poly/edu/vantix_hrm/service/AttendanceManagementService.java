@@ -24,7 +24,7 @@ public class AttendanceManagementService {
     private final AttendanceRepository attendanceRepository;
     private final EmployeeRepository employeeRepository;
 
-    public List<RejectedAttendanceDTO> getRejectedAttendancesForManager(Long managerId) {
+    public List<RejectedAttendanceDTO> getPendingAttendancesForManager(Long managerId) {
         // 1. Lấy thông tin phòng ban
         Employee manager = employeeRepository.findById(managerId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin Trưởng phòng"));
@@ -33,14 +33,14 @@ public class AttendanceManagementService {
         // 2. Lấy TOÀN BỘ nhân viên trong phòng ban đó
         List<Employee> allEmployees = employeeRepository.findByDepartment_Id(departmentId);
 
-        // --- CODE MỚI THÊM: Loại bỏ Trưởng phòng khỏi danh sách hiển thị ---
+        // Loại bỏ Trưởng phòng khỏi danh sách hiển thị
         allEmployees.removeIf(emp -> emp.getId().equals(managerId));
 
-        // 3. Lấy các phiếu REJECTED trong 3 ngày qua
+        // 3. Lấy các phiếu PENDING trong 3 ngày qua
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(2);
         List<Attendance> attendances = attendanceRepository
-                .findRejectedByDepartmentAndDateRange(departmentId, startDate, endDate);
+                .findPendingByDepartmentAndDateRange(departmentId, startDate, endDate);
 
         // Group phiếu theo Mã Nhân Viên để dễ tìm kiếm
         Map<Long, List<Attendance>> attendanceMap = attendances.stream()
@@ -81,10 +81,17 @@ public class AttendanceManagementService {
         return result;
     }
 
-    public void approveAttendance(Integer attendanceId) {
+    public void approveAttendance(Long attendanceId) {
         Attendance attendance = attendanceRepository.findById(attendanceId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bản ghi chấm công"));
         attendance.setStatus(Attendance.AttendanceStatus.APPROVED);
+        attendanceRepository.save(attendance);
+    }
+
+    public void rejectAttendance(Long attendanceId) {
+        Attendance attendance = attendanceRepository.findById(attendanceId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bản ghi chấm công"));
+        attendance.setStatus(Attendance.AttendanceStatus.REJECTED);
         attendanceRepository.save(attendance);
     }
 }

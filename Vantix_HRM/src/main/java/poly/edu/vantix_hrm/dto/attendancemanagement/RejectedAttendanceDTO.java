@@ -13,11 +13,11 @@ import java.time.LocalTime;
 @AllArgsConstructor
 @Builder
 public class RejectedAttendanceDTO {
-    private Integer attendanceId; // Để làm key gọi API duyệt
+    private Long attendanceId; // Để làm key gọi API duyệt
     private Long employeeId;   // Mã NV
     private String fullName;      // Tên NV
     private LocalDate workDate;   // Ngày làm việc
-    private Integer shiftId;
+    private Long shiftId;
     private String shiftName;     // Ca làm
     private LocalTime checkIn;    // Giờ vào
     private LocalTime checkOut;   // Giờ ra

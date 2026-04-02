@@ -24,7 +24,7 @@ public class Employee extends BaseEntity {  // ← Thêm extends BaseEntity
     private Long id;  // ← Đổi Integer → Long
 
     // ================= USER =================
-    @OneToOne(fetch = FetchType.LAZY)  // ← Đổi EAGER → LAZY
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 

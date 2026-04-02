@@ -11,11 +11,11 @@ import java.time.LocalTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Shift {
+public class Shift extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "shift_id")
-    private Integer shiftId; // ID ca làm
+    private Long shiftId; // ID ca làm
 
     @Column(name = "shift_name", length = 50)
     private String shiftName; // Tên ca

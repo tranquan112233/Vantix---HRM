@@ -2,6 +2,7 @@ package poly.edu.vantix_hrm.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import poly.edu.vantix_hrm.entity.Attendance;
 import poly.edu.vantix_hrm.entity.Employee;
@@ -19,6 +20,7 @@ public class AttendanceController {
     @Autowired
     private AttendanceService attendanceService;
 
+    @PreAuthorize("hasAuthority('ATTENDANCE_VIEW')")
     @GetMapping("/getMonthlyAttendance")
     public ResponseEntity<List<Attendance>> getMonthlyAttendance(@RequestParam("employeeId") Long employeeId, @RequestParam("Month") int Month, @RequestParam("Year") int Year) {
         LocalDate dateInput = LocalDate.of(Year, Month, 1);
@@ -27,6 +29,7 @@ public class AttendanceController {
         return ResponseEntity.ok(result);
     }
 
+    @PreAuthorize("hasAuthority('ATTENDANCE_CHECKIN')")
     @PostMapping("/checkIn")
     public ResponseEntity<?> CheckIn(@RequestBody Long employeeId) {
         try {
@@ -51,6 +54,7 @@ public class AttendanceController {
         }
     }
 
+    @PreAuthorize("hasAuthority('ATTENDANCE_CHECKOUT')")
     @PutMapping("/checkOutManual")
     public ResponseEntity<?> checkOutManual(@RequestBody Long employeeId) {
         try {
@@ -72,6 +76,7 @@ public class AttendanceController {
         }
     }
 
+    @PreAuthorize("hasAuthority('ATTENDANCE_CHECKOUT')")
     @PutMapping("/confirm-checkout")
     public ResponseEntity<?> confirmCheckOut(@RequestBody Long employeeId) {
         try {

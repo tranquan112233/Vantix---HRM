@@ -6,13 +6,13 @@ import java.time.LocalDate;
 
 @Data
 public class DailyScheduleDTO {
-    private Integer dailyScheduleId;
+    private Long dailyScheduleId;
 
-    private Integer monthlyScheduleId;
+    private Long monthlyScheduleId;
 
     private LocalDate workDate;
 
-    private Integer shiftId;
+    private Long shiftId;
 
     private String shiftName;
 

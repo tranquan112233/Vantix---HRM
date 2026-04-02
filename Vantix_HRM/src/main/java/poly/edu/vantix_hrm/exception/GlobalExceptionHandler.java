@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
@@ -64,7 +65,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(ex.getStatus()).body(body);
     }
 
-    // ─── 3. Lỗi hệ thống → 500 ───────────────────────────────────────────────
+    // ─── 3. Lỗi không có quyền → 403 ────────────────────────────────────────
+    // Bắt khi @PreAuthorize thất bại (user thiếu permission)
+
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponse handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
+        return ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.FORBIDDEN.value())
+                .message("Bạn không có quyền thực hiện thao tác này")
+                .path(request.getRequestURI())
+                .build();
+    }
+
+    // ─── 4. Lỗi hệ thống → 500 ───────────────────────────────────────────────
     // Bắt tất cả Exception không xử lý ở trên
     // Log đầy đủ để debug, không lộ chi tiết lỗi ra ngoài
 
