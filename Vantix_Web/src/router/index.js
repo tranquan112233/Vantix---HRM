@@ -25,6 +25,7 @@ import AttendanceManagement from "@/views/main/AttendanceManagement.vue";
 import Profile from "@/views/main/Profile.vue";
 import Mytask from "@/views/main/MyTaskManagement.vue";
 import TaskListManagement from "@/views/main/TaskListManagement.vue";
+import KpiRanking from "@/views/main/KpiRanking.vue";
 import Salaries from "@/views/main/Salaries.vue";
 
 const router = createRouter({
@@ -150,6 +151,11 @@ const router = createRouter({
                     component: Mytask,
                     meta: { title: 'My Task' }
                 },
+                {
+                    path: 'kpi-ranking',
+                    component: KpiRanking,
+                    meta: { title: 'KPI Ranking' }
+                },    
                 {
                     path: 'salaries',
                     component: Salaries,

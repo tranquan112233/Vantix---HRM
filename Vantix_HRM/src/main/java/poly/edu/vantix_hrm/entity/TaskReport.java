@@ -1,28 +1,39 @@
 package poly.edu.vantix_hrm.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
-
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Task_Reports")
+@Table(name = "task_reports")
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@AllArgsConstructor
 public class TaskReport {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long reportId; // Đổi thành Long
+    @Column(name = "report_id")
+    private Long reportId;
 
-    private Long taskId; // Đổi thành Long
-    private Long employeeId; // Đổi thành Long
+    @Column(name = "task_id")
+    private Long taskId;
+
+    @Column(name = "employee_id")
+    private Long employeeId;
+
+    @Column(name = "progress_percent")
+    private Integer progressPercent;
+
+    @Column(name = "work_description", columnDefinition = "TEXT")
+    private String workDescription;
+
+    @Column(name = "report_date")
     private LocalDate reportDate;
 
-    @Column(columnDefinition = "TEXT")
-    private String workDescription;
-    private Integer progressPercent;
-    private LocalDateTime createdAt;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt = LocalDateTime.now();
 }
