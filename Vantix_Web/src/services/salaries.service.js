@@ -22,5 +22,11 @@ export default {
                 year: year
             }
         });
+    },
+
+    finalizePayrollBatch(month, year) {
+        return api.post(`/payroll-batches/finalize`, null, {
+            params: { month, year }
+        });
     }
 }

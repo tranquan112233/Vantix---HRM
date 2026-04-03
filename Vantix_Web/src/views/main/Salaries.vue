@@ -175,8 +175,18 @@ function updateStatus(data, newStatus) {
   toast.success(`Cập nhật trạng thái thành: ${newStatus}`) // Đổi sang Toast
 }
 
-function openGenerateModal() {
-  toast.info('Tính năng đang phát triển...') // Đổi sang Toast
+async function openGenerateModal() {
+  if (!filters.month) return
+  const [year, month] = filters.month.split('-')
+
+  if (!confirm(`Tạo đợt chốt lương tổng hợp cho Tháng ${month}/${year} gửi Giám đốc?`)) return
+
+  try {
+    const res = await salariesService.finalizePayrollBatch(parseInt(month), parseInt(year))
+    toast.success(`Đã chốt thành công: ${res.data.batchName} với tổng chi phí ${formatCurrency(res.data.totalNetAmount)}`)
+  } catch (error) {
+    toast.error(error.response?.data || "Có lỗi xảy ra khi chốt lương!")
+  }
 }
 </script>
 
