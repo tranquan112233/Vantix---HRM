@@ -47,8 +47,6 @@ class TaskService {
 
     /* ================= REPORT ================= */
     async report(reportData) {
-        // Xóa bỏ phần headers: { 'Content-Type': 'multipart/form-data' }
-        // Để Axios tự xử lý hoàn toàn
         return api.post('/tasks/report', reportData);
     }
 

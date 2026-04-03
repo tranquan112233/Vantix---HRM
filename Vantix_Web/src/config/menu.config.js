@@ -26,6 +26,11 @@ export const menuSections = [
                 to: '/my-task'
                 // Không để permission hoặc dùng quyền cơ bản để nhân viên nào cũng thấy
             },
+            {
+                label: 'KPI Ranking',
+                icon: 'bi-trophy', // 🏆 Icon cái cúp (Đẹp và hợp với đua top nhất)
+                to: '/kpi-ranking'
+            }
         ]
     },
     {
