@@ -26,6 +26,7 @@ import Profile from "@/views/main/Profile.vue";
 import Mytask from "@/views/main/MyTaskManagement.vue";
 import TaskListManagement from "@/views/main/TaskListManagement.vue";
 import KpiRanking from "@/views/main/KpiRanking.vue";
+import Salaries from "@/views/main/Salaries.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -154,6 +155,11 @@ const router = createRouter({
                     path: 'kpi-ranking',
                     component: KpiRanking,
                     meta: { title: 'KPI Ranking' }
+                },    
+                {
+                    path: 'salaries',
+                    component: Salaries,
+                    meta: { title: 'Salaries Management' }
                 }
 
 
