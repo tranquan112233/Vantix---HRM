@@ -37,7 +37,7 @@ public class Salary {
     private Integer standardWorkDays; // Số ngày công chuẩn
 
     @Column(name = "actual_work_days", nullable = false)
-    private BigDecimal actualWorkDays; // Số ngày công thực tế
+        private Integer actualWorkDays; // Số ngày công thực tế
 
     @Column(name = "allowance", precision = 18, scale = 2)
     private BigDecimal allowance; // Phụ cấp

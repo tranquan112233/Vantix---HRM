@@ -1,10 +1,35 @@
 <script setup>
-import {ref, reactive, computed, onMounted} from 'vue'
+import {ref, reactive, computed, onMounted, watch} from 'vue'
 import salariesService from '@/services/salaries.service'
+import {useToast} from 'vue-toastification' // Thêm thư viện Toast
+
+const toast = useToast() // Khởi tạo toast
 
 const monthInput = ref(null)
-
 const departments = ref([])
+const salaries = ref([])
+
+const filters = reactive({keyword: '', status: '', month: '2026-03', department: ''})
+const detailModal = reactive({show: false, data: {}})
+
+// State UI
+const pagination = reactive({page: 0, size: 10})
+const isSubmittingAll = ref(false)
+const showConfirmModal = ref(false)
+
+const fetchSalaries = async () => {
+  if (!filters.month) return
+  const [year, month] = filters.month.split('-')
+  try {
+    const res = await salariesService.getSalaries(parseInt(month), parseInt(year))
+    if (res.data) {
+      salaries.value = res.data
+    }
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách bảng lương", error)
+    salaries.value = []
+  }
+}
 
 onMounted(async () => {
   try {
@@ -15,78 +40,91 @@ onMounted(async () => {
   } catch (error) {
     console.error("Lỗi khi lấy danh sách phòng ban", error)
   }
+  await fetchSalaries()
 })
 
-// Dữ liệu giả lập (Thêm field department)
-const salaries = ref([
-  {
-    salaryId: 1,
-    employeeId: 'EMP001',
-    employeeName: 'Nguyễn Văn Bảo',
-    department: 'Phòng Kỹ Thuật',
-    salaryMonth: '2026-03-01',
-    baseSalarySnapshot: 15000000,
-    standardWorkDays: 22,
-    actualWorkDays: 22,
-    allowance: 1000000,
-    bonus: 500000,
-    bhxhAmount: 1200000,
-    bhytAmount: 225000,
-    bhtnAmount: 150000,
-    taxAmount: 300000,
-    totalIncome: 16500000,
-    totalDeduction: 1875000,
-    netSalary: 14625000,
-    status: 'PAID',
-    note: 'Đã thanh toán qua VCB'
-  },
-  {
-    salaryId: 2,
-    employeeId: 'EMP002',
-    employeeName: 'Trần Thị Hà',
-    department: 'Phòng Nhân Sự',
-    salaryMonth: '2026-03-01',
-    baseSalarySnapshot: 12000000,
-    standardWorkDays: 22,
-    actualWorkDays: 20,
-    allowance: 500000,
-    bonus: 0,
-    bhxhAmount: 960000,
-    bhytAmount: 180000,
-    bhtnAmount: 120000,
-    taxAmount: 0,
-    totalIncome: 11409090,
-    totalDeduction: 1260000,
-    netSalary: 10149090,
-    status: 'PENDING',
-    note: 'Nghỉ phép 2 ngày'
-  }
-])
+watch(() => filters.month, () => {
+  fetchSalaries()
+})
 
-const filters = reactive({keyword: '', status: '', month: '2026-03', department: ''})
-const detailModal = reactive({show: false, data: {}})
-
-// Computed Filter (Đã thêm logic phòng ban)
 const filteredSalaries = computed(() => {
   return salaries.value.filter(s => {
-    const matchName = s.employeeName.toLowerCase().includes(filters.keyword.toLowerCase()) || s.employeeId.includes(filters.keyword)
+    const empName = s.employeeName || ''
+    const empId = s.employeeId ? s.employeeId.toString() : ''
+
+    const matchName = empName.toLowerCase().includes(filters.keyword.toLowerCase()) || empId.includes(filters.keyword)
     const matchStatus = filters.status ? s.status === filters.status : true
-    const matchMonth = filters.month ? s.salaryMonth.startsWith(filters.month) : true
     const matchDept = filters.department ? s.department === filters.department : true
-    return matchName && matchStatus && matchMonth && matchDept
+
+    return matchName && matchStatus && matchDept
   })
 })
 
-const totalPayrollCost = computed(() => filteredSalaries.value.reduce((sum, s) => sum + s.netSalary, 0))
+watch([() => filters.keyword, () => filters.status, () => filters.department, () => filters.month], () => {
+  pagination.page = 0
+})
+
+const totalElements = computed(() => filteredSalaries.value.length)
+const totalPages = computed(() => Math.ceil(totalElements.value / pagination.size))
+
+const paginatedSalaries = computed(() => {
+  const start = pagination.page * pagination.size
+  const end = start + pagination.size
+  return filteredSalaries.value.slice(start, end)
+})
+
+const startEntry = computed(() => totalElements.value === 0 ? 0 : pagination.page * pagination.size + 1)
+const endEntry = computed(() => Math.min((pagination.page + 1) * pagination.size, totalElements.value))
+
+const visiblePages = computed(() => {
+  const delta = 2, pages = []
+  const start = Math.max(0, pagination.page - delta)
+  const end = Math.min(totalPages.value - 1, pagination.page + delta)
+  for (let i = start; i <= end; i++) pages.push(i)
+  return pages
+})
+
+function goPage(page) {
+  if (page >= 0 && page < totalPages.value) {
+    pagination.page = page
+  }
+}
+
+function onSizeChange() {
+  pagination.page = 0
+}
+
+const totalPayrollCost = computed(() => filteredSalaries.value.reduce((sum, s) => sum + (s.netSalary || 0), 0))
 const pendingCount = computed(() => filteredSalaries.value.filter(s => s.status === 'PENDING').length)
 const paidCount = computed(() => filteredSalaries.value.filter(s => s.status === 'PAID').length)
+
+function handleSubmitAllPending() {
+  if (!filters.month) return
+  showConfirmModal.value = true
+}
+
+async function confirmSubmitAllPending() {
+  showConfirmModal.value = false
+  isSubmittingAll.value = true
+  const [year, month] = filters.month.split('-')
+
+  try {
+    const res = await salariesService.submitAllToPending(parseInt(month), parseInt(year))
+    toast.success(res.data) // Sửa alert() thành toast.success()
+    await fetchSalaries()
+  } catch (error) {
+    const errorMsg = error.response?.data || "Có lỗi xảy ra khi cập nhật trạng thái!"
+    toast.error(errorMsg) // Sửa alert() thành toast.error()
+  } finally {
+    isSubmittingAll.value = false
+  }
+}
 
 function openMonthPicker() {
   if (monthInput.value && typeof monthInput.value.showPicker === 'function') {
     try {
       monthInput.value.showPicker();
     } catch (e) {
-      // Bỏ qua lỗi nếu trình duyệt không hỗ trợ showPicker
     }
   }
 }
@@ -108,10 +146,7 @@ function getInitials(name) {
 
 function getStatusClass(status) {
   const map = {
-    'DRAFT': 'status-draft',
-    'PENDING': 'status-pending',
-    'APPROVED': 'status-approved',
-    'PAID': 'status-paid'
+    'DRAFT': 'status-draft', 'PENDING': 'status-pending', 'APPROVED': 'status-approved', 'PAID': 'status-paid'
   }
   return map[status] || 'status-draft'
 }
@@ -122,6 +157,7 @@ const GRADIENTS = [
 ]
 
 function avatarGradient(name) {
+  if (!name) return GRADIENTS[0]
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
   return GRADIENTS[Math.abs(hash) % GRADIENTS.length]
@@ -136,11 +172,11 @@ function updateStatus(data, newStatus) {
   data.status = newStatus
   const idx = salaries.value.findIndex(s => s.salaryId === data.salaryId)
   if (idx !== -1) salaries.value[idx].status = newStatus
-  alert(`Cập nhật trạng thái thành: ${newStatus}`)
+  toast.success(`Cập nhật trạng thái thành: ${newStatus}`) // Đổi sang Toast
 }
 
 function openGenerateModal() {
-  alert('Popup: Chọn tháng và bộ phận để hệ thống tự quét chấm công và sinh bảng lương DRAFT')
+  toast.info('Tính năng đang phát triển...') // Đổi sang Toast
 }
 </script>
 
@@ -196,24 +232,14 @@ function openGenerateModal() {
       <div class="filter-content">
         <div class="search-wrapper">
           <i class="bi bi-search search-icon"></i>
-          <input
-              v-model="filters.keyword"
-              type="text"
-              class="search-input"
-              placeholder="Tìm theo tên hoặc ID nhân viên..."
-          />
+          <input v-model="filters.keyword" type="text" class="search-input"
+                 placeholder="Tìm theo tên hoặc ID nhân viên..."/>
         </div>
 
         <div class="input-wrapper month-picker">
           <i class="bi bi-calendar-month text-muted ms-2"></i>
-          <input
-              ref="monthInput"
-              type="month"
-              v-model="filters.month"
-              class="filter-select custom-month"
-              @click="openMonthPicker"
-              @keydown.prevent
-          />
+          <input ref="monthInput" type="month" v-model="filters.month" class="filter-select custom-month"
+                 @click="openMonthPicker" @keydown.prevent/>
         </div>
 
         <div class="select-wrapper">
@@ -233,6 +259,27 @@ function openGenerateModal() {
             <option value="PENDING">Chờ duyệt (Pending)</option>
             <option value="APPROVED">Đã duyệt (Approved)</option>
             <option value="PAID">Đã thanh toán (Paid)</option>
+          </select>
+          <i class="bi bi-chevron-down select-icon"></i>
+        </div>
+
+        <button
+            class="btn-submit-all"
+            @click="handleSubmitAllPending"
+            :disabled="isSubmittingAll || salaries.length === 0"
+            title="Chuyển tất cả bảng lương tháng này sang Chờ duyệt"
+        >
+          <span v-if="isSubmittingAll" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          <i v-else class="bi bi-send-check"></i>
+          Gửi duyệt tất cả
+        </button>
+
+        <div class="select-wrapper size-select">
+          <select v-model.number="pagination.size" class="filter-select" @change="onSizeChange">
+            <option :value="10">10 / trang</option>
+            <option :value="20">20 / trang</option>
+            <option :value="50">50 / trang</option>
+            <option :value="100">100 / trang</option>
           </select>
           <i class="bi bi-chevron-down select-icon"></i>
         </div>
@@ -256,8 +303,11 @@ function openGenerateModal() {
           </tr>
           </thead>
           <tbody>
-          <tr v-for="(salary, index) in filteredSalaries" :key="salary.salaryId" class="table-row">
-            <td class="col-num text-muted">#{{ salary.salaryId }}</td>
+          <tr v-if="paginatedSalaries.length === 0">
+            <td colspan="9" class="text-center py-4 text-muted">Không tìm thấy dữ liệu bảng lương nào.</td>
+          </tr>
+          <tr v-for="salary in paginatedSalaries" :key="salary.id" class="table-row">
+            <td class="col-num text-muted">#{{ salary.id }}</td>
             <td>
               <div class="user-cell">
                 <div class="avatar" :style="{ background: avatarGradient(salary.employeeName) }">
@@ -265,7 +315,7 @@ function openGenerateModal() {
                 </div>
                 <div class="user-info">
                   <span class="user-name">{{ salary.employeeName }}</span>
-                  <span class="user-email">ID: {{ salary.employeeId }} - {{ salary.department }}</span>
+                  <span class="user-email">ID: EMP{{ salary.employeeId }} - {{ salary.department }}</span>
                 </div>
               </div>
             </td>
@@ -299,6 +349,25 @@ function openGenerateModal() {
           </tbody>
         </table>
       </div>
+
+      <div v-if="totalPages > 0" class="pagination-bar">
+        <span class="pagination-info"> Hiển thị {{ startEntry }}–{{ endEntry }} trong số {{
+            totalElements
+          }} bản ghi</span>
+        <div class="page-controls">
+          <button :disabled="pagination.page === 0" @click="goPage(0)"><i class="bi bi-chevron-double-left"></i>
+          </button>
+          <button :disabled="pagination.page === 0" @click="goPage(pagination.page - 1)"><i
+              class="bi bi-chevron-left"></i></button>
+          <button v-for="p in visiblePages" :key="p" :class="{ active: p === pagination.page }" @click="goPage(p)">
+            {{ p + 1 }}
+          </button>
+          <button :disabled="pagination.page >= totalPages - 1" @click="goPage(pagination.page + 1)"><i
+              class="bi bi-chevron-right"></i></button>
+          <button :disabled="pagination.page >= totalPages - 1" @click="goPage(totalPages - 1)"><i
+              class="bi bi-chevron-double-right"></i></button>
+        </div>
+      </div>
     </div>
 
     <teleport to="body">
@@ -311,7 +380,7 @@ function openGenerateModal() {
                   <i class="bi bi-receipt"></i>
                 </div>
                 <div>
-                  <h3>Chi Tiết Phiếu Lương #{{ detailModal.data.salaryId }}</h3>
+                  <h3>Chi Tiết Phiếu Lương #{{ detailModal.data.id }}</h3>
                   <p>Tháng: {{ formatMonth(detailModal.data.salaryMonth) }} - Nhân viên:
                     <strong>{{ detailModal.data.employeeName }}</strong></p>
                 </div>
@@ -326,54 +395,37 @@ function openGenerateModal() {
                 <div class="payslip-col">
                   <h4 class="payslip-col-title text-success"><i class="bi bi-plus-circle"></i> KHOẢN THU NHẬP</h4>
                   <ul class="payslip-list">
-                    <li>
-                      <span>Lương cơ bản (Base)</span>
-                      <strong>{{ formatCurrency(detailModal.data.baseSalarySnapshot) }}</strong>
-                    </li>
-                    <li>
-                      <span>Ngày công thực tế</span>
-                      <strong>{{ detailModal.data.actualWorkDays }} ngày</strong>
-                    </li>
-                    <li>
-                      <span>Phụ cấp (Allowance)</span>
-                      <strong>{{ formatCurrency(detailModal.data.allowance) }}</strong>
-                    </li>
-                    <li>
-                      <span>Thưởng (Bonus)</span>
-                      <strong>{{ formatCurrency(detailModal.data.bonus) }}</strong>
-                    </li>
+                    <li><span>Lương cơ bản (Base)</span><strong>{{
+                        formatCurrency(detailModal.data.baseSalarySnapshot)
+                      }}</strong></li>
+                    <li><span>Ngày công thực tế</span><strong>{{ detailModal.data.actualWorkDays }} ngày</strong></li>
+                    <li><span>Phụ cấp (Allowance)</span><strong>{{
+                        formatCurrency(detailModal.data.allowance)
+                      }}</strong></li>
+                    <li><span>Thưởng (Bonus)</span><strong>{{ formatCurrency(detailModal.data.bonus) }}</strong></li>
                     <li class="payslip-divider"></li>
-                    <li class="payslip-total">
-                      <span>TỔNG THU NHẬP</span>
-                      <strong class="text-success">{{ formatCurrency(detailModal.data.totalIncome) }}</strong>
-                    </li>
+                    <li class="payslip-total"><span>TỔNG THU NHẬP</span><strong
+                        class="text-success">{{ formatCurrency(detailModal.data.totalIncome) }}</strong></li>
                   </ul>
                 </div>
 
                 <div class="payslip-col">
                   <h4 class="payslip-col-title text-danger"><i class="bi bi-dash-circle"></i> KHOẢN KHẤU TRỪ</h4>
                   <ul class="payslip-list">
-                    <li>
-                      <span>Bảo hiểm Xã hội (BHXH)</span>
-                      <strong>{{ formatCurrency(detailModal.data.bhxhAmount) }}</strong>
-                    </li>
-                    <li>
-                      <span>Bảo hiểm Y tế (BHYT)</span>
-                      <strong>{{ formatCurrency(detailModal.data.bhytAmount) }}</strong>
-                    </li>
-                    <li>
-                      <span>Bảo hiểm Thất nghiệp (BHTN)</span>
-                      <strong>{{ formatCurrency(detailModal.data.bhtnAmount) }}</strong>
-                    </li>
-                    <li>
-                      <span>Thuế TNCN (Tax)</span>
-                      <strong>{{ formatCurrency(detailModal.data.taxAmount) }}</strong>
+                    <li><span>Bảo hiểm Xã hội (BHXH)</span><strong>{{
+                        formatCurrency(detailModal.data.bhxhAmount)
+                      }}</strong></li>
+                    <li><span>Bảo hiểm Y tế (BHYT)</span><strong>{{
+                        formatCurrency(detailModal.data.bhytAmount)
+                      }}</strong></li>
+                    <li><span>Bảo hiểm Thất nghiệp (BHTN)</span><strong>{{
+                        formatCurrency(detailModal.data.bhtnAmount)
+                      }}</strong></li>
+                    <li><span>Thuế TNCN (Tax)</span><strong>{{ formatCurrency(detailModal.data.taxAmount) }}</strong>
                     </li>
                     <li class="payslip-divider"></li>
-                    <li class="payslip-total">
-                      <span>TỔNG KHẤU TRỪ</span>
-                      <strong class="text-danger">{{ formatCurrency(detailModal.data.totalDeduction) }}</strong>
-                    </li>
+                    <li class="payslip-total"><span>TỔNG KHẤU TRỪ</span><strong
+                        class="text-danger">{{ formatCurrency(detailModal.data.totalDeduction) }}</strong></li>
                   </ul>
                 </div>
               </div>
@@ -402,9 +454,7 @@ function openGenerateModal() {
 
             <div class="modal-footer justify-content-between">
               <div>
-                <button class="btn-outline">
-                  <i class="bi bi-printer"></i> In Phiếu Lương
-                </button>
+                <button class="btn-outline"><i class="bi bi-printer"></i> In Phiếu Lương</button>
               </div>
               <div class="d-flex gap-2">
                 <button class="btn-secondary" @click="detailModal.show = false">Đóng</button>
@@ -418,6 +468,42 @@ function openGenerateModal() {
                         @click="updateStatus(detailModal.data, 'PAID')">Đánh dấu Đã Thanh Toán
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <transition name="modal-fade">
+        <div v-if="showConfirmModal" class="modal-overlay" @click.self="showConfirmModal = false">
+          <div class="modal-container" style="max-width: 420px;">
+            <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
+              <div class="modal-title-group">
+                <div class="modal-icon" style="background: #fffbeb; color: #d97706;">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div>
+                  <h3 style="font-size: 18px;">Xác nhận gửi duyệt</h3>
+                </div>
+              </div>
+              <button class="modal-close" @click="showConfirmModal = false">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <div class="modal-body" style="background: white; padding-top: 16px;">
+              <p style="color: #475569; font-size: 14.5px; margin-bottom: 0; line-height: 1.5;">
+                Bạn có chắc chắn muốn chuyển toàn bộ bảng lương <strong>{{
+                  formatMonth(filters.month + '-01')
+                }}</strong> sang trạng thái <span
+                  style="color: #b45309; font-weight: 700; background: #fef3c7; padding: 2px 6px; border-radius: 4px;">PENDING</span>?
+              </p>
+            </div>
+
+            <div class="modal-footer" style="justify-content: flex-end; gap: 10px; border-top: none; padding-top: 0;">
+              <button class="btn-secondary" @click="showConfirmModal = false">Hủy bỏ</button>
+              <button class="btn-primary" style="background: #f59e0b; border: none;" @click="confirmSubmitAllPending">
+                Đồng ý Gửi duyệt
+              </button>
             </div>
           </div>
         </div>
@@ -635,10 +721,14 @@ function openGenerateModal() {
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
-/* Thêm class này để các wrapper có position relative */
 .input-wrapper, .select-wrapper {
   position: relative;
   min-width: 140px;
+}
+
+.size-select {
+  min-width: 110px;
+  flex-shrink: 0;
 }
 
 .filter-select {
@@ -655,7 +745,6 @@ function openGenerateModal() {
   font-weight: 500;
 }
 
-/* CSS Mới: Đưa icon mũi tên vào bên trong select */
 .select-icon {
   position: absolute;
   right: 12px;
@@ -663,10 +752,40 @@ function openGenerateModal() {
   transform: translateY(-50%);
   color: #94a3b8;
   font-size: 12px;
-  pointer-events: none; /* Bấm vào icon xuyên qua select */
+  pointer-events: none;
 }
 
-/* CSS Chỉnh sửa cho ô Tháng (Ẩn con trỏ, vẫn click được) */
+.btn-submit-all {
+  padding: 9px 16px;
+  background: #fffbeb;
+  color: #b45309;
+  border: 1.5px solid #fde68a;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.btn-submit-all:hover:not(:disabled) {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #92400e;
+  transform: translateY(-1px);
+}
+
+.btn-submit-all:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+}
+
 .custom-month {
   padding-left: 36px;
   padding-right: 12px;
@@ -687,7 +806,6 @@ function openGenerateModal() {
   z-index: 1;
 }
 
-/* Buttons */
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -739,7 +857,6 @@ function openGenerateModal() {
   font-family: inherit;
 }
 
-/* Table */
 .table-container {
   background: white;
   border-radius: 18px;
@@ -932,7 +1049,66 @@ function openGenerateModal() {
   color: #7c3aed;
 }
 
-/* Modal */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: white;
+  border-top: 1.5px solid #e8edff;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pagination-info {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.page-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.page-controls button {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-controls button:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.page-controls button.active {
+  background: #10b981;
+  color: #fff;
+  border-color: #10b981;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+}
+
+.page-controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Modal Styles */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1186,6 +1362,11 @@ function openGenerateModal() {
 
   .d-flex.gap-2 {
     flex-direction: column;
+  }
+
+  .pagination-bar {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>
