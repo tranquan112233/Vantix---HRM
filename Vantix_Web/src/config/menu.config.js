@@ -7,7 +7,7 @@ export const menuSections = [
     {
         section: 'DASHBOARD',
         items: [
-            { label: 'Dashboard', icon: 'bi-grid-1x2', to: '/' },
+            {label: 'Dashboard', icon: 'bi-grid-1x2', to: '/'},
         ]
     },
     // --- PHẦN TASK MỚI THÊM VÀO ĐÂY ---
@@ -39,8 +39,8 @@ export const menuSections = [
             {
                 label: 'Users', icon: 'bi-person',
                 children: [
-                    { label: 'User List',   icon: 'bi-people',       to: '/users',       permission: 'USER_VIEW'       },
-                    { label: 'Roles',       icon: 'bi-shield-check', to: '/roles',       permission: 'ROLE_VIEW'       },
+                    {label: 'User List', icon: 'bi-people', to: '/users', permission: 'USER_VIEW'},
+                    {label: 'Roles', icon: 'bi-shield-check', to: '/roles', permission: 'ROLE_VIEW'},
                 ]
             },
         ]
@@ -48,15 +48,15 @@ export const menuSections = [
     {
         section: 'ORGANIZATION',
         items: [
-            { label: 'Departments', icon: 'bi-diagram-3',    to: '/departments', permission: 'DEPARTMENT_VIEW' },
-            { label: 'Positions',   icon: 'bi-person-badge', to: '/positions',   permission: 'POSITION_VIEW'   },
+            {label: 'Departments', icon: 'bi-diagram-3', to: '/departments', permission: 'DEPARTMENT_VIEW'},
+            {label: 'Positions', icon: 'bi-person-badge', to: '/positions', permission: 'POSITION_VIEW'},
         ]
     },
     {
         section: 'EMPLOYEE MANAGEMENT',
         items: [
-            { label: 'Employees',        icon: 'bi-people',    to: '/employees',        permission: 'EMPLOYEE_VIEW' },
-            { label: 'Contracts',        icon: 'bi-file-text', to: '/contracts',        permission: 'CONTRACT_VIEW' },
+            {label: 'Employees', icon: 'bi-people', to: '/employees', permission: 'EMPLOYEE_VIEW'},
+            {label: 'Contracts', icon: 'bi-file-text', to: '/contracts', permission: 'CONTRACT_VIEW'},
 
         ]
     },
@@ -64,24 +64,25 @@ export const menuSections = [
         section: 'ATTENDANCE & LEAVE',
         items: [
 
-            { label: 'Attendances', icon: 'bi-calendar-check', to: '/attendances', permission: 'ATTENDANCE_VIEW' },
-            { label: 'Shifts',      icon: 'bi-clock',          to: '/shifts',     permission: 'SHIFT_VIEW'      },
-            { label: 'Leave Requests', icon: 'bi-send',       to: '/leaves',         permission: 'LEAVE_VIEW'      },
-            { label: 'Leave Manager',  icon: 'bi-inbox',      to: '/leaves-manager', permission: 'LEAVE_MANAGE'    },
-            { label: 'Leave Types',    icon: 'bi-list-check', to: '/leave-types',    permission: 'LEAVE_TYPE_VIEW' },
+            {label: 'Attendances', icon: 'bi-calendar-check', to: '/attendances', permission: 'ATTENDANCE_VIEW'},
+            {label: 'Shifts', icon: 'bi-clock', to: '/shifts', permission: 'SHIFT_VIEW'},
+            {label: 'Leave Requests', icon: 'bi-send', to: '/leaves', permission: 'LEAVE_VIEW'},
+            {label: 'Leave Manager', icon: 'bi-inbox', to: '/leaves-manager', permission: 'LEAVE_MANAGE'},
+            {label: 'Leave Types', icon: 'bi-list-check', to: '/leave-types', permission: 'LEAVE_TYPE_VIEW'},
         ]
     },
     {
         section: 'PAYROLL',
         items: [
-            { label: 'Salaries', icon: 'bi-cash-coin', to: '/salaries', permission: 'SALARY_VIEW' },
+            {label: 'Salaries', icon: 'bi-cash-coin', to: '/salaries', permission: 'SALARY_VIEW'},
+            {label: 'Payroll Batch', icon: 'bi-cash-coin', to: '/payrollbatch', permission: 'SALARY_VIEW'},
         ]
     },
     {
         section: 'OTHERS',
         items: [
-            { label: 'Schedules', icon: 'bi-calendar3', to: '/schedules', permission: 'SCHEDULE_VIEW' },
-            { label: 'Settings',  icon: 'bi-gear',      to: '/settings',  permission: 'SYSTEM_CONFIG' },
+            {label: 'Schedules', icon: 'bi-calendar3', to: '/schedules', permission: 'SCHEDULE_VIEW'},
+            {label: 'Settings', icon: 'bi-gear', to: '/settings', permission: 'SYSTEM_CONFIG'},
         ]
     },
 ]

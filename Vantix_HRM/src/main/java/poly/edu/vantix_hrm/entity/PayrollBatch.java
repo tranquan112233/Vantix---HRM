@@ -42,7 +42,7 @@ public class PayrollBatch {
     @Enumerated(EnumType.STRING)
     private BatchStatus status = BatchStatus.PENDING; // Trạng thái của cả đợt
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @Column(name = "created_at", insertable = false, updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
 
     public enum BatchStatus {

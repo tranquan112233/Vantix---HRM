@@ -1,8 +1,8 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '@/stores/auth.store'
+import {createRouter, createWebHistory} from 'vue-router'
+import {useAuthStore} from '@/stores/auth.store'
 
-import MainLayout  from '@/layouts/MainLayout.vue'
-import AuthLayout  from '@/layouts/AuthLayout.vue'
+import MainLayout from '@/layouts/MainLayout.vue'
+import AuthLayout from '@/layouts/AuthLayout.vue'
 
 // Auth pages
 import Login from "@/views/auth/Login.vue"
@@ -27,6 +27,7 @@ import Mytask from "@/views/main/MyTaskManagement.vue";
 import TaskListManagement from "@/views/main/TaskListManagement.vue";
 import KpiRanking from "@/views/main/KpiRanking.vue";
 import Salaries from "@/views/main/Salaries.vue";
+import PayrollBatch from "@/views/main/PayrollBatch.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -41,25 +42,25 @@ const router = createRouter({
                     path: 'login',
                     name: 'login',
                     component: Login,
-                    meta: { title: 'Login' }
+                    meta: {title: 'Login'}
                 },
                 {
                     path: 'forgot-password',
                     name: 'forgot-password',
                     component: ForgotPassword,
-                    meta: { title: 'Forgot Password' }
+                    meta: {title: 'Forgot Password'}
                 },
                 {
                     path: 'verify-otp',
                     name: 'verify-otp',
                     component: VerifyOTP,
-                    meta: { title: 'Verify OTP' }
+                    meta: {title: 'Verify OTP'}
                 },
                 {
                     path: 'reset-password',
                     name: 'reset-password',
                     component: ResetPassword,
-                    meta: { title: 'Reset Password' }
+                    meta: {title: 'Reset Password'}
                 }
             ]
         },
@@ -68,98 +69,103 @@ const router = createRouter({
         {
             path: '/',
             component: MainLayout,
-            meta: { requiresAuth: true },
+            meta: {requiresAuth: true},
             children: [
                 {
                     path: '',
                     component: Dashboard,
-                    meta: { title: 'Dashboard' }
+                    meta: {title: 'Dashboard'}
                 },
                 {
                     path: 'users',
                     component: UserManagement,
-                    meta: { title: 'Users Management' }
+                    meta: {title: 'Users Management'}
                 },
                 {
                     path: 'roles',
                     component: RoleManagement,
-                    meta: { title: 'Roles Management' }
+                    meta: {title: 'Roles Management'}
                 },
                 {
                     path: 'departments',
                     component: DepartmentManagement,
-                    meta: { title: 'Departments Management' }
+                    meta: {title: 'Departments Management'}
                 },
                 {
                     path: 'positions',
                     component: PositionManagement,
-                    meta: { title: 'Positions Management' }
+                    meta: {title: 'Positions Management'}
                 },
                 {
                     path: 'employees',
                     component: EmployeeManagement,
-                    meta: { title: 'Employees Management' }
+                    meta: {title: 'Employees Management'}
                 },
                 {
                     path: 'leaves',
                     component: LeaveRequest,
-                    meta: { title: 'Leaves Request' }
+                    meta: {title: 'Leaves Request'}
                 },
                 {
                     path: 'leaves-manager',
                     component: LeaveManagement,
-                    meta: { title: 'Leaves Management' }
+                    meta: {title: 'Leaves Management'}
                 },
                 {
                     path: 'leave-types',
                     component: LeaveTypes,
-                    meta: { title: 'Leaves Types' }
+                    meta: {title: 'Leaves Types'}
                 },
                 {
                     path: 'schedules',
                     component: Schedules,
-                    meta: { title: 'Schedules Management' }
+                    meta: {title: 'Schedules Management'}
                 },
                 {
                     path: 'contract-annexes/:id',
                     name: 'ContractAnnex',
                     component: ContractAnnex,
-                    meta: { title: 'Contract Annex' }
+                    meta: {title: 'Contract Annex'}
                 },
                 {
                     path: 'contracts',
                     component: Contract,
-                    meta: { title: 'Contract' }
+                    meta: {title: 'Contract'}
                 },
                 {
                     path: 'attendances',
                     component: AttendanceManagement,
-                    meta: { title: 'Attendance Management' }
+                    meta: {title: 'Attendance Management'}
                 },
                 {
                     path: 'profile',
                     component: Profile,
-                    meta: { title: 'Profile' }
+                    meta: {title: 'Profile'}
                 },
                 {
                     path: 'task-management',
                     component: TaskListManagement,
-                    meta: { title: 'Task Management' }
+                    meta: {title: 'Task Management'}
                 },
                 {
                     path: 'my-task',
                     component: Mytask,
-                    meta: { title: 'My Task' }
+                    meta: {title: 'My Task'}
                 },
                 {
                     path: 'kpi-ranking',
                     component: KpiRanking,
-                    meta: { title: 'KPI Ranking' }
-                },    
+                    meta: {title: 'KPI Ranking'}
+                },
                 {
                     path: 'salaries',
                     component: Salaries,
-                    meta: { title: 'Salaries Management' }
+                    meta: {title: 'Salaries Management'}
+                },
+                {
+                    path: 'payrollbatch',
+                    component: PayrollBatch,
+                    meta: {title: 'Payroll Batch'}
                 }
 
 
@@ -177,10 +183,10 @@ const router = createRouter({
         {
             path: '/403',
             component: () => import('@/views/errors/Forbidden.vue'),
-            meta: { title: 'Forbidden' }
+            meta: {title: 'Forbidden'}
         },
 
-        { path: '/:pathMatch(.*)*', redirect: '/' }
+        {path: '/:pathMatch(.*)*', redirect: '/'}
     ]
 })
 
@@ -188,7 +194,7 @@ const router = createRouter({
 // ── Navigation Guard ──────────────────────────────────────
 router.beforeEach(async (to) => {
     const token = localStorage.getItem('token')
-    const auth  = useAuthStore()
+    const auth = useAuthStore()
 
     // Chưa login → login
     if (to.meta.requiresAuth && !token) return '/auth/login'

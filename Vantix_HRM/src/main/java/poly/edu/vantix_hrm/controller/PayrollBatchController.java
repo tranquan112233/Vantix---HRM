@@ -13,6 +13,16 @@ public class PayrollBatchController {
 
     private final PayrollBatchService payrollBatchService;
 
+    // Lấy danh sách toàn bộ các đợt lương
+    @GetMapping
+    public ResponseEntity<?> getAllBatches() {
+        try {
+            return ResponseEntity.ok(payrollBatchService.getAllPayrollBatches());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+
     // API Chốt bảng lương tháng
     @PostMapping("/finalize")
     public ResponseEntity<?> finalizePayroll(@RequestParam("month") int month, @RequestParam("year") int year) {

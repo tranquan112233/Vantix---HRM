@@ -1,9 +1,9 @@
 <script setup>
 import {ref, reactive, computed, onMounted, watch} from 'vue'
 import salariesService from '@/services/salaries.service'
-import {useToast} from 'vue-toastification' // Thêm thư viện Toast
+import {useToast} from 'vue-toastification'
 
-const toast = useToast() // Khởi tạo toast
+const toast = useToast()
 
 const monthInput = ref(null)
 const departments = ref([])
@@ -12,10 +12,16 @@ const salaries = ref([])
 const filters = reactive({keyword: '', status: '', month: '2026-03', department: ''})
 const detailModal = reactive({show: false, data: {}})
 
-// State UI
+// State UI và Phân trang
 const pagination = reactive({page: 0, size: 10})
-const isSubmittingAll = ref(false)
+
+// State cho Modal Gửi Duyệt Tất Cả
 const showConfirmModal = ref(false)
+const isSubmittingAll = ref(false)
+
+// State cho Modal Chốt Lương Tháng
+const showFinalizeModal = ref(false)
+const isFinalizing = ref(false)
 
 const fetchSalaries = async () => {
   if (!filters.month) return
@@ -98,6 +104,7 @@ const totalPayrollCost = computed(() => filteredSalaries.value.reduce((sum, s) =
 const pendingCount = computed(() => filteredSalaries.value.filter(s => s.status === 'PENDING').length)
 const paidCount = computed(() => filteredSalaries.value.filter(s => s.status === 'PAID').length)
 
+// --- XỬ LÝ: GỬI DUYỆT TẤT CẢ ---
 function handleSubmitAllPending() {
   if (!filters.month) return
   showConfirmModal.value = true
@@ -110,16 +117,40 @@ async function confirmSubmitAllPending() {
 
   try {
     const res = await salariesService.submitAllToPending(parseInt(month), parseInt(year))
-    toast.success(res.data) // Sửa alert() thành toast.success()
+    toast.success(res.data)
     await fetchSalaries()
   } catch (error) {
     const errorMsg = error.response?.data || "Có lỗi xảy ra khi cập nhật trạng thái!"
-    toast.error(errorMsg) // Sửa alert() thành toast.error()
+    toast.error(errorMsg)
   } finally {
     isSubmittingAll.value = false
   }
 }
 
+// --- XỬ LÝ: CHỐT LƯƠNG THÁNG ---
+function openGenerateModal() {
+  if (!filters.month) return
+  showFinalizeModal.value = true
+}
+
+async function confirmFinalizePayroll() {
+  if (!filters.month) return
+
+  showFinalizeModal.value = false
+  isFinalizing.value = true
+  const [year, month] = filters.month.split('-')
+
+  try {
+    const res = await salariesService.finalizePayrollBatch(parseInt(month), parseInt(year))
+    toast.success(`Đã chốt thành công: ${res.data.batchName} với tổng chi phí ${formatCurrency(res.data.totalNetAmount)}`)
+  } catch (error) {
+    toast.error(error.response?.data || "Có lỗi xảy ra khi chốt lương!")
+  } finally {
+    isFinalizing.value = false
+  }
+}
+
+// --- TIỆN ÍCH ---
 function openMonthPicker() {
   if (monthInput.value && typeof monthInput.value.showPicker === 'function') {
     try {
@@ -172,21 +203,7 @@ function updateStatus(data, newStatus) {
   data.status = newStatus
   const idx = salaries.value.findIndex(s => s.salaryId === data.salaryId)
   if (idx !== -1) salaries.value[idx].status = newStatus
-  toast.success(`Cập nhật trạng thái thành: ${newStatus}`) // Đổi sang Toast
-}
-
-async function openGenerateModal() {
-  if (!filters.month) return
-  const [year, month] = filters.month.split('-')
-
-  if (!confirm(`Tạo đợt chốt lương tổng hợp cho Tháng ${month}/${year} gửi Giám đốc?`)) return
-
-  try {
-    const res = await salariesService.finalizePayrollBatch(parseInt(month), parseInt(year))
-    toast.success(`Đã chốt thành công: ${res.data.batchName} với tổng chi phí ${formatCurrency(res.data.totalNetAmount)}`)
-  } catch (error) {
-    toast.error(error.response?.data || "Có lỗi xảy ra khi chốt lương!")
-  }
+  toast.success(`Cập nhật trạng thái thành: ${newStatus}`)
 }
 </script>
 
@@ -207,8 +224,10 @@ async function openGenerateModal() {
           <i class="bi bi-download"></i>
           <span>Xuất File Bảng Lương</span>
         </button>
-        <button class="btn-primary bg-success-gradient" @click="openGenerateModal">
-          <i class="bi bi-calculator"></i>
+        <button class="btn-primary bg-success-gradient" @click="openGenerateModal" :disabled="isFinalizing">
+          <span v-if="isFinalizing" class="spinner-border spinner-border-sm me-2" role="status"
+                aria-hidden="true"></span>
+          <i v-else class="bi bi-calculator"></i>
           <span>Chốt Lương Tháng</span>
         </button>
       </div>
@@ -505,19 +524,60 @@ async function openGenerateModal() {
                 Bạn có chắc chắn muốn chuyển toàn bộ bảng lương <strong>{{
                   formatMonth(filters.month + '-01')
                 }}</strong> sang trạng thái <span
-                  style="color: #b45309; font-weight: 700; background: #fef3c7; padding: 2px 6px; border-radius: 4px;">PENDING</span>?
+                  style="color: #b45309; font-weight: 700; background: #fef3c7; padding: 2px 6px; border-radius: 4px;">Chờ Duyệt (PENDING)</span>?
               </p>
             </div>
 
             <div class="modal-footer" style="justify-content: flex-end; gap: 10px; border-top: none; padding-top: 0;">
-              <button class="btn-secondary" @click="showConfirmModal = false">Hủy bỏ</button>
-              <button class="btn-primary" style="background: #f59e0b; border: none;" @click="confirmSubmitAllPending">
+              <button class="btn-secondary" @click="showConfirmModal = false" :disabled="isSubmittingAll">Hủy bỏ
+              </button>
+              <button class="btn-primary" style="background: #f59e0b; border: none;" @click="confirmSubmitAllPending"
+                      :disabled="isSubmittingAll">
                 Đồng ý Gửi duyệt
               </button>
             </div>
           </div>
         </div>
       </transition>
+
+      <transition name="modal-fade">
+        <div v-if="showFinalizeModal" class="modal-overlay" @click.self="showFinalizeModal = false">
+          <div class="modal-container" style="max-width: 420px;">
+            <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
+              <div class="modal-title-group">
+                <div class="modal-icon" style="background: #eef2ff; color: #3b82f6;">
+                  <i class="bi bi-calculator"></i>
+                </div>
+                <div>
+                  <h3 style="font-size: 18px;">Chốt Lương Tháng</h3>
+                </div>
+              </div>
+              <button class="modal-close" @click="showFinalizeModal = false">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <div class="modal-body" style="background: white; padding-top: 16px;">
+              <p style="color: #475569; font-size: 14.5px; margin-bottom: 0; line-height: 1.5;">
+                Bạn có chắc chắn muốn tạo đợt chốt lương tổng hợp cho <strong>{{
+                  formatMonth(filters.month + '-01')
+                }}</strong> để gửi Giám đốc xem xét?
+              </p>
+            </div>
+
+            <div class="modal-footer" style="justify-content: flex-end; gap: 10px; border-top: none; padding-top: 0;">
+              <button class="btn-secondary" @click="showFinalizeModal = false" :disabled="isFinalizing">Hủy bỏ</button>
+              <button class="btn-primary" style="background: #3b82f6; border: none;" @click="confirmFinalizePayroll"
+                      :disabled="isFinalizing">
+                <span v-if="isFinalizing" class="spinner-border spinner-border-sm me-2" role="status"
+                      aria-hidden="true"></span>
+                Đồng ý Chốt
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
     </teleport>
   </div>
 </template>
@@ -829,9 +889,14 @@ async function openGenerateModal() {
   font-family: inherit;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-outline {
