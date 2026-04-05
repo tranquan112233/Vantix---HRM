@@ -23,6 +23,10 @@ const isSubmittingAll = ref(false)
 const showFinalizeModal = ref(false)
 const isFinalizing = ref(false)
 
+// State cho Modal Tính Lương Tự Động (MỚI)
+const showGenerateModal = ref(false)
+const isGenerating = ref(false)
+
 const fetchSalaries = async () => {
   if (!filters.month) return
   const [year, month] = filters.month.split('-')
@@ -127,8 +131,32 @@ async function confirmSubmitAllPending() {
   }
 }
 
+// --- XỬ LÝ: TÍNH LƯƠNG TỰ ĐỘNG (MỚI) ---
+function openAutoGenerateModal() {
+  if (!filters.month) return
+  showGenerateModal.value = true
+}
+
+async function confirmAutoGenerateSalaries() {
+  if (!filters.month) return
+
+  showGenerateModal.value = false
+  isGenerating.value = true
+  const [year, month] = filters.month.split('-')
+
+  try {
+    const res = await salariesService.generateSalaries(parseInt(month), parseInt(year))
+    toast.success(res.data)
+    await fetchSalaries() // Load lại bảng ngay sau khi tính xong
+  } catch (error) {
+    toast.error(error.response?.data || "Có lỗi xảy ra khi chạy thuật toán tính lương!")
+  } finally {
+    isGenerating.value = false
+  }
+}
+
 // --- XỬ LÝ: CHỐT LƯƠNG THÁNG ---
-function openGenerateModal() {
+function openFinalizeModal() {
   if (!filters.month) return
   showFinalizeModal.value = true
 }
@@ -224,7 +252,16 @@ function updateStatus(data, newStatus) {
           <i class="bi bi-download"></i>
           <span>Xuất File Bảng Lương</span>
         </button>
-        <button class="btn-primary bg-success-gradient" @click="openGenerateModal" :disabled="isFinalizing">
+
+        <button class="btn-primary" style="background: #4f46e5; border: none;" @click="openAutoGenerateModal"
+                :disabled="isGenerating">
+          <span v-if="isGenerating" class="spinner-border spinner-border-sm me-2" role="status"
+                aria-hidden="true"></span>
+          <i v-else class="bi bi-cpu"></i>
+          <span>Tính Lương Tự Động</span>
+        </button>
+
+        <button class="btn-primary bg-success-gradient" @click="openFinalizeModal" :disabled="isFinalizing">
           <span v-if="isFinalizing" class="spinner-border spinner-border-sm me-2" role="status"
                 aria-hidden="true"></span>
           <i v-else class="bi bi-calculator"></i>
@@ -400,6 +437,43 @@ function updateStatus(data, newStatus) {
     </div>
 
     <teleport to="body">
+      <transition name="modal-fade">
+        <div v-if="showGenerateModal" class="modal-overlay" @click.self="showGenerateModal = false">
+          <div class="modal-container" style="max-width: 420px;">
+            <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
+              <div class="modal-title-group">
+                <div class="modal-icon" style="background: #e0e7ff; color: #4f46e5;">
+                  <i class="bi bi-cpu"></i>
+                </div>
+                <div>
+                  <h3 style="font-size: 18px;">Tính Lương Tự Động</h3>
+                </div>
+              </div>
+              <button class="modal-close" @click="showGenerateModal = false">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <div class="modal-body" style="background: white; padding-top: 16px;">
+              <p style="color: #475569; font-size: 14.5px; margin-bottom: 0; line-height: 1.5;">
+                Bạn có chắc chắn muốn hệ thống quét dữ liệu chấm công và tự động tính toán bảng lương
+                <strong>{{ formatMonth(filters.month + '-01') }}</strong> cho toàn bộ nhân viên không?
+              </p>
+            </div>
+
+            <div class="modal-footer" style="justify-content: flex-end; gap: 10px; border-top: none; padding-top: 0;">
+              <button class="btn-secondary" @click="showGenerateModal = false" :disabled="isGenerating">Hủy bỏ</button>
+              <button class="btn-primary" style="background: #4f46e5; border: none;"
+                      @click="confirmAutoGenerateSalaries" :disabled="isGenerating">
+                <span v-if="isGenerating" class="spinner-border spinner-border-sm me-2" role="status"
+                      aria-hidden="true"></span>
+                Đồng ý Chạy
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
       <transition name="modal-fade">
         <div v-if="detailModal.show" class="modal-overlay" @click.self="detailModal.show = false">
           <div class="modal-container modal-lg">

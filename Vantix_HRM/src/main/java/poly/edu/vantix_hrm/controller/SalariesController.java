@@ -48,4 +48,17 @@ public class SalariesController {
             return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
         }
     }
+
+    // API Tự động tính toán bảng lương cho toàn bộ nhân viên trong tháng
+    @PostMapping("/generate/{month}/{year}")
+    public ResponseEntity<?> generateSalaries(@PathVariable("month") int month, @PathVariable("year") int year) {
+        try {
+            String resultMsg = salariesService.generateSalaries(month, year);
+            return ResponseEntity.ok(resultMsg);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống khi tính lương: " + e.getMessage());
+        }
+    }
 }

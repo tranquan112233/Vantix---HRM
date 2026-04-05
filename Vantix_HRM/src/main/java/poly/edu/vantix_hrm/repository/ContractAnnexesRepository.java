@@ -26,4 +26,7 @@ public interface ContractAnnexesRepository extends JpaRepository<ContractAnnexes
 
     // Dành cho Scheduler: Tìm các phụ lục CHƯA ÁP DỤNG, đã ĐẾN NGÀY HIỆU LỰC, và Hợp đồng CHƯA HẾT HẠN
     List<ContractAnnexes> findByIsActiveFalseAndEffectiveDateLessThanEqualAndContract_StatusNot(LocalDate date, Contract.ContractStatus status);
+
+    @Query("SELECT a FROM ContractAnnexes a WHERE a.contract.contractId = :contractId AND a.isActive = true AND a.effectiveDate <= :targetDate ORDER BY a.effectiveDate DESC")
+    List<ContractAnnexes> findValidAnnexes(@Param("contractId") Long contractId, @Param("targetDate") LocalDate targetDate);
 }

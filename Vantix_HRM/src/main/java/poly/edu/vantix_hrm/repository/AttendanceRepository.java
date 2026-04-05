@@ -37,4 +37,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
     @Query("SELECT a FROM Attendance a " + "JOIN FETCH a.employee e " + "JOIN FETCH a.shift s " + "WHERE e.department.id = :departmentId " + "AND a.status = 'PENDING' " + "AND a.workDate BETWEEN :startDate AND :endDate " + "ORDER BY e.id ASC, a.workDate DESC")
     List<Attendance> findPendingByDepartmentAndDateRange(@Param("departmentId") Long departmentId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT a FROM Attendance a WHERE a.employee.id = :empId AND MONTH(a.workDate) = :month AND YEAR(a.workDate) = :year")
+    List<Attendance> findByEmployeeIdAndMonthAndYear(@Param("empId") Long empId, @Param("month") int month, @Param("year") int year);
 }

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import poly.edu.vantix_hrm.entity.Salary;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface SalariesRepository extends JpaRepository<Salary, Integer> {
@@ -30,5 +31,6 @@ public interface SalariesRepository extends JpaRepository<Salary, Integer> {
     @Query("UPDATE Salary s SET s.status = :status WHERE YEAR(s.salaryMonth) = :year AND MONTH(s.salaryMonth) = :month")
     int updateStatusByMonthAndYear(@Param("status") Salary.SalaryStatus status, @Param("month") int month, @Param("year") int year);
 
-
+    @Query("SELECT s FROM Salary s WHERE s.employee.id = :empId AND YEAR(s.salaryMonth) = :year AND MONTH(s.salaryMonth) = :month")
+    Optional<Salary> findByEmployeeAndMonthAndYear(@Param("empId") Long empId, @Param("month") int month, @Param("year") int year);
 }

@@ -25,5 +25,9 @@ export default {
 
     finalizePayrollBatch(month, year) {
         return api.post(`/payroll-batches/finalize/${month}/${year}`);
+    },
+
+    generateSalaries(month, year) {
+        return api.post(`${ENDPOINT}/generate/${month}/${year}`);
     }
 }

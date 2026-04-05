@@ -2,11 +2,13 @@ package poly.edu.vantix_hrm.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import poly.edu.vantix_hrm.entity.Contract;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ContractsRepository extends JpaRepository<Contract, Long> {
@@ -19,4 +21,7 @@ public interface ContractsRepository extends JpaRepository<Contract, Long> {
     List<Contract> findByEmployee_Id(Long employeeId);
 
     List<Contract> findByStatusAndEndDateBefore(Contract.ContractStatus status, LocalDate date);
+
+    @Query("SELECT c FROM Contract c WHERE c.employee.id = :empId AND c.status = 'ACTIVE'")
+    Optional<Contract> findActiveContractByEmployeeId(@Param("empId") Long empId);
 }
