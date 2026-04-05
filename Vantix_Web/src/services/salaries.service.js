@@ -18,15 +18,12 @@ export default {
     submitAllToPending(month, year) {
         return api.put(`${ENDPOINT}/submit-all-pending`, null, {
             params: {
-                month: month,
-                year: year
+                month: month, year: year
             }
         });
     },
 
     finalizePayrollBatch(month, year) {
-        return api.post(`/payroll-batches/finalize`, null, {
-            params: { month, year }
-        });
+        return api.post(`/payroll-batches/finalize/${month}/${year}`);
     }
 }

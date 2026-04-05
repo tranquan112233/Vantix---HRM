@@ -13,10 +13,12 @@ import java.util.Optional;
 public interface PayrollBatchRepository extends JpaRepository<PayrollBatch, Integer> {
 
     // Tìm kiếm đợt lương theo tháng và năm
-    @Query("SELECT p FROM PayrollBatch p WHERE YEAR(p.salaryMonth) = :year AND MONTH(p.salaryMonth) = :month")
-    Optional<PayrollBatch> findByMonthAndYear(@Param("month") int month, @Param("year") int year);
+    @Query("SELECT p FROM PayrollBatch p WHERE YEAR(p.salaryMonth) = :year AND MONTH(p.salaryMonth) = :month ORDER BY p.batchId DESC")
+    List<PayrollBatch> findByMonthAndYear(@Param("month") int month, @Param("year") int year);
 
     // Lấy tất cả các đợt chốt lương, sắp xếp mới nhất lên đầu (Dùng Query rõ ràng)
     @Query("SELECT p FROM PayrollBatch p ORDER BY p.salaryMonth DESC")
     List<PayrollBatch> findAllBatchesDesc();
+
+
 }

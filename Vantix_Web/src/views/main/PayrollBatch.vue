@@ -2,28 +2,28 @@
 import {ref, reactive, computed, onMounted} from 'vue'
 import {useToast} from 'vue-toastification'
 import payrollbatchService from '@/services/payrollbatch.service'
+import salariesService from '@/services/salaries.service'
 
 const toast = useToast()
 
-// 1. Khởi tạo mảng rỗng để hoàn toàn nhận dữ liệu từ Database
 const batches = ref([])
 
 const filters = reactive({year: '2026', status: ''})
-const detailModal = reactive({show: false, data: {}})
+const detailModal = reactive({show: false, loading: false, data: {}, employees: []})
 const confirmModal = reactive({show: false, type: '', data: {}})
+// Bổ sung State cho Modal Lịch Sử
+const historyModal = reactive({show: false, monthTitle: '', data: []})
 const isProcessing = ref(false)
 
-// --- 2. GỌI API LẤY DỮ LIỆU TỪ BACKEND ---
+// --- 1. LẤY DỮ LIỆU ---
 const fetchBatches = async () => {
   try {
     const res = await payrollbatchService.getAllBatches()
-    // Gán trực tiếp dữ liệu từ server trả về
     if (res.data) {
       batches.value = res.data
     }
   } catch (error) {
     console.error("Lỗi khi tải danh sách đợt lương:", error)
-    toast.error("Không thể tải danh sách đợt lương từ server!")
   }
 }
 
@@ -31,41 +31,110 @@ onMounted(() => {
   fetchBatches()
 })
 
-// --- LỌC DỮ LIỆU ---
-const filteredBatches = computed(() => {
-  return batches.value.filter(b => {
-    // Xử lý cẩn thận nếu salaryMonth là mảng (Spring Data trả về kiểu này đôi khi)
-    let salaryMonthStr = ''
+// --- 2. THUẬT TOÁN GỘP NHÓM THEO THÁNG (GROUPING) ---
+const groupedBatches = computed(() => {
+  // B1: Gom nhóm dữ liệu theo Key là YYYY-MM
+  const groups = {}
+  batches.value.forEach(b => {
+    let y, m
     if (Array.isArray(b.salaryMonth)) {
-      // Nếu là mảng [2026, 3, 1], lấy phần tử đầu tiên làm năm
-      salaryMonthStr = `${b.salaryMonth[0]}`
+      y = b.salaryMonth[0]
+      m = String(b.salaryMonth[1]).padStart(2, '0')
     } else {
-      salaryMonthStr = String(b.salaryMonth || '')
+      const parts = String(b.salaryMonth).split('-')
+      y = parts[0]
+      m = parts[1]
+    }
+    const key = `${y}-${m}`
+
+    if (!groups[key]) groups[key] = []
+    groups[key].push(b)
+  })
+
+  // B2: Biến đổi object thành mảng, sắp xếp để lấy thằng MỚI NHẤT làm chính
+  let result = Object.values(groups).map(list => {
+    // Sắp xếp giảm dần theo ID (ID to nhất là phiếu mới nhất)
+    list.sort((a, b) => b.batchId - a.batchId)
+    return {
+      main: list[0],             // Phiếu hiển thị ở ngoài Card
+      history: list.slice(1)     // Các phiếu bị hủy nằm trong lịch sử
+    }
+  })
+
+  // B3: Áp dụng các bộ lọc (Năm, Trạng thái) dựa trên phiếu CHÍNH
+  result = result.filter(group => {
+    let y
+    if (Array.isArray(group.main.salaryMonth)) {
+      y = group.main.salaryMonth[0]
+    } else {
+      y = String(group.main.salaryMonth).split('-')[0]
     }
 
-    const matchYear = salaryMonthStr.includes(filters.year)
-    const matchStatus = filters.status ? b.status === filters.status : true
+    const matchYear = String(y) === String(filters.year)
+    const matchStatus = filters.status ? group.main.status === filters.status : true
+
     return matchYear && matchStatus
   })
+
+  // B4: Sắp xếp các Card ngoài màn hình theo ID giảm dần
+  result.sort((a, b) => b.main.batchId - a.main.batchId)
+
+  return result
 })
 
-// --- THỐNG KÊ ---
+// --- THỐNG KÊ (Tính toán dựa trên các phiếu CHÍNH) ---
 const totalPendingAmount = computed(() => {
-  return batches.value
-      .filter(b => b.status === 'PENDING')
-      .reduce((sum, b) => sum + (b.totalNetAmount || 0), 0)
+  return groupedBatches.value
+      .filter(g => g.main.status === 'PENDING')
+      .reduce((sum, g) => sum + (g.main.totalNetAmount || 0), 0)
 })
 
 const totalApprovedAmount = computed(() => {
-  return batches.value
-      .filter(b => b.status === 'APPROVED' || b.status === 'COMPLETED')
-      .reduce((sum, b) => sum + (b.totalNetAmount || 0), 0)
+  return groupedBatches.value
+      .filter(g => g.main.status === 'APPROVED' || g.main.status === 'COMPLETED')
+      .reduce((sum, g) => sum + (g.main.totalNetAmount || 0), 0)
 })
 
-// --- XỬ LÝ HÀNH ĐỘNG ---
-function openDetail(batch) {
+
+// --- XỬ LÝ LỊCH SỬ ---
+function openHistory(group) {
+  historyModal.monthTitle = formatMonth(group.main.salaryMonth)
+  historyModal.data = group.history
+  historyModal.show = true
+}
+
+function viewHistoryDetail(oldBatch) {
+  historyModal.show = false // Tạm đóng modal lịch sử
+  openDetail(oldBatch)      // Mở modal chi tiết
+}
+
+// --- XỬ LÝ HÀNH ĐỘNG CƠ BẢN ---
+async function openDetail(batch) {
   detailModal.data = {...batch}
   detailModal.show = true
+  detailModal.loading = true
+  detailModal.employees = []
+
+  try {
+    let year, month;
+    if (Array.isArray(batch.salaryMonth)) {
+      year = batch.salaryMonth[0];
+      month = batch.salaryMonth[1];
+    } else {
+      const parts = String(batch.salaryMonth).split('-');
+      year = parseInt(parts[0]);
+      month = parseInt(parts[1]);
+    }
+
+    const res = await salariesService.getSalaries(month, year)
+    if (res.data) {
+      detailModal.employees = res.data
+    }
+  } catch (error) {
+    console.error("Lỗi khi lấy chi tiết nhân sự:", error)
+  } finally {
+    detailModal.loading = false
+  }
 }
 
 function openConfirm(batch, type) {
@@ -80,19 +149,23 @@ async function handleConfirmAction() {
   const newStatus = confirmModal.type === 'APPROVE' ? 'APPROVED' : 'REJECTED'
 
   try {
-    // Gợi ý: Thay setTimeout bằng API gọi xuống Backend: await payrollbatchService.updateStatus(confirmModal.data.batchId, newStatus)
-    setTimeout(() => {
-      const idx = batches.value.findIndex(b => b.batchId === confirmModal.data.batchId)
-      if (idx !== -1) {
-        batches.value[idx].status = newStatus
-      }
-      toast.success(`Đã ${actionName.toLowerCase()} ${confirmModal.data.batchName} thành công!`)
-      confirmModal.show = false
-      isProcessing.value = false
-    }, 600)
+    const res = await payrollbatchService.updateStatus(confirmModal.data.batchId, newStatus)
 
+    const idx = batches.value.findIndex(b => b.batchId === confirmModal.data.batchId)
+    if (idx !== -1) {
+      batches.value[idx].status = res.data?.status || newStatus
+    }
+
+    if (detailModal.show && detailModal.data.batchId === confirmModal.data.batchId) {
+      detailModal.show = false
+    }
+
+    toast.success(`Đã ${actionName.toLowerCase()} ${confirmModal.data.batchName} thành công!`)
+    confirmModal.show = false
   } catch (error) {
-    toast.error(`Có lỗi xảy ra khi ${actionName.toLowerCase()}!`)
+    const msg = error.response?.data || `Có lỗi xảy ra khi ${actionName.toLowerCase()}!`
+    toast.error(msg)
+  } finally {
     isProcessing.value = false
   }
 }
@@ -103,9 +176,22 @@ function formatCurrency(val) {
   return new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(val)
 }
 
+function formatMonth(dateStr) {
+  if (!dateStr) return ''
+  let y, m
+  if (Array.isArray(dateStr)) {
+    y = dateStr[0];
+    m = dateStr[1]
+  } else {
+    const d = new Date(dateStr);
+    y = d.getFullYear();
+    m = d.getMonth() + 1
+  }
+  return `Tháng ${String(m).padStart(2, '0')}/${y}`
+}
+
 function formatDateTime(dateStr) {
   if (!dateStr) return ''
-  // Kiểm tra nếu Spring Boot trả về dạng mảng [yyyy, mm, dd, hh, mm, ss]
   if (Array.isArray(dateStr)) {
     const [y, m, d, h, min, s] = dateStr
     const dateObj = new Date(y, m - 1, d, h || 0, min || 0, s || 0)
@@ -117,7 +203,6 @@ function formatDateTime(dateStr) {
       year: 'numeric'
     })
   }
-
   const d = new Date(dateStr)
   return d.toLocaleString('vi-VN', {
     hour: '2-digit',
@@ -151,7 +236,7 @@ function getStatusLabel(status) {
 
 <template>
   <div class="salary-management">
-    <!-- Header -->
+
     <div class="page-header">
       <div class="header-left">
         <div class="title-icon bg-director-gradient">
@@ -170,7 +255,7 @@ function getStatusLabel(status) {
       </div>
     </div>
 
-    <!-- Metrics -->
+
     <div class="stats-row">
       <div class="stat-card">
         <div class="stat-icon pending-icon"><i class="bi bi-hourglass-split"></i></div>
@@ -188,7 +273,7 @@ function getStatusLabel(status) {
       </div>
     </div>
 
-    <!-- Filters -->
+
     <div class="filter-card">
       <div class="filter-content">
         <div class="select-wrapper">
@@ -212,62 +297,121 @@ function getStatusLabel(status) {
       </div>
     </div>
 
-    <!-- CARD GRID MỚI (Lọc trực tiếp, bỏ phân trang) -->
-    <div v-if="filteredBatches.length === 0" class="empty-state-grid">
+
+    <div v-if="groupedBatches.length === 0" class="empty-state-grid">
       <i class="bi bi-folder-x empty-icon"></i>
       <p>Không có đợt lương nào trong hệ thống.</p>
     </div>
 
     <div v-else class="batch-grid">
-      <div v-for="batch in filteredBatches" :key="batch.batchId" class="batch-card">
+      <!-- VÒNG LẶP SỬ DỤNG GROUPED BATCHES -->
+      <div v-for="group in groupedBatches" :key="group.main.batchId" class="batch-card">
+
         <div class="card-header-top">
-          <span class="batch-id">#BATCH-{{ batch.batchId }}</span>
-          <span :class="['status-badge', getStatusClass(batch.status)]">
+          <div class="d-flex align-items-center gap-2">
+            <span class="batch-id">#BATCH-{{ group.main.batchId }}</span>
+
+            <!-- NÚT LỊCH SỬ NẾU CÓ PHIẾU BỊ HỦY -->
+            <button v-if="group.history.length > 0" class="history-badge" @click="openHistory(group)"
+                    title="Xem các phiếu đã bị từ chối">
+              <i class="bi bi-clock-history"></i> {{ group.history.length }} bản hủy
+            </button>
+          </div>
+
+          <span :class="['status-badge', getStatusClass(group.main.status)]">
             <span class="status-dot"></span>
-            {{ getStatusLabel(batch.status) }}
+            {{ getStatusLabel(group.main.status) }}
           </span>
         </div>
 
         <div class="card-main-body">
-          <h3 class="batch-name">{{ batch.batchName }}</h3>
+          <h3 class="batch-name">{{ group.main.batchName }}</h3>
 
           <div class="batch-meta">
             <div class="meta-item">
               <i class="bi bi-calendar3 text-muted"></i>
-              <span>{{ formatDateTime(batch.createdAt) }}</span>
+              <span>Tạo lúc: {{ formatDateTime(group.main.createdAt) }}</span>
             </div>
             <div class="meta-item">
               <i class="bi bi-people text-muted"></i>
-              <span>{{ batch.totalEmployees }} nhân sự</span>
+              <span>{{ group.main.totalEmployees }} nhân sự</span>
             </div>
           </div>
 
           <div class="batch-amount-box">
             <span class="amount-label">TỔNG QUỸ LƯƠNG</span>
-            <span class="amount-value" :class="batch.status === 'REJECTED' ? 'text-danger' : 'text-success'">
-              {{ formatCurrency(batch.totalNetAmount) }}
+            <span class="amount-value" :class="group.main.status === 'REJECTED' ? 'text-danger' : 'text-success'">
+              {{ formatCurrency(group.main.totalNetAmount) }}
             </span>
           </div>
         </div>
 
         <div class="card-footer-bottom">
-          <button class="btn-card-action view" @click="openDetail(batch)">
+          <button class="btn-card-action view" @click="openDetail(group.main)">
             <i class="bi bi-eye"></i> Xem chi tiết
           </button>
 
-          <div class="quick-actions" v-if="batch.status === 'PENDING'">
-            <button class="btn-icon-action reject" @click="openConfirm(batch, 'REJECT')" title="Từ chối">
+          <div class="quick-actions" v-if="group.main.status === 'PENDING'">
+            <button class="btn-icon-action reject" @click="openConfirm(group.main, 'REJECT')" title="Từ chối">
               <i class="bi bi-x-lg"></i>
             </button>
-            <button class="btn-icon-action approve" @click="openConfirm(batch, 'APPROVE')" title="Phê duyệt">
+            <button class="btn-icon-action approve" @click="openConfirm(group.main, 'APPROVE')" title="Phê duyệt">
               <i class="bi bi-check-lg"></i> Duyệt
             </button>
+          </div>
+          <div v-else-if="group.main.status === 'REJECTED'"
+               style="font-size: 12.5px; color: #ef4444; font-style: italic;">
+            <i class="bi bi-info-circle"></i> Đang chờ kế toán làm lại
+          </div>
+          <div v-else-if="group.main.status === 'APPROVED'"
+               style="font-size: 12.5px; color: #10b981; font-weight: 600;">
+            <i class="bi bi-check2-all"></i> Đã duyệt chi
           </div>
         </div>
       </div>
     </div>
 
     <teleport to="body">
+
+      <!-- MODAL LỊCH SỬ PHIẾU BỊ HỦY -->
+      <transition name="modal-fade">
+        <div v-if="historyModal.show" class="modal-overlay" @click.self="historyModal.show = false">
+          <div class="modal-container" style="max-width: 550px;">
+            <div class="modal-header">
+              <div class="modal-title-group">
+                <div class="modal-icon" style="background: #f1f5f9; color: #475569;">
+                  <i class="bi bi-clock-history"></i>
+                </div>
+                <div>
+                  <h3>Lịch sử từ chối phiếu</h3>
+                  <p>Các đợt trình duyệt của <strong>{{ historyModal.monthTitle }}</strong></p>
+                </div>
+              </div>
+              <button class="modal-close" @click="historyModal.show = false"><i class="bi bi-x-lg"></i></button>
+            </div>
+
+            <div class="modal-body"
+                 style="padding: 16px 24px; max-height: 400px; overflow-y: auto; background: #fafbff;">
+              <div v-for="hb in historyModal.data" :key="hb.batchId" class="history-item-card">
+                <div class="hist-header">
+                  <span class="hist-id">#BATCH-{{ hb.batchId }}</span>
+                  <span class="status-badge status-rejected"><span class="status-dot"></span> Đã từ chối</span>
+                </div>
+                <div class="hist-body">
+                  <div class="hist-amount">{{ formatCurrency(hb.totalNetAmount) }}</div>
+                  <div class="hist-time">Tạo lúc: {{ formatDateTime(hb.createdAt) }}</div>
+                </div>
+                <div class="hist-footer">
+                  <button class="btn-text-primary" @click="viewHistoryDetail(hb)">
+                    <i class="bi bi-eye"></i> Xem lại chi tiết bản nháp này
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+
       <!-- Modal Xem Chi tiết Đợt Lương -->
       <transition name="modal-fade">
         <div v-if="detailModal.show" class="modal-overlay" @click.self="detailModal.show = false">
@@ -279,14 +423,15 @@ function getStatusLabel(status) {
                 </div>
                 <div>
                   <h3>Báo cáo {{ detailModal.data.batchName }}</h3>
-                  <p>Trạng thái: <strong>{{ getStatusLabel(detailModal.data.status) }}</strong></p>
+                  <p>Trạng thái: <strong :class="getStatusClass(detailModal.data.status).replace('status-', 'text-')">{{
+                      getStatusLabel(detailModal.data.status)
+                    }}</strong></p>
                 </div>
               </div>
               <button class="modal-close" @click="detailModal.show = false"><i class="bi bi-x-lg"></i></button>
             </div>
 
             <div class="modal-body payslip-body">
-              <!-- Summary Box -->
               <div class="payslip-net-box mb-4" style="background: linear-gradient(135deg, #1e1b4b, #312e81);">
                 <div class="net-left">
                   <span style="color: #c7d2fe;">TỔNG QUỸ LƯƠNG CẦN CHI</span>
@@ -300,11 +445,12 @@ function getStatusLabel(status) {
                 </div>
               </div>
 
-              <!-- Fake Table for Details -->
               <h4 style="font-size: 14px; font-weight: 700; color: #334155; margin-bottom: 12px;">CHI TIẾT NHÂN SỰ</h4>
-              <div style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+              <div
+                  style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; max-height: 400px; overflow-y: auto;">
                 <table class="data-table" style="margin: 0; width: 100%; border-collapse: collapse;">
-                  <thead style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                  <thead
+                      style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 1;">
                   <tr>
                     <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b;">Nhân viên</th>
                     <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b;">Phòng ban</th>
@@ -314,29 +460,33 @@ function getStatusLabel(status) {
                   </tr>
                   </thead>
                   <tbody>
-                  <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 10px 16px; font-size: 13.5px; color: #0f172a; font-weight: 500;">Nguyễn Văn
-                      Bảo
-                    </td>
-                    <td style="padding: 10px 16px;"><span class="badge-light">Phòng Kỹ Thuật</span></td>
-                    <td style="padding: 10px 16px; text-align: right; font-weight: 600; color: #059669;">14.625.000 ₫
+                  <tr v-if="detailModal.loading">
+                    <td colspan="3" style="text-align: center; padding: 30px;">
+                      <span class="spinner-border spinner-border-sm text-primary me-2"></span> Đang tải dữ liệu nhân
+                      sự...
                     </td>
                   </tr>
-                  <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 10px 16px; font-size: 13.5px; color: #0f172a; font-weight: 500;">Trần Thị Hà
-                    </td>
-                    <td style="padding: 10px 16px;"><span class="badge-light">Phòng Nhân Sự</span></td>
-                    <td style="padding: 10px 16px; text-align: right; font-weight: 600; color: #059669;">10.149.090 ₫
+                  <tr v-else-if="detailModal.employees.length === 0">
+                    <td colspan="3" style="text-align: center; padding: 30px; color: #64748b;">
+                      Không có dữ liệu nhân viên.
                     </td>
                   </tr>
-                  <tr>
-                    <td colspan="3"
-                        style="text-align: center; padding: 12px; color: #64748b; font-style: italic; font-size: 12px;">
-                      Đang hiển thị 2 / {{ detailModal.data.totalEmployees }} nhân sự... (Tích hợp API lấy chi tiết sau)
+                  <tr v-else v-for="emp in detailModal.employees" :key="emp.employeeId"
+                      style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 10px 16px; font-size: 13.5px; color: #0f172a; font-weight: 500;">
+                      {{ emp.employeeName }}
+                    </td>
+                    <td style="padding: 10px 16px;"><span class="badge-light">{{ emp.department }}</span></td>
+                    <td style="padding: 10px 16px; text-align: right; font-weight: 600; color: #059669;">
+                      {{ formatCurrency(emp.netSalary) }}
                     </td>
                   </tr>
                   </tbody>
                 </table>
+              </div>
+              <div v-if="!detailModal.loading && detailModal.employees.length > 0"
+                   style="text-align: center; padding: 12px 0 0 0; color: #64748b; font-style: italic; font-size: 12px;">
+                Đang hiển thị toàn bộ {{ detailModal.employees.length }} nhân sự.
               </div>
             </div>
 
@@ -385,11 +535,11 @@ function getStatusLabel(status) {
                 Giám đốc đồng ý phê duyệt chi trả <strong
                   class="text-success">{{ formatCurrency(confirmModal.data.totalNetAmount) }}</strong> cho đợt <strong>{{
                   confirmModal.data.batchName
-                }}</strong>? Trạng thái sẽ chuyển cho Kế toán giải ngân.
+                }}</strong>? Kế toán sẽ có thể thực hiện giải ngân.
               </p>
               <p v-else style="color: #475569; font-size: 14.5px; line-height: 1.5; margin: 0;">
                 Giám đốc từ chối đợt <strong>{{ confirmModal.data.batchName }}</strong>? Bảng lương sẽ được trả về trạng
-                thái yêu cầu tính toán lại.
+                thái Bản Nháp (DRAFT) để kế toán tính toán lại.
               </p>
             </div>
 
@@ -495,14 +645,6 @@ function getStatusLabel(status) {
 
 .mb-4 {
   margin-bottom: 24px;
-}
-
-.me-1 {
-  margin-right: 4px;
-}
-
-.me-2 {
-  margin-right: 8px;
 }
 
 .stats-row {
@@ -725,6 +867,27 @@ function getStatusLabel(status) {
   font-weight: 700;
   color: #94a3b8;
   letter-spacing: 0.5px;
+}
+
+/* CSS cho History Badge */
+.history-badge {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.history-badge:hover {
+  background: #e2e8f0;
+  color: #0f172a;
 }
 
 .card-main-body {
@@ -1041,8 +1204,75 @@ function getStatusLabel(status) {
   font-family: 'JetBrains Mono', monospace;
 }
 
+/* CSS Cho History Item */
+.history-item-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hist-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hist-id {
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.hist-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hist-amount {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.hist-time {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.hist-footer {
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 10px;
+  margin-top: 4px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-text-primary {
+  background: none;
+  border: none;
+  color: #4f46e5;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-text-primary:hover {
+  text-decoration: underline;
+}
+
 .d-flex {
   display: flex;
+  align-items: center;
 }
 
 .gap-2 {
@@ -1071,27 +1301,5 @@ function getStatusLabel(status) {
 
 .modal-fade-leave-to .modal-container {
   transform: scale(0.94) translateY(16px);
-}
-
-@media (max-width: 768px) {
-  .batch-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .payslip-net-box {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .modal-footer {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-
-  .d-flex.gap-2 {
-    flex-direction: column;
-  }
 }
 </style>
