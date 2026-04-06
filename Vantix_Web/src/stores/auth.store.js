@@ -60,7 +60,6 @@ export const useAuthStore = defineStore('auth', () => {
     function can(permission) {
         if (!permission) return true
         if (!user.value) return false
-        if (user.value.role === 'ADMIN') return true
 
         const userPermissions = user.value.permissions || []
 
@@ -73,13 +72,11 @@ export const useAuthStore = defineStore('auth', () => {
 
     function canAny(permissions) {
         if (!permissions || permissions.length === 0) return true
-        if (user.value?.role === 'ADMIN') return true
         return permissions.some(p => user.value?.permissions?.includes(p))
     }
 
     function canAll(permissions) {
         if (!permissions || permissions.length === 0) return true
-        if (user.value?.role === 'ADMIN') return true
         return permissions.every(p => user.value?.permissions?.includes(p))
     }
 
