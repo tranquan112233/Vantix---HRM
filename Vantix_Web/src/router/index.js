@@ -30,6 +30,7 @@ import Salaries from "@/views/main/Salaries.vue";
 import PayrollBatch from "@/views/main/PayrollBatch.vue";
 import MyTaskManagement from "@/views/main/MyTaskManagement.vue";
 import Settings from "@/views/main/Settings.vue";
+import Attendance from "@/views/main/Attendance.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -135,9 +136,14 @@ const router = createRouter({
                     meta: {title: 'Contract'}
                 },
                 {
-                    path: 'attendances',
+                    path: 'attendances-management',
                     component: AttendanceManagement,
                     meta: {title: 'Attendance Management'}
+                },
+                {
+                    path: 'attendances',
+                    component: Attendance,
+                    meta: {title: 'Attendance'}
                 },
                 {
                     path: 'profile',

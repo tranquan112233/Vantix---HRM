@@ -64,6 +64,7 @@ export const menuSections = [
         section: 'ATTENDANCE & LEAVE',
         items: [
 
+            {label: 'Attendances Management', icon: 'bi-calendar-check', to: '/attendances-management', permission: 'ATTENDANCE_MANAGEMENT_VIEW'},
             {label: 'Attendances', icon: 'bi-calendar-check', to: '/attendances', permission: 'ATTENDANCE_VIEW'},
             {label: 'Shifts', icon: 'bi-clock', to: '/shifts', permission: 'SHIFT_VIEW'},
             {label: 'Leave Requests', icon: 'bi-send', to: '/leaves', permission: 'LEAVE_VIEW'},
