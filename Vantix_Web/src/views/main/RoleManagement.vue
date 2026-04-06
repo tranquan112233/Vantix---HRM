@@ -261,7 +261,7 @@ const loading = ref(false)
 const submitting = ref(false)
 const showExportDropdown = ref(false)
 const exportDropdown = ref(null)
-const expandedGroups = ref(['User Management', 'Role Management', 'Employee Management'])
+const expandedGroups = ref(['User Management', 'Role Management', 'Employee Management', 'Department Management'])
 const permissionSearch = ref('')
 
 // Modal refs
@@ -376,30 +376,53 @@ function getSortIcon(column) {
   return sort.sortDir === 'desc' ? 'bi-arrow-down' : 'bi-arrow-up'
 }
 
+// ==================== PERMISSION GROUPS CONFIG ====================
+// Thứ tự quan trọng: prefix dài hơn phải đặt trước prefix ngắn hơn có cùng root
+// (ví dụ: CONTRACT_ANNEX trước CONTRACT, LEAVE_TYPE trước LEAVE)
+const PERM_GROUPS = [
+  { prefix: 'USER',       displayName: 'User Management',       icon: 'bi bi-people-fill' },
+  { prefix: 'PERMISSION', displayName: 'Permission Management', icon: 'bi bi-key-fill' },
+  { prefix: 'ROLE',       displayName: 'Role Management',       icon: 'bi bi-shield-lock-fill' },
+  { prefix: 'EMPLOYEE',   displayName: 'Employee Management',   icon: 'bi bi-person-badge-fill' },
+  { prefix: 'DEPARTMENT', displayName: 'Department Management', icon: 'bi bi-diagram-3-fill' },
+  { prefix: 'POSITION',   displayName: 'Position Management',   icon: 'bi bi-person-gear' },
+  { prefix: 'ATTENDANCE', displayName: 'Attendance',            icon: 'bi bi-calendar-check-fill' },
+  { prefix: 'LEAVE',      displayName: 'Leave Management',      icon: 'bi bi-calendar-x-fill' },
+  { prefix: 'CONTRACT',   displayName: 'Contract Management',   icon: 'bi bi-file-text-fill' },
+  { prefix: 'SCHEDULE',   displayName: 'Schedule Management',   icon: 'bi bi-calendar3' },
+  { prefix: 'SALARY',     displayName: 'Payroll & Salary',      icon: 'bi bi-cash-coin' },
+  { prefix: 'REPORT',     displayName: 'Reports',               icon: 'bi bi-bar-chart-fill' },
+  { prefix: 'SYSTEM',     displayName: 'System Configuration',  icon: 'bi bi-gear-fill' },
+]
+
 // ==================== COMPUTED ====================
 const groupedPermissions = computed(() => {
-  const groups = {
-    User: { name: 'User Management', displayName: 'User Management', icon: 'bi bi-people-fill', permissions: [] },
-    Role: { name: 'Role Management', displayName: 'Role Management', icon: 'bi bi-shield-lock-fill', permissions: [] },
-    Employee: { name: 'Employee Management', displayName: 'Employee Management', icon: 'bi bi-person-badge-fill', permissions: [] },
-    Notification: { name: 'Notification Management', displayName: 'Notification Management', icon: 'bi bi-bell-fill', permissions: [] },
-    Other: { name: 'Other Permissions', displayName: 'Other', icon: 'bi bi-grid-3x3-gap-fill', permissions: [] }
-  }
+  // Map<prefix → group object> — dùng Map để giữ thứ tự chèn
+  const groupMap = new Map(
+    PERM_GROUPS.map(g => [
+      g.prefix,
+      { name: g.displayName, displayName: g.displayName, icon: g.icon, permissions: [] }
+    ])
+  )
+  const otherGroup = { name: 'Other', displayName: 'Other', icon: 'bi bi-grid-3x3-gap-fill', permissions: [] }
 
   allPermissions.value.forEach(perm => {
-    const name = perm.name.toUpperCase()
-    if (name.includes('USER')) groups.User.permissions.push(perm)
-    else if (name.includes('ROLE')) groups.Role.permissions.push(perm)
-    else if (name.includes('EMPLOYEE')) groups.Employee.permissions.push(perm)
-    else if (name.includes('NOTIFICATION')) groups.Notification.permissions.push(perm)
-    else groups.Other.permissions.push(perm)
+    const upper = perm.name.toUpperCase()
+    let matched = false
+    for (const [prefix, group] of groupMap) {
+      // Kiểm tra prefix + '_' để tránh nhầm lẫn giữa ROLE và REPORT
+      if (upper === prefix || upper.startsWith(prefix + '_')) {
+        group.permissions.push(perm)
+        matched = true
+        break
+      }
+    }
+    if (!matched) otherGroup.permissions.push(perm)
   })
 
-  Object.values(groups).forEach(group => {
-    group.permissions.sort((a, b) => a.name.localeCompare(b.name))
-  })
-
-  return Object.values(groups).filter(group => group.permissions.length > 0)
+  const result = [...groupMap.values(), otherGroup].filter(g => g.permissions.length > 0)
+  result.forEach(g => g.permissions.sort((a, b) => a.name.localeCompare(b.name)))
+  return result
 })
 
 const filteredGroupedPermissions = computed(() => {

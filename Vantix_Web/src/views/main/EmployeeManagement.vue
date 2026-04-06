@@ -386,8 +386,11 @@ const filters = reactive({ keyword: '', workStatus: '', departmentId: null })
 const sort = reactive({ sortBy: 'createdAt', sortDir: 'desc' })
 const pagination = reactive({ page: 0, size: 10, totalElements: 0, totalPages: 0, last: false })
 
-const workingCount = computed(() => employees.value.filter(e => e.workStatus === 'WORKING').length)
-const resignedCount = computed(() => employees.value.filter(e => e.workStatus === 'RESIGNED').length)
+// Tổng số toàn hệ thống (không phụ thuộc trang hiện tại)
+const totalWorking = ref(0)
+const totalResigned = ref(0)
+const workingCount = computed(() => totalWorking.value)
+const resignedCount = computed(() => totalResigned.value)
 
 const filteredPositions = computed(() => {
   if (!form.departmentId) return []
@@ -413,7 +416,21 @@ onMounted(() => {
   fetchDepartments()
   fetchRoles()
   fetchEmployees()
+  fetchSummaryCounts()
 })
+
+async function fetchSummaryCounts() {
+  try {
+    const [workRes, resignRes] = await Promise.all([
+      employeeService.getAll({ workStatus: 'WORKING', page: 0, size: 1 }),
+      employeeService.getAll({ workStatus: 'RESIGNED', page: 0, size: 1 }),
+    ])
+    totalWorking.value = workRes.data?.totalElements ?? 0
+    totalResigned.value = resignRes.data?.totalElements ?? 0
+  } catch {
+    // không cần thông báo lỗi, chỉ là stat phụ
+  }
+}
 
 onUnmounted(() => {
   bsEmployeeModal?.dispose()

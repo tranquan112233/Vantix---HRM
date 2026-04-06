@@ -28,6 +28,8 @@ import TaskListManagement from "@/views/main/TaskListManagement.vue";
 import KpiRanking from "@/views/main/KpiRanking.vue";
 import Salaries from "@/views/main/Salaries.vue";
 import PayrollBatch from "@/views/main/PayrollBatch.vue";
+import MyTaskManagement from "@/views/main/MyTaskManagement.vue";
+import Settings from "@/views/main/Settings.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -149,7 +151,7 @@ const router = createRouter({
                 },
                 {
                     path: 'my-task',
-                    component: Mytask,
+                    component: MyTaskManagement,
                     meta: {title: 'My Task'}
                 },
                 {
@@ -166,9 +168,12 @@ const router = createRouter({
                     path: 'payrollbatch',
                     component: PayrollBatch,
                     meta: {title: 'Payroll Batch'}
+                },
+                {
+                    path: 'settings',
+                    component: Settings,
+                    meta: {title: 'Settings', permission: 'SYSTEM_CONFIG'}
                 }
-
-
 
                 // Ví dụ thêm
                 // {

@@ -1,5 +1,7 @@
 package poly.edu.vantix_hrm.config;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -13,10 +15,12 @@ import poly.edu.vantix_hrm.entity.Contract.Type;
 import poly.edu.vantix_hrm.entity.Employee.Gender;
 import poly.edu.vantix_hrm.entity.Employee.WorkStatus;
 import poly.edu.vantix_hrm.entity.MonthlySchedules.ScheduleStatus;
+import poly.edu.vantix_hrm.entity.Salary.SalaryStatus;
 import poly.edu.vantix_hrm.entity.User.UserStatus;
 import poly.edu.vantix_hrm.repository.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.*;
@@ -25,31 +29,72 @@ import java.util.*;
  * DataSeeder
  * -------------------------------------------
  * Tự động khởi tạo dữ liệu mẫu khi ứng dụng khởi động.
- * Chỉ chạy một lần duy nhất — nếu đã có permission trong DB thì bỏ qua.
+ * Chỉ chạy một lần — nếu đã có permission trong DB thì bỏ qua.
  *
  * Thứ tự seed:
  *   1. Permissions  → 2. Roles  → 3. Departments  → 4. Positions
- *   → 5. Users  → 6. Employees  → 7. Department managers
- *   → 8. Shifts  → 9. Leave Types  → 10. Monthly Schedules  → 11. Contracts
+ *   → 5. Shifts  → 6. Leave Types
+ *   → 7. Special accounts (5 người: admin + 4 managers)
+ *   → 8. Bulk employees (3 000 người phân bổ theo phòng ban)
+ *   → 9. Contracts  → 10. Monthly Schedules  → 11. Salaries (3 tháng)
+ *
+ * Tổng: ~3 005 nhân viên, ~3 005 hợp đồng, ~6 010 lịch tháng, ~9 015 bảng lương
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class DataSeeder implements ApplicationRunner {
 
-    private final PermissionRepository   permissionRepository;
-    private final RoleRepository         roleRepository;
-    private final DepartmentRepository   departmentRepository;
-    private final PositionRepository     positionRepository;
-    private final UserRepository         userRepository;
-    private final EmployeeRepository     employeeRepository;
-    private final ShiftsRepository       shiftsRepository;
-    private final LeaveTypeRepository    leaveTypeRepository;
+    private final PermissionRepository       permissionRepository;
+    private final RoleRepository             roleRepository;
+    private final DepartmentRepository       departmentRepository;
+    private final PositionRepository         positionRepository;
+    private final UserRepository             userRepository;
+    private final EmployeeRepository         employeeRepository;
+    private final ShiftsRepository           shiftsRepository;
+    private final LeaveTypeRepository        leaveTypeRepository;
     private final MonthlySchedulesRepository monthlySchedulesRepository;
-    private final ContractsRepository    contractsRepository;
-    private final PasswordEncoder        passwordEncoder;
+    private final ContractsRepository        contractsRepository;
+    private final SalariesRepository         salariesRepository;
+    private final PasswordEncoder            passwordEncoder;
+
+    @PersistenceContext
+    private EntityManager em;
 
     private static final String DEFAULT_PASSWORD = "123456";
+    private static final int    TOTAL_BULK       = 3000;
+    private static final int    BATCH_SIZE       = 250;
+
+    private final Random rng = new Random(42); // seeded → reproducible data
+
+    // ── Vietnamese name pools ──────────────────────────────────────────────────
+    private static final String[] LAST   = {
+        "Nguyễn","Trần","Lê","Phạm","Hoàng","Huỳnh","Phan","Vũ","Võ","Đặng",
+        "Bùi","Đỗ","Hồ","Ngô","Dương","Lý","Đinh","Trương","Tô","Mai",
+        "Đào","Lưu","Hà","Lâm","Tạ"
+    };
+    private static final String[] MID_M  = {"Văn","Quốc","Minh","Đức","Trung","Hoàng","Thanh","Hữu","Bá"};
+    private static final String[] MID_F  = {"Thị","Ngọc","Thùy","Bích","Kim","Thu","Thanh","Tuyết","Hồng"};
+    private static final String[] FST_M  = {
+        "Minh","Hùng","Đức","Tuấn","Anh","Bình","Cường","Dũng","Hải","Khoa",
+        "Long","Nam","Phong","Quân","Sơn","Thành","Vinh","Tùng","Lâm","Khánh",
+        "Huy","Giang","Tiến","Bảo","Trung","Hiếu","Đạt","Phúc","Duy","Kiên"
+    };
+    private static final String[] FST_F  = {
+        "Lan","Hoa","Mai","Hương","Linh","Nga","Nhung","Oanh","Phương","Quỳnh",
+        "Thu","Thúy","Trang","Uyên","Vân","Yến","Thảo","Hạnh","Diệu","Tuyết",
+        "Như","Ly","Nhi","Hà","Ngân","Chi","Châu","Hiền","Lý","Thư"
+    };
+    private static final String[] STREETS = {
+        "Lê Lợi","Nguyễn Huệ","Trần Hưng Đạo","Lý Thường Kiệt","Cách Mạng Tháng 8",
+        "Nguyễn Trãi","Đinh Tiên Hoàng","Lê Văn Sỹ","Hoàng Văn Thụ",
+        "Xô Viết Nghệ Tĩnh","Võ Văn Tần","Nam Kỳ Khởi Nghĩa","Hai Bà Trưng",
+        "Tôn Đức Thắng","Pasteur"
+    };
+    private static final String[] DISTS  = {
+        "Quận 1","Quận 3","Quận 5","Quận 7","Quận 10","Quận 12",
+        "Bình Thạnh","Gò Vấp","Tân Bình","Phú Nhuận","Thủ Đức"
+    };
 
     // ─── Entry point ──────────────────────────────────────────────────────────
 
@@ -60,90 +105,103 @@ public class DataSeeder implements ApplicationRunner {
             log.info("[DataSeeder] Dữ liệu đã tồn tại, bỏ qua seed.");
             return;
         }
+        log.info("[DataSeeder] Bắt đầu seed dữ liệu ({} nhân viên)...", TOTAL_BULK + 5);
 
-        log.info("[DataSeeder] Bắt đầu khởi tạo dữ liệu mẫu...");
-
-        Map<String, Permission>  perms     = seedPermissions();
-        Map<String, Role>        roles     = seedRoles(perms);
-        Map<String, Department>  depts     = seedDepartments();
-        Map<String, Position>    positions = seedPositions(depts);
-        Map<String, User>        users     = seedUsers(roles);
-        Map<String, Employee>    employees = seedEmployees(users, depts, positions);
-        updateDepartmentManagers(depts, employees);
+        // ── Phase 1: Reference data ───────────────────────────────────────────
+        Map<String, Permission> perms     = seedPermissions();
+        Map<String, Role>       roles     = seedRoles(perms);
+        Map<String, Department> depts     = seedDepartments();
+        Map<String, Position>   positions = seedPositions(depts);
         seedShifts();
         seedLeaveTypes();
-        seedMonthlySchedules(employees);
-        seedContracts(employees, positions);
 
-        log.info("[DataSeeder] Hoàn tất! Tài khoản mặc định — password: {}", DEFAULT_PASSWORD);
+        // ── Phase 2: Special accounts (5 người) ──────────────────────────────
+        List<Long> allEmpIds = new ArrayList<>(TOTAL_BULK + 10);
+        Map<String, Employee> specials = seedSpecialAccounts(roles, depts, positions);
+        specials.values().forEach(e -> allEmpIds.add(e.getId()));
+        updateDepartmentManagers(depts, specials);
+
+        // Flush phase 1+2 vào DB, sau đó clear persistence context
+        em.flush();
+        em.clear();
+
+        // Lưu ID trước khi entity bị detach
+        Map<String, Long> deptIds = new HashMap<>();
+        depts.forEach((k, v) -> deptIds.put(k, v.getId()));
+
+        Map<String, Long> posIds = new HashMap<>();
+        positions.forEach((k, v) -> posIds.put(k, v.getId()));
+
+        Long empRoleId = roles.get("EMPLOYEE").getId();
+
+        // ── Phase 3: Bulk employees (3 000 người) ────────────────────────────
+        List<Long> bulkIds = seedBulkEmployees(deptIds, posIds, empRoleId);
+        allEmpIds.addAll(bulkIds);
+
+        // ── Phase 4: Contracts ────────────────────────────────────────────────
+        Map<Long, BigDecimal> empSalaryMap = seedContractsForAll(allEmpIds);
+
+        // ── Phase 5: Monthly schedules (tháng trước LOCKED + tháng này OPEN) ─
+        seedMonthlySchedulesForAll(allEmpIds);
+
+        // ── Phase 6: Salaries (Jan-Mar 2026, trạng thái APPROVED) ────────────
+        seedSalariesForAll(allEmpIds, empSalaryMap);
+
+        log.info("[DataSeeder] Hoàn tất! {} nhân viên — password: {}", allEmpIds.size(), DEFAULT_PASSWORD);
     }
 
     // ─── 1. Permissions ───────────────────────────────────────────────────────
 
     private Map<String, Permission> seedPermissions() {
         List<Object[]> defs = List.of(
-                // User
                 new Object[]{"USER_VIEW",                    "Xem thông tin người dùng"},
                 new Object[]{"USER_CREATE",                  "Tạo người dùng mới"},
                 new Object[]{"USER_UPDATE",                  "Cập nhật thông tin người dùng"},
                 new Object[]{"USER_DELETE",                  "Xóa người dùng"},
                 new Object[]{"USER_STATUS_UPDATE",           "Thay đổi trạng thái tài khoản"},
-                // Permission
                 new Object[]{"PERMISSION_VIEW",              "Xem danh sách quyền"},
                 new Object[]{"PERMISSION_CREATE",            "Tạo quyền mới"},
                 new Object[]{"PERMISSION_UPDATE",            "Cập nhật quyền"},
                 new Object[]{"PERMISSION_DELETE",            "Xóa quyền"},
-                // Role
                 new Object[]{"ROLE_VIEW",                    "Xem danh sách vai trò"},
                 new Object[]{"ROLE_CREATE",                  "Tạo vai trò mới"},
                 new Object[]{"ROLE_UPDATE",                  "Cập nhật vai trò"},
                 new Object[]{"ROLE_DELETE",                  "Xóa vai trò"},
-                // Employee
                 new Object[]{"EMPLOYEE_VIEW",                "Xem thông tin nhân viên"},
                 new Object[]{"EMPLOYEE_CREATE",              "Tạo nhân viên mới"},
                 new Object[]{"EMPLOYEE_UPDATE",              "Cập nhật thông tin nhân viên"},
                 new Object[]{"EMPLOYEE_DELETE",              "Xóa nhân viên"},
-                // Department
                 new Object[]{"DEPARTMENT_VIEW",              "Xem thông tin phòng ban"},
                 new Object[]{"DEPARTMENT_CREATE",            "Tạo phòng ban mới"},
                 new Object[]{"DEPARTMENT_UPDATE",            "Cập nhật phòng ban"},
                 new Object[]{"DEPARTMENT_DELETE",            "Xóa phòng ban"},
-                // Position
                 new Object[]{"POSITION_VIEW",                "Xem thông tin vị trí"},
                 new Object[]{"POSITION_CREATE",              "Tạo vị trí mới"},
                 new Object[]{"POSITION_UPDATE",              "Cập nhật vị trí"},
                 new Object[]{"POSITION_DELETE",              "Xóa vị trí"},
-                // Attendance
                 new Object[]{"ATTENDANCE_VIEW",              "Xem bảng chấm công"},
                 new Object[]{"ATTENDANCE_CHECKIN",           "Chấm công vào ca"},
                 new Object[]{"ATTENDANCE_CHECKOUT",          "Chấm công ra ca"},
-                // Attendance management
                 new Object[]{"ATTENDANCE_MANAGEMENT_VIEW",   "Xem danh sách chấm công cần duyệt"},
                 new Object[]{"ATTENDANCE_MANAGEMENT_APPROVE","Duyệt/Từ chối chấm công"},
-                // Leave type
                 new Object[]{"LEAVE_TYPE_VIEW",              "Xem danh sách loại nghỉ phép"},
                 new Object[]{"LEAVE_TYPE_CREATE",            "Tạo loại nghỉ phép mới"},
                 new Object[]{"LEAVE_TYPE_UPDATE",            "Cập nhật loại nghỉ phép"},
                 new Object[]{"LEAVE_TYPE_DELETE",            "Xóa loại nghỉ phép"},
-                // Leave request
                 new Object[]{"LEAVE_VIEW",                   "Xem đơn xin nghỉ của bản thân"},
                 new Object[]{"LEAVE_CREATE",                 "Nộp đơn xin nghỉ"},
                 new Object[]{"LEAVE_MANAGE",                 "Duyệt/Từ chối đơn xin nghỉ"},
-                // Contract
                 new Object[]{"CONTRACT_VIEW",                "Xem danh sách hợp đồng"},
                 new Object[]{"CONTRACT_CREATE",              "Tạo hợp đồng mới"},
                 new Object[]{"CONTRACT_DELETE",              "Xóa hợp đồng"},
                 new Object[]{"CONTRACT_STATUS_UPDATE",       "Cập nhật trạng thái hợp đồng"},
-                // Contract annex
                 new Object[]{"CONTRACT_ANNEX_VIEW",          "Xem phụ lục hợp đồng"},
                 new Object[]{"CONTRACT_ANNEX_CREATE",        "Tạo phụ lục hợp đồng mới"},
                 new Object[]{"CONTRACT_ANNEX_UPDATE",        "Cập nhật phụ lục hợp đồng"},
                 new Object[]{"CONTRACT_ANNEX_DELETE",        "Xóa phụ lục hợp đồng"},
-                // Schedule
                 new Object[]{"SCHEDULE_VIEW",                "Xem lịch làm việc"},
                 new Object[]{"SCHEDULE_CREATE",              "Phân ca làm việc"},
                 new Object[]{"SCHEDULE_STATUS_UPDATE",       "Cập nhật trạng thái lịch làm việc"},
-                // Other
                 new Object[]{"SALARY_VIEW",                  "Xem bảng lương"},
                 new Object[]{"REPORT_VIEW",                  "Xem báo cáo"},
                 new Object[]{"SYSTEM_CONFIG",                "Cấu hình hệ thống"}
@@ -164,41 +222,37 @@ public class DataSeeder implements ApplicationRunner {
     // ─── 2. Roles ─────────────────────────────────────────────────────────────
 
     private Map<String, Role> seedRoles(Map<String, Permission> perms) {
-        // ADMIN: tất cả quyền
         Role admin = buildRole("ADMIN", "Quản trị viên hệ thống - có tất cả quyền",
                 new HashSet<>(perms.values()));
 
-        // HR_MANAGER
         Role hrManager = buildRole("HR_MANAGER", "Quản lý nhân sự", permissions(perms,
-                "USER_VIEW", "USER_CREATE", "USER_UPDATE", "USER_DELETE", "USER_STATUS_UPDATE",
-                "EMPLOYEE_VIEW", "EMPLOYEE_CREATE", "EMPLOYEE_UPDATE", "EMPLOYEE_DELETE",
-                "DEPARTMENT_VIEW", "DEPARTMENT_CREATE", "DEPARTMENT_UPDATE", "DEPARTMENT_DELETE",
-                "POSITION_VIEW", "POSITION_CREATE", "POSITION_UPDATE", "POSITION_DELETE",
-                "ATTENDANCE_VIEW", "ATTENDANCE_MANAGEMENT_VIEW", "ATTENDANCE_MANAGEMENT_APPROVE",
-                "LEAVE_TYPE_VIEW", "LEAVE_TYPE_CREATE", "LEAVE_TYPE_UPDATE", "LEAVE_TYPE_DELETE",
-                "LEAVE_VIEW", "LEAVE_MANAGE",
-                "CONTRACT_VIEW", "CONTRACT_CREATE", "CONTRACT_DELETE", "CONTRACT_STATUS_UPDATE",
-                "CONTRACT_ANNEX_VIEW", "CONTRACT_ANNEX_CREATE", "CONTRACT_ANNEX_UPDATE", "CONTRACT_ANNEX_DELETE",
-                "SCHEDULE_VIEW", "SCHEDULE_CREATE", "SCHEDULE_STATUS_UPDATE",
-                "SALARY_VIEW", "REPORT_VIEW"
+                "USER_VIEW","USER_CREATE","USER_UPDATE","USER_DELETE","USER_STATUS_UPDATE",
+                "EMPLOYEE_VIEW","EMPLOYEE_CREATE","EMPLOYEE_UPDATE","EMPLOYEE_DELETE",
+                "DEPARTMENT_VIEW","DEPARTMENT_CREATE","DEPARTMENT_UPDATE","DEPARTMENT_DELETE",
+                "POSITION_VIEW","POSITION_CREATE","POSITION_UPDATE","POSITION_DELETE",
+                "ATTENDANCE_VIEW","ATTENDANCE_MANAGEMENT_VIEW","ATTENDANCE_MANAGEMENT_APPROVE",
+                "LEAVE_TYPE_VIEW","LEAVE_TYPE_CREATE","LEAVE_TYPE_UPDATE","LEAVE_TYPE_DELETE",
+                "LEAVE_VIEW","LEAVE_MANAGE",
+                "CONTRACT_VIEW","CONTRACT_CREATE","CONTRACT_DELETE","CONTRACT_STATUS_UPDATE",
+                "CONTRACT_ANNEX_VIEW","CONTRACT_ANNEX_CREATE","CONTRACT_ANNEX_UPDATE","CONTRACT_ANNEX_DELETE",
+                "SCHEDULE_VIEW","SCHEDULE_CREATE","SCHEDULE_STATUS_UPDATE",
+                "SALARY_VIEW","REPORT_VIEW"
         ));
 
-        // DEPARTMENT_MANAGER
         Role deptManager = buildRole("DEPARTMENT_MANAGER", "Trưởng phòng - quản lý nhân viên trong phòng",
                 permissions(perms,
-                        "EMPLOYEE_VIEW", "EMPLOYEE_UPDATE",
-                        "DEPARTMENT_VIEW", "POSITION_VIEW",
-                        "ATTENDANCE_VIEW", "ATTENDANCE_MANAGEMENT_VIEW", "ATTENDANCE_MANAGEMENT_APPROVE",
-                        "LEAVE_TYPE_VIEW", "LEAVE_VIEW", "LEAVE_MANAGE",
-                        "CONTRACT_VIEW", "CONTRACT_ANNEX_VIEW",
-                        "SCHEDULE_VIEW", "SCHEDULE_CREATE", "SCHEDULE_STATUS_UPDATE"
+                        "EMPLOYEE_VIEW","EMPLOYEE_UPDATE",
+                        "DEPARTMENT_VIEW","POSITION_VIEW",
+                        "ATTENDANCE_VIEW","ATTENDANCE_MANAGEMENT_VIEW","ATTENDANCE_MANAGEMENT_APPROVE",
+                        "LEAVE_TYPE_VIEW","LEAVE_VIEW","LEAVE_MANAGE",
+                        "CONTRACT_VIEW","CONTRACT_ANNEX_VIEW",
+                        "SCHEDULE_VIEW","SCHEDULE_CREATE","SCHEDULE_STATUS_UPDATE"
                 ));
 
-        // EMPLOYEE
         Role employee = buildRole("EMPLOYEE", "Nhân viên - quyền cơ bản", permissions(perms,
-                "EMPLOYEE_VIEW", "DEPARTMENT_VIEW", "POSITION_VIEW",
-                "ATTENDANCE_VIEW", "ATTENDANCE_CHECKIN", "ATTENDANCE_CHECKOUT",
-                "LEAVE_TYPE_VIEW", "LEAVE_VIEW", "LEAVE_CREATE",
+                "EMPLOYEE_VIEW","DEPARTMENT_VIEW","POSITION_VIEW",
+                "ATTENDANCE_VIEW","ATTENDANCE_CHECKIN","ATTENDANCE_CHECKOUT",
+                "LEAVE_TYPE_VIEW","LEAVE_VIEW","LEAVE_CREATE",
                 "SCHEDULE_VIEW"
         ));
 
@@ -207,41 +261,25 @@ public class DataSeeder implements ApplicationRunner {
         result.put("HR_MANAGER",         roleRepository.save(hrManager));
         result.put("DEPARTMENT_MANAGER", roleRepository.save(deptManager));
         result.put("EMPLOYEE",           roleRepository.save(employee));
-
         log.info("[DataSeeder] ✓ {} roles", result.size());
         return result;
-    }
-
-    private Role buildRole(String name, String description, Set<Permission> permissions) {
-        return Role.builder().name(name).description(description).permissions(permissions).build();
-    }
-
-    private Set<Permission> permissions(Map<String, Permission> perms, String... names) {
-        Set<Permission> set = new HashSet<>();
-        for (String name : names) set.add(perms.get(name));
-        return set;
     }
 
     // ─── 3. Departments ───────────────────────────────────────────────────────
 
     private Map<String, Department> seedDepartments() {
         Map<String, Department> result = new LinkedHashMap<>();
-
         List<Object[]> defs = List.of(
-                new Object[]{"BGD",        "Ban Giám Đốc",       "Quản lý điều hành công ty"},
-                new Object[]{"HR",         "Phòng Nhân Sự",      "Quản lý nhân sự, tuyển dụng, đào tạo"},
-                new Object[]{"KETOAN",     "Phòng Kế Toán",      "Quản lý tài chính, kế toán, lương thưởng"},
-                new Object[]{"KINHDOANH",  "Phòng Kinh Doanh",   "Phát triển thị trường, bán hàng"},
-                new Object[]{"IT",         "Phòng IT",           "Quản trị hệ thống, phát triển phần mềm"},
-                new Object[]{"MARKETING",  "Phòng Marketing",    "Quảng bá thương hiệu, tiếp thị sản phẩm"}
+                new Object[]{"BGD",       "Ban Giám Đốc",       "Quản lý điều hành công ty"},
+                new Object[]{"HR",        "Phòng Nhân Sự",      "Quản lý nhân sự, tuyển dụng, đào tạo"},
+                new Object[]{"KETOAN",    "Phòng Kế Toán",      "Quản lý tài chính, kế toán, lương thưởng"},
+                new Object[]{"KINHDOANH", "Phòng Kinh Doanh",   "Phát triển thị trường, bán hàng"},
+                new Object[]{"IT",        "Phòng IT",           "Quản trị hệ thống, phát triển phần mềm"},
+                new Object[]{"MARKETING", "Phòng Marketing",    "Quảng bá thương hiệu, tiếp thị sản phẩm"}
         );
-
         for (Object[] def : defs) {
-            Department dept = Department.builder()
-                    .name((String) def[1])
-                    .description((String) def[2])
-                    .build();
-            result.put((String) def[0], departmentRepository.save(dept));
+            result.put((String) def[0], departmentRepository.save(
+                    Department.builder().name((String) def[1]).description((String) def[2]).build()));
         }
         log.info("[DataSeeder] ✓ {} departments", result.size());
         return result;
@@ -250,151 +288,401 @@ public class DataSeeder implements ApplicationRunner {
     // ─── 4. Positions ─────────────────────────────────────────────────────────
 
     private Map<String, Position> seedPositions(Map<String, Department> depts) {
-        Map<String, Position> result = new LinkedHashMap<>();
+        Map<String, Position> r = new LinkedHashMap<>();
 
-        // Vị trí dùng chung cho tất cả trưởng phòng (id thấp nhất - kiểm tra isManager)
-        result.put("TRUONG_PHONG", save(positionRepository, "Trưởng Phòng", "Trưởng phòng ban", depts.get("BGD")));
-        result.put("PHO_GD",       save(positionRepository, "Phó Giám Đốc", "Hỗ trợ Giám đốc điều hành", depts.get("BGD")));
+        // BGD
+        r.put("TRUONG_PHONG", pos("Trưởng Phòng",             "Trưởng phòng ban",                        depts.get("BGD")));
+        r.put("PHO_GD",       pos("Phó Giám Đốc",             "Hỗ trợ Giám đốc điều hành",               depts.get("BGD")));
+        // HR
+        r.put("TP_HR",        pos("Trưởng Phòng Nhân Sự",     "Quản lý toàn bộ hoạt động nhân sự",       depts.get("HR")));
+        r.put("CV_HR",        pos("Chuyên Viên Nhân Sự",      "Thực hiện nghiệp vụ nhân sự",             depts.get("HR")));
+        r.put("NV_TUYENDUNG", pos("Nhân Viên Tuyển Dụng",     "Phụ trách tuyển dụng",                    depts.get("HR")));
+        // Kế Toán
+        r.put("TP_KT",          pos("Trưởng Phòng Kế Toán",  "Quản lý tài chính kế toán",               depts.get("KETOAN")));
+        r.put("KE_TOAN_TRUONG", pos("Kế Toán Trưởng",         "Phụ trách kế toán tổng hợp",              depts.get("KETOAN")));
+        r.put("KE_TOAN_VIEN",   pos("Kế Toán Viên",           "Thực hiện công việc kế toán",             depts.get("KETOAN")));
+        // Kinh Doanh
+        r.put("TP_KD",       pos("Trưởng Phòng Kinh Doanh",  "Quản lý hoạt động kinh doanh",            depts.get("KINHDOANH")));
+        r.put("CV_KD",       pos("Chuyên Viên Kinh Doanh",   "Phát triển khách hàng",                   depts.get("KINHDOANH")));
+        r.put("NV_BANHANG",  pos("Nhân Viên Bán Hàng",       "Tư vấn và bán hàng",                      depts.get("KINHDOANH")));
+        // IT
+        r.put("TP_IT",    pos("Trưởng Phòng IT",   "Quản lý hệ thống và đội ngũ IT",                    depts.get("IT")));
+        r.put("DEVELOPER",pos("Developer",          "Phát triển phần mềm",                               depts.get("IT")));
+        r.put("SYS_ADMIN",pos("System Admin",       "Quản trị hệ thống",                                 depts.get("IT")));
+        r.put("DBA",      pos("Database Admin",     "Quản trị cơ sở dữ liệu",                            depts.get("IT")));
+        // Marketing
+        r.put("TP_MKT",  pos("Trưởng Phòng Marketing", "Quản lý hoạt động marketing",                   depts.get("MARKETING")));
+        r.put("CV_MKT",  pos("Chuyên Viên Marketing",   "Thực hiện chiến dịch marketing",                depts.get("MARKETING")));
+        r.put("CONTENT", pos("Content Creator",         "Tạo nội dung truyền thông",                     depts.get("MARKETING")));
 
-        // Phòng Nhân Sự
-        result.put("TP_HR",        save(positionRepository, "Trưởng Phòng Nhân Sự",  "Quản lý toàn bộ hoạt động nhân sự", depts.get("HR")));
-        result.put("CV_HR",        save(positionRepository, "Chuyên Viên Nhân Sự",    "Thực hiện nghiệp vụ nhân sự",       depts.get("HR")));
-        result.put("NV_TUYENDUNG", save(positionRepository, "Nhân Viên Tuyển Dụng",   "Phụ trách tuyển dụng",              depts.get("HR")));
-
-        // Phòng Kế Toán
-        result.put("TP_KT",        save(positionRepository, "Trưởng Phòng Kế Toán",  "Quản lý tài chính kế toán",         depts.get("KETOAN")));
-        result.put("KE_TOAN_TRUONG", save(positionRepository, "Kế Toán Trưởng",      "Phụ trách kế toán tổng hợp",        depts.get("KETOAN")));
-        result.put("KE_TOAN_VIEN", save(positionRepository, "Kế Toán Viên",          "Thực hiện công việc kế toán",        depts.get("KETOAN")));
-
-        // Phòng Kinh Doanh
-        result.put("TP_KD",        save(positionRepository, "Trưởng Phòng Kinh Doanh", "Quản lý hoạt động kinh doanh",    depts.get("KINHDOANH")));
-        result.put("CV_KD",        save(positionRepository, "Chuyên Viên Kinh Doanh",  "Phát triển khách hàng",            depts.get("KINHDOANH")));
-        result.put("NV_BANHANG",   save(positionRepository, "Nhân Viên Bán Hàng",      "Tư vấn và bán hàng",              depts.get("KINHDOANH")));
-
-        // Phòng IT
-        result.put("TP_IT",        save(positionRepository, "Trưởng Phòng IT",   "Quản lý hệ thống và đội ngũ IT",  depts.get("IT")));
-        result.put("DEVELOPER",    save(positionRepository, "Developer",          "Phát triển phần mềm",              depts.get("IT")));
-        result.put("SYS_ADMIN",    save(positionRepository, "System Admin",       "Quản trị hệ thống",                depts.get("IT")));
-        result.put("DBA",          save(positionRepository, "Database Admin",     "Quản trị cơ sở dữ liệu",           depts.get("IT")));
-
-        // Phòng Marketing
-        result.put("TP_MKT",       save(positionRepository, "Trưởng Phòng Marketing", "Quản lý hoạt động marketing",   depts.get("MARKETING")));
-        result.put("CV_MKT",       save(positionRepository, "Chuyên Viên Marketing",   "Thực hiện chiến dịch marketing", depts.get("MARKETING")));
-        result.put("CONTENT",      save(positionRepository, "Content Creator",         "Tạo nội dung truyền thông",      depts.get("MARKETING")));
-
-        log.info("[DataSeeder] ✓ {} positions", result.size());
-        return result;
+        log.info("[DataSeeder] ✓ {} positions", r.size());
+        return r;
     }
 
-    private Position save(PositionRepository repo, String name, String desc, Department dept) {
-        return repo.save(Position.builder().name(name).description(desc).department(dept).build());
+    // ─── 5. Shifts ────────────────────────────────────────────────────────────
+
+    private void seedShifts() {
+        shiftsRepository.saveAll(List.of(
+                shift("Ca Sáng",    LocalTime.of(6,  0), LocalTime.of(14, 0)),
+                shift("Ca Chiều",   LocalTime.of(14, 0), LocalTime.of(22, 0)),
+                shift("Hành Chính", LocalTime.of(8,  0), LocalTime.of(17, 0))
+        ));
+        log.info("[DataSeeder] ✓ 3 shifts");
     }
 
-    // ─── 5. Users ─────────────────────────────────────────────────────────────
+    // ─── 6. Leave Types ───────────────────────────────────────────────────────
 
-    private Map<String, User> seedUsers(Map<String, Role> roles) {
+    private void seedLeaveTypes() {
+        leaveTypeRepository.saveAll(List.of(
+                LeaveType.builder().typeName("Nghỉ phép năm").isPaid(true).build(),
+                LeaveType.builder().typeName("Nghỉ bệnh").isPaid(true).build(),
+                LeaveType.builder().typeName("Nghỉ việc riêng").isPaid(false).build(),
+                LeaveType.builder().typeName("Nghỉ thai sản").isPaid(true).build(),
+                LeaveType.builder().typeName("Nghỉ không lương").isPaid(false).build()
+        ));
+        log.info("[DataSeeder] ✓ 5 leave types");
+    }
+
+    // ─── 7. Special accounts ──────────────────────────────────────────────────
+
+    private Map<String, Employee> seedSpecialAccounts(Map<String, Role> roles,
+                                                       Map<String, Department> depts,
+                                                       Map<String, Position> positions) {
         String hash = passwordEncoder.encode(DEFAULT_PASSWORD);
-        Map<String, User> result = new LinkedHashMap<>();
-
-        List<Object[]> defs = List.of(
-                // username,         email,                          roleName
-                new Object[]{"admin",         "admin@company.com",           "ADMIN"},
-                new Object[]{"hr_manager",    "hr@company.com",              "HR_MANAGER"},
-                new Object[]{"it_manager",    "it.manager@company.com",      "DEPARTMENT_MANAGER"},
-                new Object[]{"sales_manager", "sales.manager@company.com",   "DEPARTMENT_MANAGER"},
-                new Object[]{"hr_lead",       "hr.lead@company.com",         "DEPARTMENT_MANAGER"},
-                new Object[]{"employee1",     "nguyen.van.a@company.com",    "EMPLOYEE"},
-                new Object[]{"employee2",     "tran.thi.b@company.com",      "EMPLOYEE"},
-                new Object[]{"employee3",     "le.van.c@company.com",        "EMPLOYEE"},
-                new Object[]{"employee4",     "pham.thi.d@company.com",      "EMPLOYEE"},
-                new Object[]{"employee5",     "hoang.van.e@company.com",     "EMPLOYEE"},
-                new Object[]{"employee6",     "vu.thi.f@company.com",        "EMPLOYEE"},
-                new Object[]{"employee7",     "do.van.g@company.com",        "EMPLOYEE"},
-                new Object[]{"employee8",     "nguyen.thi.h@company.com",    "EMPLOYEE"}
-        );
-
-        for (Object[] def : defs) {
-            User u = User.builder()
-                    .username((String) def[0])
-                    .password(hash)
-                    .email((String) def[1])
-                    .role(roles.get((String) def[2]))
-                    .status(UserStatus.ACTIVE)
-                    .build();
-            result.put((String) def[0], userRepository.save(u));
-        }
-        log.info("[DataSeeder] ✓ {} users (password: {})", result.size(), DEFAULT_PASSWORD);
-        return result;
-    }
-
-    // ─── 6. Employees ─────────────────────────────────────────────────────────
-
-    private Map<String, Employee> seedEmployees(Map<String, User> users,
-                                                Map<String, Department> depts,
-                                                Map<String, Position> positions) {
         Map<String, Employee> result = new LinkedHashMap<>();
 
-        // username → { fullName, gender, birthDate, phone, address, deptKey, posKey }
+        // username, email, roleKey, fullName, gender, birthDate, phone, address, deptKey, posKey
         List<Object[]> defs = List.of(
-                new Object[]{"admin",         "Nguyễn Văn Admin",   Gender.MALE,   "1980-01-15", "0901000001", "1 Lê Lợi, Q1, TP.HCM",                  "BGD",       "TRUONG_PHONG"},
-                new Object[]{"hr_manager",    "Trần Thị Hương",     Gender.FEMALE, "1988-03-20", "0901000002", "2 Nguyễn Huệ, Q1, TP.HCM",               "HR",        "TP_HR"},
-                new Object[]{"it_manager",    "Lê Minh Đức",        Gender.MALE,   "1985-07-10", "0901000003", "3 Cách Mạng Tháng 8, Q10, TP.HCM",       "IT",        "TP_IT"},
-                new Object[]{"sales_manager", "Phạm Thị Lan",       Gender.FEMALE, "1990-09-15", "0901000004", "4 Phạm Ngũ Lão, Q1, TP.HCM",             "KINHDOANH", "TP_KD"},
-                new Object[]{"hr_lead",       "Hoàng Văn Bình",     Gender.MALE,   "1987-11-05", "0901000005", "5 Lê Văn Sỹ, Q3, TP.HCM",                "HR",        "TP_HR"},
-                new Object[]{"employee1",     "Nguyễn Văn An",      Gender.MALE,   "1996-02-28", "0901000006", "6 Nguyễn Trãi, Q5, TP.HCM",              "IT",        "DEVELOPER"},
-                new Object[]{"employee2",     "Trần Thị Bình",      Gender.FEMALE, "1997-04-12", "0901000007", "7 Lê Văn Sỹ, Q3, TP.HCM",               "HR",        "CV_HR"},
-                new Object[]{"employee3",     "Lê Văn Cường",       Gender.MALE,   "1995-06-18", "0901000008", "8 Xô Viết Nghệ Tĩnh, Q Bình Thạnh",      "KETOAN",    "KE_TOAN_VIEN"},
-                new Object[]{"employee4",     "Phạm Thị Dung",      Gender.FEMALE, "1998-08-22", "0901000009", "9 Lý Thường Kiệt, Q Tân Bình",           "KINHDOANH", "CV_KD"},
-                new Object[]{"employee5",     "Hoàng Văn Em",       Gender.MALE,   "1999-11-30", "0901000010", "10 Hoàng Văn Thụ, Q Phú Nhuận",          "MARKETING", "CV_MKT"},
-                new Object[]{"employee6",     "Vũ Thị Phương",      Gender.FEMALE, "1997-05-15", "0901000011", "11 Đinh Tiên Hoàng, Q1, TP.HCM",         "IT",        "DEVELOPER"},
-                new Object[]{"employee7",     "Đỗ Văn Quân",        Gender.MALE,   "1996-09-20", "0901000012", "12 Trần Hưng Đạo, Q5, TP.HCM",           "IT",        "DEVELOPER"},
-                new Object[]{"employee8",     "Nguyễn Thị Hà",      Gender.FEMALE, "1998-03-08", "0901000013", "13 Nguyễn Đình Chiểu, Q3, TP.HCM",       "IT",        "SYS_ADMIN"}
+            new Object[]{"admin",         "admin@company.com",         "ADMIN",              "Nguyễn Văn Admin", Gender.MALE,   "1980-01-15", "0901000001", "1 Lê Lợi, Q1, TP.HCM",             "BGD",       "TRUONG_PHONG"},
+            new Object[]{"hr_manager",    "hr@company.com",            "HR_MANAGER",         "Trần Thị Hương",   Gender.FEMALE, "1988-03-20", "0901000002", "2 Nguyễn Huệ, Q1, TP.HCM",         "HR",        "TP_HR"},
+            new Object[]{"it_manager",    "it.manager@company.com",    "DEPARTMENT_MANAGER", "Lê Minh Đức",      Gender.MALE,   "1985-07-10", "0901000003", "3 CMT8, Q10, TP.HCM",               "IT",        "TP_IT"},
+            new Object[]{"sales_manager", "sales.manager@company.com", "DEPARTMENT_MANAGER", "Phạm Thị Lan",     Gender.FEMALE, "1990-09-15", "0901000004", "4 Phạm Ngũ Lão, Q1, TP.HCM",       "KINHDOANH", "TP_KD"},
+            new Object[]{"hr_lead",       "hr.lead@company.com",       "DEPARTMENT_MANAGER", "Hoàng Văn Bình",   Gender.MALE,   "1987-11-05", "0901000005", "5 Lê Văn Sỹ, Q3, TP.HCM",          "HR",        "TP_HR"}
         );
 
-        for (Object[] def : defs) {
-            Employee emp = Employee.builder()
-                    .user(users.get((String) def[0]))
-                    .fullName((String) def[1])
-                    .gender((Gender) def[2])
-                    .birthDate(LocalDate.parse((String) def[3]))
-                    .phone((String) def[4])
-                    .address((String) def[5])
-                    .department(depts.get((String) def[6]))
-                    .position(positions.get((String) def[7]))
-                    .workStatus(WorkStatus.WORKING)
-                    .build();
-            result.put((String) def[0], employeeRepository.save(emp));
+        for (Object[] d : defs) {
+            User u = userRepository.save(User.builder()
+                    .username((String) d[0]).password(hash).email((String) d[1])
+                    .role(roles.get((String) d[2])).status(UserStatus.ACTIVE).build());
+
+            result.put((String) d[0], employeeRepository.save(Employee.builder()
+                    .user(u).fullName((String) d[3]).gender((Gender) d[4])
+                    .birthDate(LocalDate.parse((String) d[5])).phone((String) d[6]).address((String) d[7])
+                    .department(depts.get((String) d[8])).position(positions.get((String) d[9]))
+                    .workStatus(WorkStatus.WORKING).build()));
         }
-        log.info("[DataSeeder] ✓ {} employees", result.size());
+        log.info("[DataSeeder] ✓ {} special accounts", result.size());
         return result;
     }
 
-    // ─── 7. Cập nhật trưởng phòng cho departments ─────────────────────────────
+    // ─── 8. Department managers ───────────────────────────────────────────────
 
     private void updateDepartmentManagers(Map<String, Department> depts,
-                                          Map<String, Employee> employees) {
-        setManager(depts.get("BGD"),       employees.get("admin"));
-        setManager(depts.get("HR"),        employees.get("hr_lead"));
-        setManager(depts.get("IT"),        employees.get("it_manager"));
-        setManager(depts.get("KINHDOANH"), employees.get("sales_manager"));
+                                           Map<String, Employee> specials) {
+        depts.get("BGD").setManager(specials.get("admin"));
+        depts.get("HR").setManager(specials.get("hr_lead"));
+        depts.get("IT").setManager(specials.get("it_manager"));
+        depts.get("KINHDOANH").setManager(specials.get("sales_manager"));
         departmentRepository.saveAll(depts.values());
         log.info("[DataSeeder] ✓ Department managers updated");
     }
 
-    private void setManager(Department dept, Employee manager) {
-        dept.setManager(manager);
+    // ─── 9. Bulk employees (3 000 người) ─────────────────────────────────────
+    /*
+     * Phân bổ:  BGD=50  HR=400  KETOAN=450  KINHDOANH=750  IT=800  MARKETING=550
+     * Mỗi batch: lưu users → lưu employees → flush/clear (tránh OOM)
+     * Dùng em.getReference() thay vì entity trực tiếp sau khi clear
+     */
+    private List<Long> seedBulkEmployees(Map<String, Long> deptIds,
+                                          Map<String, Long> posIds,
+                                          Long empRoleId) {
+        String hash = passwordEncoder.encode(DEFAULT_PASSWORD);
+
+        record DeptCfg(String deptKey, int count, List<String> posKeys) {}
+        List<DeptCfg> configs = List.of(
+            new DeptCfg("BGD",        50,  List.of("PHO_GD")),
+            new DeptCfg("HR",         400, List.of("CV_HR","CV_HR","NV_TUYENDUNG")),
+            new DeptCfg("KETOAN",     450, List.of("KE_TOAN_VIEN","KE_TOAN_VIEN","KE_TOAN_TRUONG")),
+            new DeptCfg("KINHDOANH",  750, List.of("NV_BANHANG","NV_BANHANG","CV_KD")),
+            new DeptCfg("IT",         800, List.of("DEVELOPER","DEVELOPER","DEVELOPER","SYS_ADMIN","DBA")),
+            new DeptCfg("MARKETING",  550, List.of("CV_MKT","CV_MKT","CONTENT"))
+        );
+        // Tổng: 50+400+450+750+800+550 = 3 000
+
+        List<Long> allIds = new ArrayList<>(TOTAL_BULK);
+        int seq = 10000; // username emp10000..emp12999, phone 0900010000..
+
+        for (DeptCfg cfg : configs) {
+            int done = 0;
+            while (done < cfg.count) {
+                int batchSize = Math.min(BATCH_SIZE, cfg.count - done);
+
+                // Build user batch
+                List<User> uBatch = new ArrayList<>(batchSize);
+                // Store extra info per slot: [posKey, fullName, phone, address, isMale, birthDate]
+                String[][] extras = new String[batchSize][6];
+
+                for (int i = 0; i < batchSize; i++) {
+                    boolean male   = rng.nextBoolean();
+                    int     mySeq  = seq++;
+                    String  uname  = "emp" + mySeq;
+
+                    uBatch.add(User.builder()
+                            .username(uname)
+                            .password(hash)
+                            .email(uname + "@company.com")
+                            .role(em.getReference(Role.class, empRoleId))
+                            .status(UserStatus.ACTIVE)
+                            .build());
+
+                    extras[i][0] = pick(cfg.posKeys);
+                    extras[i][1] = randName(male);
+                    extras[i][2] = fmtPhone(mySeq);
+                    extras[i][3] = randAddr();
+                    extras[i][4] = male ? "M" : "F";
+                    extras[i][5] = randBirth();
+                }
+
+                List<User> savedUsers = userRepository.saveAll(uBatch);
+
+                List<Employee> eBatch = new ArrayList<>(batchSize);
+                for (int i = 0; i < batchSize; i++) {
+                    Gender g = "M".equals(extras[i][4]) ? Gender.MALE : Gender.FEMALE;
+                    eBatch.add(Employee.builder()
+                            .user(savedUsers.get(i))
+                            .fullName(extras[i][1])
+                            .gender(g)
+                            .birthDate(LocalDate.parse(extras[i][5]))
+                            .phone(extras[i][2])
+                            .address(extras[i][3])
+                            .department(em.getReference(Department.class, deptIds.get(cfg.deptKey)))
+                            .position(em.getReference(Position.class, posIds.get(extras[i][0])))
+                            .workStatus(rng.nextInt(20) == 0 ? WorkStatus.RESIGNED : WorkStatus.WORKING)
+                            .build());
+                }
+
+                List<Employee> saved = employeeRepository.saveAll(eBatch);
+                saved.forEach(e -> allIds.add(e.getId()));
+
+                em.flush();
+                em.clear();
+                done += batchSize;
+            }
+            log.info("[DataSeeder]   → {} employees / {}", cfg.count, cfg.deptKey);
+        }
+        log.info("[DataSeeder] ✓ {} bulk employees", allIds.size());
+        return allIds;
     }
 
-    // ─── 8. Shifts ────────────────────────────────────────────────────────────
+    // ─── 10. Contracts for ALL employees ─────────────────────────────────────
+    /*
+     * Mỗi nhân viên có 1 hợp đồng (đa số ACTIVE, ~15% EXPIRED).
+     * Trả về map empId → baseSalary để dùng lại cho bảng lương.
+     */
+    private Map<Long, BigDecimal> seedContractsForAll(List<Long> empIds) {
+        Map<Long, BigDecimal> salaryMap = new HashMap<>(empIds.size());
+        List<Contract> batch = new ArrayList<>(BATCH_SIZE);
+        LocalDate today = LocalDate.now();
+        Type[] typePool = {Type.YEAR_1, Type.YEAR_1, Type.YEAR_3, Type.INDEFINITE};
 
-    private void seedShifts() {
-        List<Shift> shifts = List.of(
-                shift("Ca Sáng",    LocalTime.of(6, 0),  LocalTime.of(14, 0)),
-                shift("Ca Chiều",   LocalTime.of(14, 0), LocalTime.of(22, 0)),
-                shift("Hành Chính", LocalTime.of(8, 0),  LocalTime.of(17, 0))
-        );
-        shiftsRepository.saveAll(shifts);
-        log.info("[DataSeeder] ✓ {} shifts", shifts.size());
+        for (Long id : empIds) {
+            BigDecimal salary = randSalary();
+            salaryMap.put(id, salary);
+
+            Type      type  = pick(typePool);
+            LocalDate start = LocalDate.of(2019 + rng.nextInt(6), 1 + rng.nextInt(12), 1);
+            LocalDate end   = switch (type) {
+                case YEAR_1    -> start.plusYears(1);
+                case YEAR_3    -> start.plusYears(3);
+                case INDEFINITE-> null;
+            };
+            ContractStatus status = (end == null || end.isAfter(today))
+                    ? ContractStatus.ACTIVE : ContractStatus.EXPIRED;
+
+            batch.add(Contract.builder()
+                    .employee(em.getReference(Employee.class, id))
+                    .type(type)
+                    .startDate(start)
+                    .endDate(end)
+                    .position("Nhân viên")
+                    .baseSalary(salary)
+                    .status(status)
+                    .build());
+
+            if (batch.size() >= BATCH_SIZE) {
+                contractsRepository.saveAll(batch);
+                em.flush(); em.clear();
+                batch.clear();
+            }
+        }
+        if (!batch.isEmpty()) {
+            contractsRepository.saveAll(batch);
+            em.flush(); em.clear();
+        }
+        log.info("[DataSeeder] ✓ {} contracts", empIds.size());
+        return salaryMap;
+    }
+
+    // ─── 11. Monthly schedules ────────────────────────────────────────────────
+    /*
+     * Tháng trước: LOCKED  |  Tháng hiện tại: OPEN
+     */
+    private void seedMonthlySchedulesForAll(List<Long> empIds) {
+        LocalDate now      = LocalDate.now();
+        LocalDate prevDate = now.minusMonths(1);
+        int curM = now.getMonthValue(),  curY  = now.getYear();
+        int preM = prevDate.getMonthValue(), preY = prevDate.getYear();
+
+        List<MonthlySchedules> batch = new ArrayList<>(BATCH_SIZE * 2);
+
+        for (Long id : empIds) {
+            Employee ref = em.getReference(Employee.class, id);
+            batch.add(MonthlySchedules.builder().employee(ref).month(preM).year(preY).status(ScheduleStatus.LOCKED).build());
+            batch.add(MonthlySchedules.builder().employee(ref).month(curM).year(curY).status(ScheduleStatus.OPEN).build());
+
+            if (batch.size() >= BATCH_SIZE) {
+                monthlySchedulesRepository.saveAll(batch);
+                em.flush(); em.clear();
+                batch.clear();
+            }
+        }
+        if (!batch.isEmpty()) {
+            monthlySchedulesRepository.saveAll(batch);
+            em.flush(); em.clear();
+        }
+        log.info("[DataSeeder] ✓ {} monthly schedules (2 tháng/người)", empIds.size() * 2);
+    }
+
+    // ─── 12. Salaries — Jan / Feb / Mar 2026 (APPROVED) ──────────────────────
+    /*
+     * Công thức đơn giản:
+     *   earnedBase  = baseSalary × (actualDays / 22)
+     *   totalIncome = earnedBase + allowance + bonus
+     *   bhxh/bhyt/bhtn = 8% / 1.5% / 1% của baseSalary
+     *   tax         = 10% × max(0, totalIncome - deductions - 11 000 000)
+     *   netSalary   = totalIncome - totalDeduction
+     */
+    private void seedSalariesForAll(List<Long> empIds, Map<Long, BigDecimal> salaryMap) {
+        int[][] salaryMonths = {{2026, 1}, {2026, 2}, {2026, 3}};
+        int standard = 22;
+
+        List<Salary> batch = new ArrayList<>(BATCH_SIZE * 3);
+
+        for (Long id : empIds) {
+            Employee ref  = em.getReference(Employee.class, id);
+            BigDecimal base = salaryMap.getOrDefault(id, BigDecimal.valueOf(10_000_000));
+
+            for (int[] ym : salaryMonths) {
+                int        actual     = standard - rng.nextInt(5); // 17–22 ngày
+                BigDecimal dailyRate  = base.divide(BigDecimal.valueOf(standard), 0, RoundingMode.HALF_UP);
+                BigDecimal earnedBase = dailyRate.multiply(BigDecimal.valueOf(actual));
+                BigDecimal allowance  = round100k(500_000L + (long) rng.nextInt(15) * 100_000L);
+                BigDecimal bonus      = rng.nextInt(5) == 0
+                        ? round100k(1_000_000L + (long) rng.nextInt(20) * 100_000L)
+                        : BigDecimal.ZERO;
+
+                BigDecimal bhxh = pct(base, 0.08);
+                BigDecimal bhyt = pct(base, 0.015);
+                BigDecimal bhtn = pct(base, 0.01);
+
+                BigDecimal totalIncome    = earnedBase.add(allowance).add(bonus);
+                BigDecimal preDeduction   = bhxh.add(bhyt).add(bhtn);
+                BigDecimal taxable        = totalIncome.subtract(preDeduction).subtract(BigDecimal.valueOf(11_000_000));
+                BigDecimal tax            = taxable.compareTo(BigDecimal.ZERO) > 0
+                        ? pct(taxable, 0.10) : BigDecimal.ZERO;
+                BigDecimal totalDeduction = preDeduction.add(tax);
+                BigDecimal netSalary      = totalIncome.subtract(totalDeduction);
+
+                batch.add(Salary.builder()
+                        .employee(ref)
+                        .salaryMonth(LocalDate.of(ym[0], ym[1], 1))
+                        .baseSalarySnapshot(base)
+                        .standardWorkDays(standard)
+                        .actualWorkDays(actual)
+                        .allowance(allowance)
+                        .bonus(bonus)
+                        .bhxhAmount(bhxh)
+                        .bhytAmount(bhyt)
+                        .bhtnAmount(bhtn)
+                        .taxAmount(tax)
+                        .totalIncome(totalIncome)
+                        .totalDeduction(totalDeduction)
+                        .netSalary(netSalary)
+                        .status(SalaryStatus.APPROVED)
+                        .build());
+            }
+
+            if (batch.size() >= BATCH_SIZE) {
+                salariesRepository.saveAll(batch);
+                em.flush(); em.clear();
+                batch.clear();
+            }
+        }
+        if (!batch.isEmpty()) {
+            salariesRepository.saveAll(batch);
+            em.flush(); em.clear();
+        }
+        log.info("[DataSeeder] ✓ {} salary records (3 tháng/người)", empIds.size() * 3);
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    private String randName(boolean male) {
+        return male
+                ? LAST[rng.nextInt(LAST.length)] + " " + MID_M[rng.nextInt(MID_M.length)] + " " + FST_M[rng.nextInt(FST_M.length)]
+                : LAST[rng.nextInt(LAST.length)] + " " + MID_F[rng.nextInt(MID_F.length)] + " " + FST_F[rng.nextInt(FST_F.length)];
+    }
+
+    private String randAddr() {
+        return (1 + rng.nextInt(200)) + " " + STREETS[rng.nextInt(STREETS.length)]
+                + ", " + DISTS[rng.nextInt(DISTS.length)] + ", TP.HCM";
+    }
+
+    private String randBirth() {
+        // 1970–1999
+        return String.format("%04d-%02d-%02d", 1970 + rng.nextInt(30), 1 + rng.nextInt(12), 1 + rng.nextInt(28));
+    }
+
+    /** phone 10 ký tự: 09XXXXXXXX */
+    private String fmtPhone(int seq) {
+        return String.format("09%08d", seq % 100_000_000);
+    }
+
+    /** Lương ngẫu nhiên 8M – 44.5M, bội số 500k */
+    private BigDecimal randSalary() {
+        return BigDecimal.valueOf(8_000_000L + (long) rng.nextInt(74) * 500_000L);
+    }
+
+    /** Làm tròn lên bội số 100k */
+    private BigDecimal round100k(long value) {
+        return BigDecimal.valueOf(value / 100_000 * 100_000);
+    }
+
+    /** Tính phần trăm, làm tròn tới đồng */
+    private BigDecimal pct(BigDecimal base, double rate) {
+        return base.multiply(BigDecimal.valueOf(rate)).setScale(0, RoundingMode.HALF_UP);
+    }
+
+    private <T> T pick(List<T> list) {
+        return list.get(rng.nextInt(list.size()));
+    }
+
+    private <T> T pick(T[] array) {
+        return array[rng.nextInt(array.length)];
+    }
+
+    private Position pos(String name, String desc, Department dept) {
+        return positionRepository.save(Position.builder().name(name).description(desc).department(dept).build());
+    }
+
+    private Role buildRole(String name, String desc, Set<Permission> perms) {
+        return Role.builder().name(name).description(desc).permissions(perms).build();
+    }
+
+    private Set<Permission> permissions(Map<String, Permission> perms, String... names) {
+        Set<Permission> set = new HashSet<>();
+        for (String n : names) set.add(perms.get(n));
+        return set;
     }
 
     private Shift shift(String name, LocalTime start, LocalTime end) {
@@ -404,101 +692,5 @@ public class DataSeeder implements ApplicationRunner {
         s.setEndTime(end);
         return s;
     }
-
-    // ─── 9. Leave Types ───────────────────────────────────────────────────────
-
-    private void seedLeaveTypes() {
-        List<LeaveType> types = List.of(
-                leaveType("Nghỉ phép năm",    true),
-                leaveType("Nghỉ bệnh",        true),
-                leaveType("Nghỉ việc riêng",  false),
-                leaveType("Nghỉ thai sản",    true),
-                leaveType("Nghỉ không lương", false)
-        );
-        leaveTypeRepository.saveAll(types);
-        log.info("[DataSeeder] ✓ {} leave types", types.size());
-    }
-
-    private LeaveType leaveType(String name, boolean isPaid) {
-        return LeaveType.builder().typeName(name).isPaid(isPaid).build();
-    }
-
-    // ─── 10. Monthly Schedules ────────────────────────────────────────────────
-
-    private void seedMonthlySchedules(Map<String, Employee> employees) {
-        LocalDate now = LocalDate.now();
-        int month = now.getMonthValue();
-        int year  = now.getYear();
-
-        List<String> itEmployees = List.of("employee1", "employee6", "employee7", "employee8");
-        List<MonthlySchedules> schedules = new ArrayList<>();
-        for (String username : itEmployees) {
-            schedules.add(MonthlySchedules.builder()
-                    .employee(employees.get(username))
-                    .month(month)
-                    .year(year)
-                    .status(ScheduleStatus.OPEN)
-                    .build());
-        }
-        monthlySchedulesRepository.saveAll(schedules);
-        log.info("[DataSeeder] ✓ {} monthly schedules ({}/{})", schedules.size(), month, year);
-    }
-
-    // ─── 11. Contracts ────────────────────────────────────────────────────────
-
-    private void seedContracts(Map<String, Employee> employees,
-                               Map<String, Position> positions) {
-        List<Contract> contracts = new ArrayList<>();
-
-        Employee emp1 = employees.get("employee1"); // IT Developer
-        Employee emp2 = employees.get("employee2"); // HR
-        Employee emp3 = employees.get("employee3"); // Kế Toán
-        Employee emp4 = employees.get("employee4"); // Kinh Doanh
-        Employee emp5 = employees.get("employee5"); // Marketing
-
-        // employee1: hợp đồng cũ đã hết hạn + hợp đồng mới đang active
-        contracts.add(contract(emp1, Type.YEAR_1,     "Developer",
-                LocalDate.of(2024, 1, 1),  LocalDate.of(2025, 1, 1),
-                new BigDecimal("15000000"), ContractStatus.EXPIRED));
-        contracts.add(contract(emp1, Type.YEAR_3,     "Developer",
-                LocalDate.of(2025, 1, 2),  LocalDate.of(2028, 1, 2),
-                new BigDecimal("18000000"), ContractStatus.ACTIVE));
-
-        // employee2
-        contracts.add(contract(emp2, Type.YEAR_1,     "Chuyên Viên Nhân Sự",
-                LocalDate.of(2025, 3, 1),  LocalDate.of(2026, 3, 1),
-                new BigDecimal("14000000"), ContractStatus.ACTIVE));
-
-        // employee3
-        contracts.add(contract(emp3, Type.INDEFINITE, "Kế Toán Viên",
-                LocalDate.of(2022, 6, 1),  null,
-                new BigDecimal("20000000"), ContractStatus.ACTIVE));
-
-        // employee4
-        contracts.add(contract(emp4, Type.YEAR_1,     "Chuyên Viên Kinh Doanh",
-                LocalDate.of(2025, 9, 1),  LocalDate.of(2026, 9, 1),
-                new BigDecimal("13000000"), ContractStatus.ACTIVE));
-
-        // employee5
-        contracts.add(contract(emp5, Type.YEAR_3,     "Chuyên Viên Marketing",
-                LocalDate.of(2024, 12, 1), LocalDate.of(2027, 12, 1),
-                new BigDecimal("16000000"), ContractStatus.ACTIVE));
-
-        contractsRepository.saveAll(contracts);
-        log.info("[DataSeeder] ✓ {} contracts", contracts.size());
-    }
-
-    private Contract contract(Employee emp, Type type, String position,
-                              LocalDate startDate, LocalDate endDate,
-                              BigDecimal salary, ContractStatus status) {
-        return Contract.builder()
-                .employee(emp)
-                .type(type)
-                .position(position)
-                .startDate(startDate)
-                .endDate(endDate)
-                .baseSalary(salary)
-                .status(status)
-                .build();
-    }
 }
+
