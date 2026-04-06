@@ -293,60 +293,24 @@ const filteredTasks = computed(() => {
 });
 
 // Truyền vào 'fileUrl' thay vì 'taskId' anh nhé!
-const downloadEvidence = async (fileUrl) => {
+const downloadEvidence = (fileUrl) => {
   if (!fileUrl) {
-    return alert("⚠️ Công việc này không có file đính kèm!");
+    alert("⚠️ Công việc này không có file!");
+    return;
   }
 
-  try {
-    // 1. Kéo file từ Cloudinary về
-    const response = await fetch(fileUrl);
-    if (!response.ok) throw new Error("Lỗi khi tải file");
+  // tải trực tiếp từ Cloudinary
+  const link = document.createElement("a");
+  link.href = fileUrl;
+  link.target = "_blank";
+  link.rel = "noopener";
 
-    const blob = await response.blob();
+  // QUAN TRỌNG: không đặt tên file tay
+  link.download = "";
 
-    // 2. 🔥 BÍ QUYẾT: Bắt mạch xem file thuộc loại gì để gắn đuôi cho đúng
-    const contentType = response.headers.get("content-type") || "";
-    let extension = "";
-
-    if (contentType.includes("pdf")) {
-      extension = ".pdf";
-    } else if (contentType.includes("word") || contentType.includes("document")) {
-      extension = ".docx";
-    } else if (contentType.includes("excel") || contentType.includes("sheet")) {
-      extension = ".xlsx";
-    } else if (contentType.includes("png")) {
-      extension = ".png";
-    } else if (contentType.includes("jpeg") || contentType.includes("jpg")) {
-      extension = ".jpg";
-    } else if (contentType.includes("zip") || contentType.includes("compressed")) {
-      extension = ".zip";
-    } else {
-      // Nếu không đoán ra, móc cái đuôi từ đường link gốc ra (vd: abc.docx -> lấy .docx)
-      const match = fileUrl.match(/\.([a-zA-Z0-9]+)(?:[\?#]|$)/);
-      if (match) extension = "." + match[1];
-    }
-
-    // 3. Tạo link tải với ĐÚNG ĐỊNH DẠNG
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-
-    // Tên file khi tải về máy tính sẽ là: Minh_Chung_Task.pdf hoặc Minh_Chung_Task.docx
-    link.download = `Minh_Chung_Task${extension}`;
-
-    document.body.appendChild(link);
-    link.click();
-
-    // 4. Dọn dẹp rác bộ nhớ
-    link.remove();
-    window.URL.revokeObjectURL(url);
-
-  } catch (error) {
-    console.error("Lỗi tải file bằng Fetch:", error);
-    // Phương án dự phòng: Mở thẳng cái link đó sang Tab mới cho trình duyệt tự xử
-    window.open(fileUrl, '_blank', 'noopener,noreferrer');
-  }
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 };
 
 const selectTask = (task) => {
