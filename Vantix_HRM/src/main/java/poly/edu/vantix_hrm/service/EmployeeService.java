@@ -19,6 +19,8 @@ import poly.edu.vantix_hrm.utils.BaseSpecification;
 import poly.edu.vantix_hrm.utils.PageHelper;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -274,6 +276,10 @@ public class EmployeeService {
         dto.setWorkStatus(employee.getWorkStatus() != null ? employee.getWorkStatus().name() : "WORKING");
 
         return dto;
+    }
+
+    public List<Employee> getAllEmployees() {
+        return employeeRepository.findAllByOrderByFullNameAsc();
     }
 
 }

@@ -50,4 +50,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>,
     long countByPositionId(@Param("positionId") Long positionId);
 
     List<Employee> findByDepartment_Id(Long departmentId);
+    // Lấy tất cả nhân viên, sắp xếp theo tên
+    List<Employee> findAllByOrderByFullNameAsc();
+
 }

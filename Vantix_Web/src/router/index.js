@@ -28,6 +28,10 @@ import TaskListManagement from "@/views/main/TaskListManagement.vue";
 import KpiRanking from "@/views/main/KpiRanking.vue";
 import Salaries from "@/views/main/Salaries.vue";
 import PayrollBatch from "@/views/main/PayrollBatch.vue";
+import Notification from "@/views/main/NotificationManagement.vue";
+import MyNotifications from "@/views/main/MyNotifications.vue";
+
+
 
 const router = createRouter({
     history: createWebHistory(),
@@ -166,7 +170,18 @@ const router = createRouter({
                     path: 'payrollbatch',
                     component: PayrollBatch,
                     meta: {title: 'Payroll Batch'}
+                },
+                {
+                    path: 'notifications',
+                    component: Notification,
+                    meta: {title: 'Notification'}
+                },
+                {
+                    path: 'my-notifications',
+                    component: MyNotifications,
+                    meta: {title: 'My Notifications'}
                 }
+
 
 
 

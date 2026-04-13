@@ -33,4 +33,27 @@ public interface UserRepository extends JpaRepository<User, Long>,
 
     boolean existsByEmailAndIdNotAndDeletedFalse(String email, Long id);
 
+    // Tìm tất cả User thuộc một Role cụ thể và đang hoạt động
+    @Query("SELECT u FROM User u JOIN u.role r WHERE r.name = :roleName AND u.status = 'ACTIVE' AND u.deleted = false")
+    List<User> findByRoleName(@Param("roleName") String roleName);
+
+    // Lấy tất cả User đang hoạt động
+    List<User> findByStatusAndDeletedFalse(User.UserStatus status);
+
+    @Query("SELECT u.id, e.fullName, r.name FROM User u " +
+            "JOIN Employee e ON u.id = e.user.id " +
+            "JOIN u.role r " +
+            "WHERE (:roleName = 'ALL' OR r.name = :roleName) " +
+            "AND u.status = :status " + // Truyền tham số vào đây
+            "AND u.deleted = false")
+    List<Object[]> findActiveRecipientsByRole(
+            @Param("roleName") String roleName,
+            @Param("status") User.UserStatus status // Sử dụng đúng UserStatus
+    );
+
+    // Lấy tất cả nhân viên ACTIVE (cho trường hợp chọn ALL)
+    @Query("SELECT u.id, e.fullName FROM User u " +
+            "JOIN Employee e ON u.id = e.user.id " +
+            "WHERE u.status = 'ACTIVE' AND u.deleted = false")
+    List<Object[]> findAllActiveEmployees();
 }

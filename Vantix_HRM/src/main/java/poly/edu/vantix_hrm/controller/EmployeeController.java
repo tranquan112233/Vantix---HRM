@@ -99,4 +99,9 @@ public class EmployeeController {
 
         return ResponseEntity.ok(result);
     }
+
+    @GetMapping("/list-all")
+    public ResponseEntity<List<Employee>> getListAll() {
+        return ResponseEntity.ok(employeeService.getAllEmployees());
+    }
 }
