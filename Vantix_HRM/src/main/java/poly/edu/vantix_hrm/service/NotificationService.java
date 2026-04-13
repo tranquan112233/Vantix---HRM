@@ -49,7 +49,8 @@ public class NotificationService {
      * Lấy danh sách thông báo của nhân viên
      */
     public List<Notification> getMyNotifications(Long userId) {
-        return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId);
+        // Phải gọi hàm có đuôi AndIsDeletedFalse thì load lại trang mới không thấy đồ cũ
+        return notificationRepository.findByRecipientIdAndIsDeletedFalseOrderByCreatedAtDesc(userId);
     }
 
     /**
@@ -78,10 +79,15 @@ public class NotificationService {
         });
     }
 
-    @Transactional // <--- Quan trọng: Đảm bảo có dòng này để commit vào DB
+    @Transactional
     public void softDelete(Long id) {
         notificationRepository.findById(id).ifPresent(n -> {
-            n.setDeleted(true); // Đánh dấu xóa mềm
+            // KIỂM TRA: Nếu đã đánh sao (starred) thì KHÔNG cho xóa
+            if (n.isStarred()) {
+                throw new IllegalStateException("Không thể xóa thông báo đã lưu!");
+            }
+
+            n.setDeleted(true); // Chỉ những cái không có sao mới chạy đến dòng này
             notificationRepository.save(n);
         });
     }

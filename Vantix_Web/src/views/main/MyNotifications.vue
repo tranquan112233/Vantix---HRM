@@ -97,15 +97,39 @@ const readNote = async (note) => {
   // Chuyển hướng nếu có targetUrl
 };
 
-const toggleStar = async (note) => {
-  await axios.put(`/api/notifications/${note.id}/star`);
-  note.starred = !note.starred;
-};
+// MyNotifications.vue
 
 const deleteNote = async (id) => {
+  // 1. Tìm thông báo trong danh sách hiện tại
+  const targetNote = notes.value.find(n => n.id === id);
+
+  // 2. Nếu thông báo đang được đánh sao (starred), chặn xóa
+  if (targetNote && targetNote.starred) {
+    alert("Thông báo này đã được lưu (⭐). Bạn cần bỏ lưu trước khi xóa!");
+    return; // Dừng hàm tại đây
+  }
+
+  // 3. Nếu không có sao, tiến hành hỏi xác nhận và xóa như bình thường
   if (!confirm('Xóa thông báo này?')) return;
-  await axios.delete(`/api/notifications/${id}`);
-  notes.value = notes.value.filter(n => n.id !== id);
+
+  try {
+    await axios.delete(`/api/notifications/${id}`);
+    notes.value = notes.value.filter(n => n.id !== id);
+  } catch (err) {
+    console.error("Lỗi khi xóa:", err);
+    alert("Không thể xóa thông báo này.");
+  }
+};
+
+const toggleStar = async (note) => {
+  try {
+    await axios.put(`/api/notifications/${note.id}/star`, null, {
+      headers: { Authorization: `Bearer ${auth.token}` }
+    });
+    note.starred = !note.starred;
+  } catch (err) {
+    console.error("Lỗi khi thay đổi trạng thái sao:", err);
+  }
 };
 
 const markAllAsRead = async () => {

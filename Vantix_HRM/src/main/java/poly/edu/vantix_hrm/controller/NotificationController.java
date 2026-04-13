@@ -22,7 +22,6 @@ public class NotificationController {
     private final RoleRepository roleRepository;
 
 
-
     // 1. Lấy danh sách thông báo của tôi (Nhân viên/Admin tự gọi cho chính mình)
     @GetMapping("/my")
     public ResponseEntity<List<Notification>> getMyNotifications(@RequestParam Long userId) {
@@ -40,24 +39,34 @@ public class NotificationController {
      * 3. ADMIN GỬI LỆNH TRIỆU TẬP (SUMMON)
      * Dùng để "kêu" nhân viên lên phòng họp, phòng admin, v.v.
      */
+    // Trong NotificationController.java
+
     @PostMapping("/summon")
-    public ResponseEntity<String> sendSummon(
+    public ResponseEntity<String> sendNotice(
             @RequestParam Long recipientId,
             @RequestParam String location,
-            @RequestParam String reason) {
+            @RequestParam String reason,
+            @RequestParam String priority) { // GẤP, BÌNH THƯỜNG, HẸN GẶP
 
-        String title = "⚡ LỆNH TRIỆU TẬP";
-        String message = "Vui lòng đến " + location + " ngay bây giờ. Nội dung: " + reason;
+        String title;
+        String type;
 
-        notificationService.sendNotification(
-                recipientId,
-                title,
-                message,
-                "SUMMON",
-                "/dashboard" // Khi click vào sẽ về trang chủ
-        );
+        switch (priority) {
+            case "URGENT":
+                title = "⚡ LỆNH TRIỆU TẬP KHẨN";
+                type = "SUMMON"; // Hiện màu đỏ
+                break;
+            case "MEETING":
+                title = "📅 LỊCH HẸN GẶP";
+                type = "TASK"; // Hiện màu xanh dương
+                break;
+            default:
+                title = "📩 THÔNG BÁO MỜI";
+                type = "INFO"; // Hiện màu xanh lá/cyan
+        }
 
-        return ResponseEntity.ok("Đã gửi lệnh triệu tập thành công!");
+        notificationService.sendNotification(recipientId, title, reason + " tại " + location, type, "/my-notifications");
+        return ResponseEntity.ok("Đã gửi thành công!");
     }
 
     /**
@@ -99,5 +108,36 @@ public class NotificationController {
     @GetMapping("/roles")
     public ResponseEntity<List<Role>> getAllRoles() {
         return ResponseEntity.ok(roleRepository.findByDeletedFalse());
+    }
+
+    // 1. Xóa một thông báo cụ thể (Sửa lỗi DELETE 500)
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteNotification(@PathVariable Long id) {
+        // Gọi hàm softDelete để đổi trạng thái is_deleted = true trong DB
+        notificationService.softDelete(id);
+        return ResponseEntity.ok().build();
+    }
+
+    // 2. Đảo trạng thái Star (Yêu thích)
+    @PutMapping("/{id}/star")
+    public ResponseEntity<Void> toggleStar(@PathVariable Long id) {
+        notificationService.toggleStar(id); // Gọi hàm toggleStar trong Service
+        return ResponseEntity.ok().build();
+    }
+
+    // 3. Đánh dấu đọc tất cả
+    @PutMapping("/read-all")
+    public ResponseEntity<Void> markAllAsRead(@RequestParam Long userId) {
+        // Bạn cần viết thêm hàm này trong Service hoặc xử lý nhanh tại đây
+        List<Notification> unread = notificationService.getMyNotifications(userId);
+        unread.stream().filter(n -> !n.isRead()).forEach(n -> notificationService.markAsRead(n.getId()));
+        return ResponseEntity.ok().build();
+    }
+
+    // 4. Dọn dẹp (Xóa tất cả trừ mục có sao)
+    @DeleteMapping("/clear-all")
+    public ResponseEntity<Void> clearAll(@RequestParam Long userId) {
+        notificationService.deleteAllExceptStarred(userId); // Gọi hàm dọn dẹp
+        return ResponseEntity.ok().build();
     }
 }

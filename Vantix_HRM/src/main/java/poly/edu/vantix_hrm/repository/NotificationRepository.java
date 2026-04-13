@@ -12,5 +12,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     // Đếm số thông báo chưa đọc để hiện số trên cái chuông ở Vue.js
     long countByRecipientIdAndIsReadFalse(Long recipientId);
     // Chỉ lấy những cái chưa bị xóa (isDeleted = false)
+    // Đổi tên hàm để Spring Data JPA tự thêm điều kiện WHERE is_deleted = false
     List<Notification> findByRecipientIdAndIsDeletedFalseOrderByCreatedAtDesc(Long recipientId);
 }

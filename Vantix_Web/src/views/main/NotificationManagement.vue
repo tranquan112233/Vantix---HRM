@@ -1,25 +1,38 @@
 <template>
-  <div class="summon-card shadow border-0 rounded-4 overflow-hidden bg-white mx-auto">
-    <div class="card-header bg-danger text-white py-3 border-0">
+  <div class="appointment-card shadow border-0 rounded-4 overflow-hidden bg-white mx-auto transition-all">
+    <div class="card-header py-3 border-0 transition-all" :class="headerStyles.bg">
       <h6 class="mb-0 d-flex align-items-center fw-bold">
-        <i class="bi bi-megaphone-fill me-2 fs-5"></i> LỆNH TRIỆU TẬP NHANH
+        <i class="bi me-2 fs-5" :class="headerStyles.icon"></i>
+        {{ headerStyles.title }}
       </h6>
     </div>
 
     <div class="card-body p-4">
       <div class="mb-3">
-        <label class="form-label small fw-bold text-muted text-uppercase mb-2">Phạm vi triệu tập</label>
+        <label class="form-label small fw-bold text-muted text-uppercase mb-2">Tính chất thông báo</label>
+        <div class="d-flex gap-2">
+          <button v-for="opt in priorityOptions" :key="opt.value"
+                  @click="form.priority = opt.value"
+                  class="btn btn-sm flex-grow-1 border shadow-sm transition-all"
+                  :class="form.priority === opt.value ? opt.activeClass : 'btn-light text-muted'">
+            {{ opt.label }}
+          </button>
+        </div>
+      </div>
+
+      <div class="mb-3 pt-2 border-top">
+        <label class="form-label small fw-bold text-muted text-uppercase mb-2">Đối tượng tiếp nhận</label>
         <div class="d-flex gap-2">
           <select v-model="selectedRole" class="form-select shadow-sm" :disabled="isAllMode">
-            <option value="ALL">-- Tất cả chức vụ --</option>
+            <option value="ALL">-- Toàn bộ nhân sự --</option>
             <option v-for="role in roles" :key="role.id" :value="role.name">
               {{ role.name }}
             </option>
           </select>
           <button @click="toggleAllMode" class="btn btn-sm text-nowrap shadow-sm"
                   :class="isAllMode ? 'btn-warning' : 'btn-outline-primary'">
-            <i class="bi" :class="isAllMode ? 'bi-person-x' : 'bi-people-fill'"></i>
-            {{ isAllMode ? 'Hủy chọn tất cả' : 'Gọi tất cả' }}
+            <i class="bi" :class="isAllMode ? 'bi-person-dash' : 'bi-people-fill'"></i>
+            {{ isAllMode ? 'Hủy chọn nhóm' : 'Gửi theo nhóm' }}
           </button>
         </div>
       </div>
@@ -30,40 +43,30 @@
           <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
           <input v-model="searchQuery" type="text" class="form-control" placeholder="Tìm tên nhân viên...">
         </div>
-
         <select v-model="form.recipientId" class="form-select shadow-sm" style="height: 45px;">
           <option value="" disabled>-- Chọn người nhận ({{ filteredEmployees.length }}) --</option>
-          <option v-for="e in filteredEmployees" :key="e[0]" :value="e[0]">
-            {{ e[1] }} ({{ e[2] }})
-          </option>
+          <option v-for="e in filteredEmployees" :key="e[0]" :value="e[0]">{{ e[1] }} ({{ e[2] }})</option>
         </select>
-        <div v-if="loadingList" class="text-center mt-2">
-          <div class="spinner-border spinner-border-sm text-primary"></div>
-        </div>
       </div>
 
-      <div v-else class="alert alert-soft-danger py-3 mb-3 border-0 shadow-sm small">
-        <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
-        <span>Đang phát lệnh cho: <strong>{{ selectedRole === 'ALL' ? 'Toàn công ty' : 'Nhóm ' + selectedRole }}</strong></span>
-      </div>
-
-      <div class="mb-3 pt-3 border-top">
+      <div class="mb-3 pt-2 border-top">
         <div class="row g-2">
           <div class="col-12 mb-2">
-            <label class="form-label small fw-bold">Địa điểm</label>
-            <input v-model="form.location" class="form-control shadow-sm" placeholder="Phòng họp 1, Sảnh chính..." />
+            <label class="form-label small fw-bold text-muted">Địa điểm / Hình thức</label>
+            <input v-model="form.location" class="form-control shadow-sm" :placeholder="headerStyles.locPlaceholder" />
           </div>
           <div class="col-12">
-            <label class="form-label small fw-bold">Lý do/Nội dung</label>
-            <textarea v-model="form.reason" class="form-control shadow-sm" rows="3" placeholder="Nêu lý do triệu tập..."></textarea>
+            <label class="form-label small fw-bold text-muted">Nội dung trao đổi</label>
+            <textarea v-model="form.reason" class="form-control shadow-sm" rows="3" :placeholder="headerStyles.msgPlaceholder"></textarea>
           </div>
         </div>
       </div>
 
-      <button @click="handleSummon" class="btn btn-danger btn-lg w-100 fw-bold shadow-sm py-2" :disabled="loading">
+      <button @click="handleSummon" class="btn btn-lg w-100 fw-bold shadow-sm py-2 transition-all"
+              :class="headerStyles.btnClass" :disabled="loading">
         <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
         <i v-else class="bi bi-send-fill me-2"></i>
-        {{ loading ? 'ĐANG XỬ LÝ...' : (isAllMode ? 'PHÁT LỆNH HÀNG LOẠT' : 'PHÁT LỆNH NGAY') }}
+        {{ loading ? 'ĐANG XỬ LÝ...' : headerStyles.btnLabel }}
       </button>
     </div>
   </div>
@@ -75,34 +78,59 @@ import axios from 'axios';
 import { useAuthStore } from '@/stores/auth.store';
 
 const auth = useAuthStore();
-const roles = ref([]); // Danh sách Role từ DB
+const roles = ref([]);
 const employees = ref([]);
 const isAllMode = ref(false);
 const selectedRole = ref('ALL');
 const searchQuery = ref('');
 const loading = ref(false);
 const loadingList = ref(false);
-const form = ref({ recipientId: '', location: '', reason: '' });
 
-// 1. Lọc nhân viên theo ô search
+// Thêm trường priority vào form
+const form = ref({ recipientId: '', location: '', reason: '', priority: 'NORMAL' });
+
+const priorityOptions = [
+  { value: 'NORMAL', label: 'Lời mời', activeClass: 'btn-info text-white' },
+  { value: 'MEETING', label: 'Hẹn gặp', activeClass: 'btn-primary text-white' },
+  { value: 'URGENT', label: 'Gấp', activeClass: 'btn-danger text-white' }
+];
+
+// Logic đổi Style dựa trên mức độ đã chọn
+const headerStyles = computed(() => {
+  switch (form.value.priority) {
+    case 'URGENT':
+      return {
+        bg: 'bg-danger', icon: 'bi-megaphone-fill', title: 'LỆNH TRIỆU TẬP KHẨN CẤP',
+        btnClass: 'btn-danger', btnLabel: 'PHÁT LỆNH NGAY',
+        locPlaceholder: 'Phòng ban, Văn phòng quản lý...', msgPlaceholder: 'Lý do triệu tập khẩn cấp...'
+      };
+    case 'MEETING':
+      return {
+        bg: 'bg-primary', icon: 'bi-calendar-check-fill', title: 'LỊCH HẸN GẶP MẶT',
+        btnClass: 'btn-primary', btnLabel: 'GỬI LỊCH HẸN',
+        locPlaceholder: 'Phòng họp, Google Meet...', msgPlaceholder: 'Nội dung cuộc hẹn trao đổi...'
+      };
+    default:
+      return {
+        bg: 'bg-info', icon: 'bi-chat-dots-fill', title: 'GỬI LỜI MỜI / THÔNG BÁO',
+        btnClass: 'btn-info text-white', btnLabel: 'GỬI LỜI MỜI',
+        locPlaceholder: 'Sảnh chính, Cafe, hoặc vị trí bất kỳ...', msgPlaceholder: 'Lời mời trao đổi nhẹ nhàng...'
+      };
+  }
+});
+
 const filteredEmployees = computed(() => {
   if (!searchQuery.value) return employees.value;
   return employees.value.filter(e => e[1].toLowerCase().includes(searchQuery.value.toLowerCase()));
 });
 
-// 2. Lấy danh sách Roles từ DB
 const fetchRoles = async () => {
   try {
-    const res = await axios.get('/api/notifications/roles', {
-      headers: { Authorization: `Bearer ${auth.token}` }
-    });
+    const res = await axios.get('/api/notifications/roles', { headers: { Authorization: `Bearer ${auth.token}` } });
     roles.value = res.data;
-  } catch (err) {
-    console.error("Lỗi tải Roles:", err);
-  }
+  } catch (err) { console.error("Lỗi tải Roles:", err); }
 };
 
-// 3. Lấy nhân viên theo Role (DB Query trực tiếp)
 const fetchEmployees = async () => {
   loadingList.value = true;
   try {
@@ -112,14 +140,10 @@ const fetchEmployees = async () => {
     });
     employees.value = res.data;
     form.value.recipientId = '';
-  } catch (err) {
-    console.error("Lỗi tải danh sách NV:", err);
-  } finally {
-    loadingList.value = false;
-  }
+  } catch (err) { console.error("Lỗi tải danh sách NV:", err); }
+  finally { loadingList.value = false; }
 };
 
-// Theo dõi thay đổi của Role để gọi lại danh sách nhân viên
 watch(selectedRole, fetchEmployees);
 
 const toggleAllMode = () => {
@@ -128,10 +152,10 @@ const toggleAllMode = () => {
 };
 
 const handleSummon = async () => {
-  if (!form.value.location || !form.value.reason) return alert('Điền đủ địa điểm và nội dung!');
-  if (!isAllMode.value && !form.value.recipientId) return alert('Chọn nhân viên cụ thể!');
+  if (!form.value.location || !form.value.reason) return alert('Vui lòng nhập đầy đủ thông tin!');
+  if (!isAllMode.value && !form.value.recipientId) return alert('Vui lòng chọn nhân viên!');
 
-  if (!confirm('Xác nhận phát lệnh triệu tập này?')) return;
+  if (!confirm(`Xác nhận gửi ${headerStyles.value.title.toLowerCase()}?`)) return;
 
   loading.value = true;
   try {
@@ -141,11 +165,12 @@ const handleSummon = async () => {
         recipientId: isAllMode.value ? null : form.value.recipientId,
         roleName: isAllMode.value ? selectedRole.value : null,
         location: form.value.location,
-        reason: form.value.reason
+        reason: form.value.reason,
+        priority: form.value.priority // Gửi thêm mức độ lên Backend
       },
       headers: { Authorization: `Bearer ${auth.token}` }
     });
-    alert('Thành công!');
+    alert('Thực hiện thành công!');
     form.value.location = ''; form.value.reason = '';
   } catch (err) {
     alert('Lỗi: ' + (err.response?.data || err.message));
@@ -155,14 +180,14 @@ const handleSummon = async () => {
 };
 
 onMounted(() => {
-  fetchRoles();      // Load Roles trước
-  fetchEmployees();  // Load nhân viên mặc định (ALL)
+  fetchRoles();
+  fetchEmployees();
 });
 </script>
 
 <style scoped>
-.alert-soft-danger { background: #fff5f5; color: #dc3545; border-left: 4px solid #dc3545 !important; }
-.summon-card { max-width: 500px; }
+.transition-all { transition: all 0.3s ease; }
+.appointment-card { max-width: 500px; }
 .form-select, .form-control { border-radius: 8px; border: 1px solid #e0e0e0; }
-.form-select:focus, .form-control:focus { border-color: #dc3545; box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15); }
+.form-select:focus, .form-control:focus { border-color: #0d6efd; box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15); }
 </style>
