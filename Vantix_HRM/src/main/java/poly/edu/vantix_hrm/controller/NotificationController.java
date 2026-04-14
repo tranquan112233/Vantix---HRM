@@ -3,6 +3,7 @@ package poly.edu.vantix_hrm.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import poly.edu.vantix_hrm.dto.notification.MultiSummonRequest;
 import poly.edu.vantix_hrm.entity.Notification;
 import poly.edu.vantix_hrm.entity.Role;
 import poly.edu.vantix_hrm.entity.User;
@@ -139,5 +140,44 @@ public class NotificationController {
     public ResponseEntity<Void> clearAll(@RequestParam Long userId) {
         notificationService.deleteAllExceptStarred(userId); // Gọi hàm dọn dẹp
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/summon-multi")
+    public ResponseEntity<String> sendMultiSummon(@RequestBody MultiSummonRequest request) {
+        try {
+            // Lấy thông tin từ DTO
+            String title;
+            String type;
+
+            // Logic chọn tiêu đề dựa trên mức độ (giống bản trước mình bàn)
+            switch (request.getPriority()) {
+                case "URGENT":
+                    title = "⚡ LỆNH TRIỆU TẬP KHẨN";
+                    type = "SUMMON";
+                    break;
+                case "MEETING":
+                    title = "📅 LỊCH HẸN GẶP";
+                    type = "TASK";
+                    break;
+                default:
+                    title = "📩 THÔNG BÁO MỜI";
+                    type = "INFO";
+            }
+
+            // Lặp qua danh sách ID và gửi thông báo cho từng người
+            for (Long userId : request.getRecipientIds()) {
+                notificationService.sendNotification(
+                        userId,
+                        title,
+                        request.getReason() + " tại " + request.getLocation(),
+                        type,
+                        "/my-notifications"
+                );
+            }
+
+            return ResponseEntity.ok("Đã gửi thông báo cho " + request.getRecipientIds().size() + " nhân viên.");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi gửi thông báo hàng loạt");
+        }
     }
 }

@@ -121,5 +121,7 @@ public class NotificationService {
             this.sendNotification(user.getId(), title, message, "SUMMON", "/my-notifications");
         }
     }
+
+
 }
 
