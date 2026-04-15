@@ -12,17 +12,22 @@ export default {
     },
 
     checkIn(employeeId) {
-        return api.post(`${ENDPOINT}/checkIn`, employeeId);
+        return api.post(`${ENDPOINT}/checkIn`, null, {
+            params: {employeeId: employeeId}
+        });
     },
 
     // Check-out thường (Manual)
     checkOutManual(employeeId) {
-        return api.put(`${ENDPOINT}/checkOutManual`, employeeId);
+        return api.put(`${ENDPOINT}/checkOutManual`, null, {
+            params: {employeeId: employeeId}
+        });
     },
 
     // --- MỚI THÊM: API XÁC NHẬN CÔNG ---
     confirmCheckOut(employeeId) {
-        // Gửi employeeId dạng số nguyên (Integer) để tránh lỗi JSON parse
-        return api.put(`${ENDPOINT}/confirm-checkout`, employeeId);
+        return api.put(`${ENDPOINT}/confirm-checkout`, null, {
+            params: {employeeId: employeeId}
+        });
     }
 }

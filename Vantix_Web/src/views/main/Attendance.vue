@@ -33,6 +33,41 @@ const getStatusClass = (status) => {
   return 'badge-default';
 };
 
+// --- BỘ HÀM CHUẨN HÓA DỮ LIỆU TỪ SPRING BOOT ---
+const parseDate = (val) => {
+  if (!val) return null;
+  // Nếu BE trả về mảng [2026, 4, 15] -> Nắn lại thành "2026-04-15"
+  if (Array.isArray(val)) return `${val[0]}-${String(val[1]).padStart(2, '0')}-${String(val[2]).padStart(2, '0')}`;
+  return val;
+};
+
+const parseTime = (val) => {
+  if (!val) return null;
+  // Nếu BE trả về mảng [23, 30, 24] -> Nắn lại thành "23:30"
+  if (Array.isArray(val)) return `${String(val[0]).padStart(2, '0')}:${String(val[1]).padStart(2, '0')}`;
+  if (typeof val === 'string') return val.slice(0, 5);
+  return null;
+};
+
+const normalizeData = (data) => {
+  if (!data) return null;
+  return {
+    ...data,
+    // Ưu tiên camelCase, nếu không có thì lấy snake_case
+    workDate: parseDate(data.workDate || data.work_date),
+    checkIn: parseTime(data.checkIn || data.check_in),
+    checkOut: parseTime(data.checkOut || data.check_out),
+    lateMinutes: data.lateMinutes ?? data.late_minutes ?? 0,
+    earlyLeaveMinutes: data.earlyLeaveMinutes ?? data.early_leave_minutes ?? 0,
+    status: data.status || 'DRAFT',
+    shift: data.shift ? {
+      ...data.shift,
+      shiftId: data.shift.shiftId || data.shift.shift_id,
+      shiftName: data.shift.shiftName || data.shift.shift_name,
+    } : null
+  };
+};
+
 // --- STATE ---
 const message = ref('');
 const messageType = ref('success');
@@ -72,7 +107,9 @@ const fetchAttendanceData = async () => {
         selectedMonth.value,
         selectedYear.value
     );
-    attendanceList.value = response.data || [];
+    // Quét toàn bộ mảng qua hàm chuẩn hóa
+    const rawData = response.data || [];
+    attendanceList.value = rawData.map(normalizeData);
   } catch (error) {
     console.error("Lỗi tải dữ liệu:", error);
     attendanceList.value = [];
@@ -145,7 +182,11 @@ const handleCheckIn = async () => {
   loading.value = true;
   try {
     const response = await attendanceService.checkIn(employeeId.value);
-    showMessage(`✅ Chấm công thành công! Giờ vào: ${formatTime(response.data.checkIn)}`, 'success');
+
+    // Chuẩn hóa data vừa Check-in xong để hiện giờ cho chuẩn
+    const att = normalizeData(response.data);
+
+    showMessage(`✅ Chấm công thành công! Giờ vào: ${att.checkIn}`, 'success');
     await fetchAttendanceData();
   } catch (error) {
     handleError(error);

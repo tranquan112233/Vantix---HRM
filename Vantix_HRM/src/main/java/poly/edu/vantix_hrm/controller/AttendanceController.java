@@ -31,7 +31,7 @@ public class AttendanceController {
 
     @PreAuthorize("hasAuthority('ATTENDANCE_CHECKIN')")
     @PostMapping("/checkIn")
-    public ResponseEntity<?> CheckIn(@RequestBody Long employeeId) {
+    public ResponseEntity<?> CheckIn(@RequestParam Long employeeId) {
         try {
             // 1. Xác thực nhân viên
             Employee employee = attendanceService.isEmployeeValid(employeeId);
@@ -56,7 +56,7 @@ public class AttendanceController {
 
     @PreAuthorize("hasAuthority('ATTENDANCE_CHECKOUT')")
     @PutMapping("/checkOutManual")
-    public ResponseEntity<?> checkOutManual(@RequestBody Long employeeId) {
+    public ResponseEntity<?> checkOutManual(@RequestParam Long employeeId) {
         try {
             // 1. Xác thực nhân viên
             Employee employee = attendanceService.isEmployeeValid(employeeId);
@@ -78,7 +78,7 @@ public class AttendanceController {
 
     @PreAuthorize("hasAuthority('ATTENDANCE_CHECKOUT')")
     @PutMapping("/confirm-checkout")
-    public ResponseEntity<?> confirmCheckOut(@RequestBody Long employeeId) {
+    public ResponseEntity<?> confirmCheckOut(@RequestParam Long employeeId) {
         try {
             Employee employee = attendanceService.isEmployeeValid(employeeId);
             Attendance att = attendanceService.findPendingAutoCheckOut(employee);

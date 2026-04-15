@@ -64,8 +64,13 @@ public class AttendanceService {
     // Hàm kiểm tra thời gian checkIn
     public void validateCheckInTime(Shift shift) {
         LocalTime now = LocalTime.now(VIETNAM_ZONE);
-        LocalTime startAllow = shift.getStartTime().minusMinutes(15); // Cho phép CheckIn sớm 15p
+        LocalTime startAllow = shift.getStartTime().minusMinutes(15);
         LocalTime endAllow = shift.getEndTime();
+
+        // THÊM DÒNG NÀY ĐỂ DEBUG:
+        System.out.println(">>> GIỜ HIỆN TẠI (NOW): " + now);
+        System.out.println(">>> GIỜ KẾT THÚC CA (END ALLOW): " + endAllow);
+        System.out.println(">>> ĐANG CHECK CHO CA (SHIFT ID): " + shift.getShiftId());
         if (now.isBefore(startAllow)) {
             throw new RuntimeException("Chưa đến giờ chấm công. Ca làm việc bắt đầu lúc " + shift.getStartTime() + ", bạn chỉ được Check-in sớm tối đa 15 phút.");
         }

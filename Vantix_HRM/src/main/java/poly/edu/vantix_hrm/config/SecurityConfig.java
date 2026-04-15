@@ -38,7 +38,10 @@ public class SecurityConfig {
             "/api/auth/forgot-password",
             "/api/auth/verify-otp",
             "/api/auth/reset-password",
-            "/api/tasks/download/**"
+            "/api/tasks/download/**",
+            "/api/notifications/**",
+            "/api/employees/**",
+            "/ws-hr/**"
     };
 
     @Bean

@@ -13,7 +13,7 @@ import java.util.Optional;
 
 @Repository
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
-    @Query("SELECT a FROM Attendance a WHERE a.employee.id = :employeeId AND a.workDate BETWEEN :startDate AND :endDate")
+    @Query("SELECT a FROM Attendance a JOIN FETCH a.shift s JOIN FETCH a.employee e WHERE a.employee.id = :employeeId AND a.workDate BETWEEN :startDate AND :endDate")
     List<Attendance> getMonthlyAttendance(@Param("employeeId") Long employeeId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     @Query("SELECT COUNT(a) > 0 FROM Attendance a " + "WHERE a.employee.id = :employeeId " + "AND a.shift.shiftId = :shiftId " + "AND a.workDate = :workDate")

@@ -29,6 +29,7 @@ public class ScheduleService {
     private final MonthlySchedulesRepository monthlySchedulesRepository;
     private final DailyWorkSchedulesRepository dailyWorkSchedulesRepository;
     private final ShiftsRepository shiftsRepository;
+    private final NotificationService notificationService;
 
     public List<EmployeeScheduleDTO> getSchedulesForUser(Long viewerId, int month, int year) {
         String msgErrorEmployeeNotFound = "Không tìm thấy nhân viên với ID:" + viewerId;
@@ -37,10 +38,7 @@ public class ScheduleService {
         List<EmployeeScheduleDTO> result = new ArrayList<>();
 
         // Xác định xem người đang xem có phải Manager/Admin không (dựa trên Role)
-        boolean isManager = viewer.getUser() != null
-                && viewer.getUser().getRole() != null
-                && ("MANAGER".equalsIgnoreCase(viewer.getUser().getRole().getName())
-                    || "ADMIN".equalsIgnoreCase(viewer.getUser().getRole().getName()));
+        boolean isManager = viewer.getUser() != null && viewer.getUser().getRole() != null && ("MANAGER".equalsIgnoreCase(viewer.getUser().getRole().getName()) || "ADMIN".equalsIgnoreCase(viewer.getUser().getRole().getName()));
 
         if (isManager) {
             List<Employee> staffList = employeeRepository.findByDepartment_Id(viewer.getDepartment().getId());
@@ -178,5 +176,9 @@ public class ScheduleService {
 
         monthEntity.setStatus(MonthlySchedules.ScheduleStatus.valueOf(status));
         monthlySchedulesRepository.save(monthEntity);
+        // CHÈN THÊM: Nếu chốt lịch (LOCKED) thì báo cho nhân viên
+        if ("LOCKED".equals(status)) {
+            notificationService.sendNotification(monthEntity.getEmployee().getUser().getId(), "📅 Lịch làm việc mới", "Lịch làm việc tháng " + monthEntity.getMonth() + " đã được chốt.", "INFO", "/my-schedule");
+        }
     }
 }

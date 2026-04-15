@@ -31,6 +31,8 @@ import PayrollBatch from "@/views/main/PayrollBatch.vue";
 import MyTaskManagement from "@/views/main/MyTaskManagement.vue";
 import Settings from "@/views/main/Settings.vue";
 import Attendance from "@/views/main/Attendance.vue";
+import Notification from "@/views/main/NotificationManagement.vue";
+import MyNotifications from "@/views/main/MyNotifications.vue";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -179,6 +181,16 @@ const router = createRouter({
                     path: 'settings',
                     component: Settings,
                     meta: {title: 'Settings', permission: 'SYSTEM_CONFIG'}
+                },
+                {
+                    path: 'notifications',
+                    component: Notification,
+                    meta: {title: 'Notification'}
+                },
+                {
+                    path: 'my-notifications',
+                    component: MyNotifications,
+                    meta: {title: 'My Notifications'}
                 }
 
                 // Ví dụ thêm

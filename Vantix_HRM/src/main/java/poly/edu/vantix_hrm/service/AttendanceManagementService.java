@@ -23,11 +23,11 @@ public class AttendanceManagementService {
 
     private final AttendanceRepository attendanceRepository;
     private final EmployeeRepository employeeRepository;
+    private final NotificationService notificationService;
 
     public List<RejectedAttendanceDTO> getPendingAttendancesForManager(Long managerId) {
         // 1. Lấy thông tin phòng ban
-        Employee manager = employeeRepository.findById(managerId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin Trưởng phòng"));
+        Employee manager = employeeRepository.findById(managerId).orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin Trưởng phòng"));
         Long departmentId = manager.getDepartment().getId();
 
         // 2. Lấy TOÀN BỘ nhân viên trong phòng ban đó
@@ -39,12 +39,10 @@ public class AttendanceManagementService {
         // 3. Lấy các phiếu PENDING trong 3 ngày qua
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(2);
-        List<Attendance> attendances = attendanceRepository
-                .findPendingByDepartmentAndDateRange(departmentId, startDate, endDate);
+        List<Attendance> attendances = attendanceRepository.findPendingByDepartmentAndDateRange(departmentId, startDate, endDate);
 
         // Group phiếu theo Mã Nhân Viên để dễ tìm kiếm
-        Map<Long, List<Attendance>> attendanceMap = attendances.stream()
-                .collect(Collectors.groupingBy(a -> a.getEmployee().getId()));
+        Map<Long, List<Attendance>> attendanceMap = attendances.stream().collect(Collectors.groupingBy(a -> a.getEmployee().getId()));
 
         List<RejectedAttendanceDTO> result = new ArrayList<>();
 
@@ -54,26 +52,11 @@ public class AttendanceManagementService {
 
             if (empAttendances.isEmpty()) {
                 // Nếu không có phiếu nào -> Trả về DTO chỉ có thông tin nhân viên, còn lại null
-                result.add(RejectedAttendanceDTO.builder()
-                        .employeeId(emp.getId())
-                        .fullName(emp.getFullName())
-                        .build());
+                result.add(RejectedAttendanceDTO.builder().employeeId(emp.getId()).fullName(emp.getFullName()).build());
             } else {
                 // Nếu có phiếu -> Map từng phiếu thành DTO
                 for (Attendance a : empAttendances) {
-                    result.add(RejectedAttendanceDTO.builder()
-                            .attendanceId(a.getAttendanceId())
-                            .employeeId(emp.getId())
-                            .fullName(emp.getFullName())
-                            .workDate(a.getWorkDate())
-                            .shiftId(a.getShift().getShiftId())
-                            .shiftName(a.getShift().getShiftName())
-                            .checkIn(a.getCheckIn())
-                            .checkOut(a.getCheckOut())
-                            .lateMinutes(a.getLateMinutes())
-                            .earlyLeaveMinutes(a.getEarlyLeaveMinutes())
-                            .status(a.getStatus().name())
-                            .build());
+                    result.add(RejectedAttendanceDTO.builder().attendanceId(a.getAttendanceId()).employeeId(emp.getId()).fullName(emp.getFullName()).workDate(a.getWorkDate()).shiftId(a.getShift().getShiftId()).shiftName(a.getShift().getShiftName()).checkIn(a.getCheckIn()).checkOut(a.getCheckOut()).lateMinutes(a.getLateMinutes()).earlyLeaveMinutes(a.getEarlyLeaveMinutes()).status(a.getStatus().name()).build());
                 }
             }
         }
@@ -82,16 +65,18 @@ public class AttendanceManagementService {
     }
 
     public void approveAttendance(Long attendanceId) {
-        Attendance attendance = attendanceRepository.findById(attendanceId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy bản ghi chấm công"));
+        Attendance attendance = attendanceRepository.findById(attendanceId).orElseThrow(() -> new RuntimeException("Không tìm thấy bản ghi chấm công"));
         attendance.setStatus(Attendance.AttendanceStatus.APPROVED);
         attendanceRepository.save(attendance);
+        // CHÈN THÊM: Báo cho nhân viên công đã được duyệt
+        notificationService.sendNotification(attendance.getEmployee().getUser().getId(), "🕒 Chấm công đã duyệt", "Bản ghi ngày " + attendance.getWorkDate() + " đã được phê duyệt.", "INFO", "/my-attendance");
     }
 
     public void rejectAttendance(Long attendanceId) {
-        Attendance attendance = attendanceRepository.findById(attendanceId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy bản ghi chấm công"));
+        Attendance attendance = attendanceRepository.findById(attendanceId).orElseThrow(() -> new RuntimeException("Không tìm thấy bản ghi chấm công"));
         attendance.setStatus(Attendance.AttendanceStatus.REJECTED);
         attendanceRepository.save(attendance);
+        // CHÈN THÊM: Báo cho nhân viên công bị từ chối
+        notificationService.sendNotification(attendance.getEmployee().getUser().getId(), "⚠️ Chấm công bị từ chối", "Bản ghi ngày " + attendance.getWorkDate() + " không được chấp nhận. Vui lòng kiểm tra lại.", "URGENT", "/my-attendance");
     }
 }

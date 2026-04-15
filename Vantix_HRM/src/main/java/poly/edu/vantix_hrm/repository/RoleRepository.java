@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 import poly.edu.vantix_hrm.entity.Role;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -16,4 +17,6 @@ public interface RoleRepository extends JpaRepository<Role, Long>,
     boolean existsByNameAndDeletedFalse(String name);
 
     boolean existsByNameAndIdNotAndDeletedFalse(String name, Long id);
+
+    List<Role> findByDeletedFalse();
 }
