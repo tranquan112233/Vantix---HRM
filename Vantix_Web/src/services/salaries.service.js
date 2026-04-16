@@ -29,5 +29,17 @@ export default {
 
     generateSalaries(month, year) {
         return api.post(`${ENDPOINT}/generate/${month}/${year}`);
-    }
+    },
+
+    exportSalariesExcel(month, year) {
+        return api.get(`${ENDPOINT}/export`, {
+            params: {month, year}, responseType: 'blob'
+        });
+    },
+
+    exportSinglePayslipExcel(id) {
+        return api.get(`${ENDPOINT}/export/${id}`, {
+            responseType: 'blob'
+        });
+    },
 }

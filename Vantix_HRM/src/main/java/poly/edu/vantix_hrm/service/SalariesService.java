@@ -6,8 +6,11 @@ import org.springframework.transaction.annotation.Transactional;
 import poly.edu.vantix_hrm.dto.salaries.ResponseDepartmentDTO;
 import poly.edu.vantix_hrm.dto.salaries.ResponseSalaryTableDTO;
 import poly.edu.vantix_hrm.entity.*;
+import poly.edu.vantix_hrm.helper.PayslipExcelExporter;
+import poly.edu.vantix_hrm.helper.SalaryExcelExporter;
 import poly.edu.vantix_hrm.repository.*;
 
+import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
@@ -118,8 +121,7 @@ public class SalariesService {
             BigDecimal standardWorkDaysBD = BigDecimal.valueOf(standardWorkDays);
 
             // Total Income = (Base / Standard) * Actual + 0 + 0
-            BigDecimal totalIncome = baseSalary.divide(standardWorkDaysBD, 2, RoundingMode.HALF_UP)
-                    .multiply(actualWorkDaysBD);
+            BigDecimal totalIncome = baseSalary.divide(standardWorkDaysBD, 2, RoundingMode.HALF_UP).multiply(actualWorkDaysBD);
 
             // 6. Tính Phạt (Làm tròn: Dưới 30 phút -> 0, Trên hoặc bằng 30 -> 1 tiếng)
             long penaltyHours = Math.round((double) totalPenaltyMinutes / 60);
@@ -224,5 +226,35 @@ public class SalariesService {
         }
 
         return BigDecimal.valueOf(tax);
+    }
+
+    // Import thêm các thư viện này ở đầu file nếu IDE chưa tự nhận:
+    // import java.io.ByteArrayInputStream;
+    // import poly.edu.vantix_hrm.helper.SalaryExcelExporter;
+
+    /**
+     * Xuất dữ liệu bảng lương theo tháng/năm được chọn
+     */
+    public ByteArrayInputStream exportSalariesToExcel(int month, int year) {
+        // Gọi lại hàm lấy dữ liệu đã có sẵn của bạn
+        List<ResponseSalaryTableDTO> salaries = getSalariesByMonthAndYear(month, year);
+
+        if (salaries.isEmpty()) {
+            throw new RuntimeException("Không có dữ liệu bảng lương tháng " + month + "/" + year);
+        }
+
+        // Gọi Helper vẽ Excel (File SalaryExcelExporter.java mình đã gửi trước đó)
+        return SalaryExcelExporter.salariesToExcel(salaries);
+    }
+
+    /**
+     * Xuất 1 phiếu lương chi tiết ra Excel
+     */
+    public ByteArrayInputStream exportSinglePayslipToExcel(Integer salaryId) {
+        Salary salary = salariesRepository.findById(salaryId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bảng lương!"));
+
+        ResponseSalaryTableDTO dto = mapToDTO(salary);
+        return PayslipExcelExporter.exportPayslip(dto);
     }
 }

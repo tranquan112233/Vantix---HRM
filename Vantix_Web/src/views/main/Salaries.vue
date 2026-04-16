@@ -23,10 +23,109 @@ const isSubmittingAll = ref(false)
 const showFinalizeModal = ref(false)
 const isFinalizing = ref(false)
 
-// State cho Modal Tính Lương Tự Động (MỚI)
+// State cho Modal Tính Lương Tự Động
 const showGenerateModal = ref(false)
 const isGenerating = ref(false)
 
+// --- STATE CHO XUẤT EXCEL THEO THÁNG ---
+const showExportModal = ref(false)
+const isExporting = ref(false)
+
+// Khởi tạo mặc định: lấy tháng trước của năm hiện tại
+const currentTempDate = new Date();
+let defaultMonth = currentTempDate.getMonth();
+let defaultYear = currentTempDate.getFullYear();
+if (defaultMonth === 0) {
+  defaultMonth = 12;
+  defaultYear -= 1;
+}
+
+const exportCriteria = reactive({
+  month: defaultMonth,
+  year: defaultYear
+})
+
+// Tính toán danh sách năm
+const availableYears = computed(() => {
+  const currentYear = new Date().getFullYear()
+  const years = []
+  for (let i = currentYear; i >= 2020; i--) years.push(i)
+  return years
+})
+
+// Tính toán danh sách tháng
+const availableMonths = computed(() => {
+  const now = new Date()
+  const currentMonth = now.getMonth() + 1
+  const currentYear = now.getFullYear()
+
+  if (parseInt(exportCriteria.year) === currentYear) {
+    const months = []
+    for (let i = 1; i < currentMonth; i++) months.push(i)
+    return months
+  }
+  return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+})
+
+watch(() => exportCriteria.year, () => {
+  const maxMonthAllowed = availableMonths.value[availableMonths.value.length - 1]
+  if (exportCriteria.month > maxMonthAllowed) {
+    exportCriteria.month = maxMonthAllowed || 1
+  }
+})
+
+// --- STATE VÀ HÀM CHO XUẤT EXCEL 1 PHIẾU LƯƠNG CHI TIẾT ---
+const isExportingSingle = ref(false)
+
+async function handlePrintPayslip() {
+  if (!detailModal.data || !detailModal.data.id) return;
+  isExportingSingle.value = true;
+
+  try {
+    const res = await salariesService.exportSinglePayslipExcel(detailModal.data.id);
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Phieu_Luong_EMP${detailModal.data.employeeId}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    toast.success("Đã tải Excel phiếu lương thành công!");
+  } catch (error) {
+    console.error(error);
+    toast.error("Lỗi khi xuất phiếu lương!");
+  } finally {
+    isExportingSingle.value = false;
+  }
+}
+
+// --- HÀM XUẤT EXCEL THEO THÁNG ---
+async function handleDownloadExcel() {
+  isExporting.value = true;
+
+  try {
+    const res = await salariesService.exportSalariesExcel(exportCriteria.month, exportCriteria.year);
+
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Bang_Luong_T${exportCriteria.month}_${exportCriteria.year}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    toast.success(`Đã xuất xong bảng lương tháng ${exportCriteria.month}/${exportCriteria.year}`);
+    showExportModal.value = false;
+  } catch (error) {
+    console.error(error);
+    toast.error("Không có dữ liệu cho kỳ này hoặc có lỗi hệ thống xảy ra!");
+  } finally {
+    isExporting.value = false;
+  }
+}
+
+// --- CÁC HÀM CŨ GIỮ NGUYÊN ---
 const fetchSalaries = async () => {
   if (!filters.month) return
   const [year, month] = filters.month.split('-')
@@ -131,7 +230,7 @@ async function confirmSubmitAllPending() {
   }
 }
 
-// --- XỬ LÝ: TÍNH LƯƠNG TỰ ĐỘNG (MỚI) ---
+// --- XỬ LÝ: TÍNH LƯƠNG TỰ ĐỘNG ---
 function openAutoGenerateModal() {
   if (!filters.month) return
   showGenerateModal.value = true
@@ -147,7 +246,7 @@ async function confirmAutoGenerateSalaries() {
   try {
     const res = await salariesService.generateSalaries(parseInt(month), parseInt(year))
     toast.success(res.data)
-    await fetchSalaries() // Load lại bảng ngay sau khi tính xong
+    await fetchSalaries()
   } catch (error) {
     toast.error(error.response?.data || "Có lỗi xảy ra khi chạy thuật toán tính lương!")
   } finally {
@@ -248,7 +347,7 @@ function updateStatus(data, newStatus) {
         </div>
       </div>
       <div class="header-actions">
-        <button class="btn-outline">
+        <button class="btn-outline" @click="showExportModal = true">
           <i class="bi bi-download"></i>
           <span>Xuất File Bảng Lương</span>
         </button>
@@ -437,6 +536,65 @@ function updateStatus(data, newStatus) {
     </div>
 
     <teleport to="body">
+
+      <transition name="modal-fade">
+        <div v-if="showExportModal" class="modal-overlay" @click.self="showExportModal = false">
+          <div class="modal-container" style="max-width: 400px;">
+            <div class="modal-header" style="border-bottom: 1.5px solid #f1f5f9; padding-bottom: 16px;">
+              <div class="modal-title-group">
+                <div class="modal-icon" style="background: #dcfce7; color: #166534;">
+                  <i class="bi bi-file-earmark-excel"></i>
+                </div>
+                <div>
+                  <h3 style="font-size: 17px;">Xuất Báo Cáo Lương</h3>
+                </div>
+              </div>
+              <button class="modal-close" @click="showExportModal = false">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <div class="modal-body" style="background: white;">
+              <p style="color: #475569; font-size: 13.5px; margin-bottom: 16px;">
+                Vui lòng chọn kỳ lương bạn muốn xuất dữ liệu Excel:
+              </p>
+
+              <div style="display: flex; gap: 16px;">
+                <div style="flex: 1;">
+                  <label
+                      style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 6px;">Năm</label>
+                  <select v-model="exportCriteria.year" class="filter-select" style="width: 100%;">
+                    <option v-for="year in availableYears" :key="year" :value="year">Năm {{ year }}</option>
+                  </select>
+                </div>
+                <div style="flex: 1;">
+                  <label
+                      style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 6px;">Tháng</label>
+                  <select v-model="exportCriteria.month" class="filter-select" style="width: 100%;">
+                    <option v-for="m in availableMonths" :key="m" :value="m">Tháng {{ m }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div
+                  style="margin-top: 20px; padding: 12px 14px; background: #f0f9ff; border-radius: 8px; font-size: 12px; color: #0284c7; display: flex; align-items: flex-start; gap: 8px;">
+                <i class="bi bi-info-circle-fill" style="margin-top: 2px;"></i>
+                <span>Hệ thống chỉ cho phép xuất dữ liệu của các kỳ lương trong quá khứ đã được tạo.</span>
+              </div>
+            </div>
+
+            <div class="modal-footer" style="justify-content: flex-end; gap: 10px;">
+              <button class="btn-secondary" @click="showExportModal = false" :disabled="isExporting">Hủy bỏ</button>
+              <button class="btn-primary bg-success-gradient" @click="handleDownloadExcel" :disabled="isExporting">
+                <span v-if="isExporting" class="spinner-border spinner-border-sm me-2" role="status"
+                      aria-hidden="true"></span>
+                <i v-else class="bi bi-download me-1"></i> Tải Xuống
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
       <transition name="modal-fade">
         <div v-if="showGenerateModal" class="modal-overlay" @click.self="showGenerateModal = false">
           <div class="modal-container" style="max-width: 420px;">
@@ -557,7 +715,10 @@ function updateStatus(data, newStatus) {
 
             <div class="modal-footer justify-content-between">
               <div>
-                <button class="btn-outline"><i class="bi bi-printer"></i> In Phiếu Lương</button>
+                <button class="btn-outline" @click="handlePrintPayslip" :disabled="isExportingSingle">
+                  <span v-if="isExportingSingle" class="spinner-border spinner-border-sm me-2"></span>
+                  <i v-else class="bi bi-file-earmark-excel"></i> Xuất Excel
+                </button>
               </div>
               <div class="d-flex gap-2">
                 <button class="btn-secondary" @click="detailModal.show = false">Đóng</button>
@@ -989,9 +1150,14 @@ function updateStatus(data, newStatus) {
   font-family: inherit;
 }
 
-.btn-outline:hover {
+.btn-outline:hover:not(:disabled) {
   background: #f8fafc;
   border-color: #cbd5e1;
+}
+
+.btn-outline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-secondary {
