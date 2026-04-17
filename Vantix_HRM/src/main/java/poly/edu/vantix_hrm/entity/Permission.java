@@ -1,5 +1,6 @@
 package poly.edu.vantix_hrm.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -34,6 +35,7 @@ public class Permission extends BaseEntity {
     private String description;
 
     // Các Role có permission này (không quản lý quan hệ từ phía này)
+    @JsonIgnoreProperties("permissions") // Ngăn không cho quét ngược lại thuộc tính permissions của Role
     @ManyToMany(mappedBy = "permissions")
     @Builder.Default
     private Set<Role> roles = new HashSet<>();

@@ -1,105 +1,101 @@
 <template>
-  <div class="appointment-card shadow-lg border-0 rounded-4 overflow-hidden bg-white mx-auto transition-all">
-    <div v-if="showList" class="position-fixed top-0 start-0 w-100 h-100" @click="showList = false" style="z-index: 1040;"></div>
+  <div class="corporate-wrapper py-3">
+    <div v-if="showList" class="position-fixed top-0 start-0 w-100 h-100 z-10" @click="showList = false"></div>
 
-    <div class="card-header py-3 border-0 transition-all text-center" :class="headerStyles.bg" style="z-index: 1041; position: relative;">
-      <h6 class="mb-0 d-flex align-items-center justify-content-center fw-bold text-uppercase letter-spacing-1">
-        <i class="bi me-2 fs-5" :class="headerStyles.icon"></i>
-        {{ headerStyles.title }}
-      </h6>
-    </div>
+    <div class="corp-card mx-auto position-relative z-20">
 
-    <div class="card-body p-4" style="z-index: 1041; position: relative;">
-      <div class="mb-4">
-        <label class="form-label small fw-bold text-muted text-uppercase mb-2">Tính chất</label>
-        <div class="priority-group d-flex p-1 bg-light rounded-3">
-          <button v-for="opt in priorityOptions" :key="opt.value"
-                  @click="form.priority = opt.value"
-                  class="btn btn-sm flex-grow-1 border-0 rounded-2 transition-all py-2"
-                  :class="form.priority === opt.value ? opt.activeClass : 'text-muted'">
-            {{ opt.label }}
-          </button>
-        </div>
+      <div class="corp-header d-flex align-items-center border-bottom px-4 py-3" :class="headerStyles.headerBorder">
+        <i class="bi fs-5 me-2" :class="[headerStyles.icon, headerStyles.iconColor]"></i>
+        <h6 class="mb-0 fw-bold text-dark text-uppercase">{{ headerStyles.title }}</h6>
       </div>
 
-      <div class="mb-4">
-        <label class="form-label small fw-bold text-muted text-uppercase mb-2">Phạm vi gửi</label>
-        <div class="d-flex gap-2">
-          <select v-model="selectedRole" class="form-select border-0 bg-light shadow-none" :disabled="isAllMode">
-            <option value="ALL">-- Toàn bộ nhân sự --</option>
-            <option v-for="role in roles" :key="role.id" :value="role.name">{{ role.name }}</option>
-          </select>
-          <button @click="toggleAllMode" class="btn btn-sm px-3 shadow-sm transition-all"
-                  :class="isAllMode ? 'btn-warning w-50' : 'btn-outline-primary'">
-            <i class="bi" :class="isAllMode ? 'bi-person-dash' : 'bi-people-fill'"></i>
-            {{ isAllMode ? 'Hủy chọn' : 'Gửi nhóm' }}
-          </button>
-        </div>
-      </div>
-
-      <div class="mb-4 animate__animated animate__fadeIn" v-if="!isAllMode">
-        <label class="form-label small fw-bold text-muted text-uppercase mb-2">Người nhận cụ thể</label>
-        <div class="position-relative" style="z-index: 1050;">
-          <div class="multi-select-container border rounded-3 p-2 bg-light shadow-sm min-vh-10">
-            <div class="d-flex flex-wrap gap-2">
-              <span v-for="id in selectedIds" :key="id"
-                    class="employee-tag badge rounded-pill bg-white text-dark border d-flex align-items-center gap-2 py-2 px-3 shadow-sm">
-                <span class="fw-medium">{{ getEmployeeName(id) }}</span>
-                <i class="bi bi-x-circle-fill text-danger cursor-pointer" @click="removeRecipient(id)"></i>
-              </span>
-              <input v-model="searchQuery" type="text" class="flex-grow-1 border-0 bg-transparent shadow-none p-1"
-                     placeholder="Tìm tên nhân viên..." @focus="showList = true" style="outline: none; min-width: 150px;">
-            </div>
+      <div class="corp-body p-4">
+        <div class="mb-4">
+          <label class="form-label corp-label mb-2">Loại thông báo <span class="text-danger">*</span></label>
+          <div class="d-flex bg-light p-1 rounded-1 border">
+            <button v-for="opt in priorityOptions" :key="opt.value"
+                    @click="form.priority = opt.value"
+                    class="btn btn-sm flex-grow-1 fw-medium transition-all rounded-1 border-0"
+                    :class="form.priority === opt.value ? opt.activeClass : 'text-muted hover-bg-gray'">
+              {{ opt.label }}
+            </button>
           </div>
+        </div>
 
-          <div v-if="showList && filteredEmployees.length > 0"
-               class="search-dropdown shadow-lg border-0 rounded-3 position-absolute start-0 end-0 bg-white mt-2 overflow-hidden animate__animated animate__fadeInUp">
-            <div class="dropdown-header p-2 bg-light small text-muted border-bottom">
-              Tìm thấy {{ filteredEmployees.length }} nhân viên
+        <div class="mb-4">
+          <label class="form-label corp-label mb-2">Phòng ban / Nhóm nhận <span class="text-danger">*</span></label>
+          <div class="d-flex gap-2">
+            <select v-model="selectedRole" class="form-select corp-input shadow-none" :disabled="isAllMode">
+              <option value="ALL">-- Toàn bộ nhân sự công ty --</option>
+              <option v-for="role in roles" :key="role.id" :value="role.name">{{ role.name }}</option>
+            </select>
+            <button @click="toggleAllMode" class="btn px-3 transition-all fw-medium corp-btn-toggle"
+                    :class="isAllMode ? 'btn-outline-danger' : 'btn-outline-primary'">
+              <i class="bi me-1" :class="isAllMode ? 'bi-x-circle' : 'bi-people'"></i>
+              {{ isAllMode ? 'Hủy gửi nhóm' : 'Gửi theo nhóm' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="mb-4 animate__animated animate__fadeIn" v-if="!isAllMode">
+          <label class="form-label corp-label mb-2">Nhân viên cụ thể (Tùy chọn)</label>
+          <div class="position-relative">
+            <div class="corp-input p-1 d-flex flex-wrap gap-1 align-items-center cursor-text" @click="$refs.searchInput.focus()">
+
+              <span v-for="id in selectedIds" :key="id"
+                    class="corp-chip d-flex align-items-center gap-2 py-1 px-2 rounded-1">
+                <span class="small fw-medium text-dark">{{ getEmployeeName(id) }}</span>
+                <i class="bi bi-x cursor-pointer text-secondary hover-dark fs-6 line-height-1" @click.stop="removeRecipient(id)"></i>
+              </span>
+
+              <input ref="searchInput" v-model="searchQuery" type="text" class="border-0 bg-transparent shadow-none p-1 flex-grow-1 outline-none text-dark small"
+                     placeholder="Tìm kiếm nhân viên..." @focus="showList = true">
             </div>
-            <div class="scroll-area" style="max-height: 250px; overflow-y: auto;">
-              <div v-for="e in filteredEmployees" :key="e[0]"
-                   class="search-item p-3 d-flex justify-content-between align-items-center transition-all border-bottom"
-                   @click="addRecipient(e[0])">
-                <div class="d-flex align-items-center gap-3">
-                  <div class="avatar-sm bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold">
-                    {{ e[1].charAt(0) }}
-                  </div>
-                  <div>
-                    <div class="fw-bold text-dark small">{{ e[1] }}</div>
-                    <div class="text-muted extra-small">{{ e[2] }}</div>
+
+            <div v-if="showList && filteredEmployees.length > 0"
+                 class="corp-dropdown position-absolute start-0 end-0 mt-1 overflow-hidden bg-white">
+              <div class="p-2 dropdown-header text-muted small fw-medium border-bottom bg-light">
+                Kết quả tìm kiếm ({{ filteredEmployees.length }})
+              </div>
+              <div class="scroll-area">
+                <div v-for="e in filteredEmployees" :key="e[0]"
+                     class="search-item px-3 py-2 d-flex justify-content-between align-items-center border-bottom"
+                     @click="addRecipient(e[0])">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="corp-avatar bg-light text-primary fw-bold border">
+                      {{ e[1].charAt(0) }}
+                    </div>
+                    <div>
+                      <div class="fw-medium text-dark small">{{ e[1] }}</div>
+                      <div class="text-muted" style="font-size: 11px;">{{ e[2] }}</div>
+                    </div>
                   </div>
                 </div>
-                <i class="bi bi-plus-lg text-primary"></i>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="mb-4">
-        <div class="row g-3">
+        <div class="row g-3 mb-4">
           <div class="col-12">
-            <div class="form-floating shadow-sm">
-              <input v-model="form.location" class="form-control border-0 bg-light" id="loc" :placeholder="headerStyles.locPlaceholder" />
-              <label for="loc" class="text-muted small">Địa điểm / Hình thức</label>
-            </div>
+            <label class="form-label corp-label mb-2">Địa điểm / Hình thức</label>
+            <input v-model="form.location" class="form-control corp-input shadow-none small" :placeholder="headerStyles.locPlaceholder" />
           </div>
           <div class="col-12">
-            <div class="form-floating shadow-sm">
-              <textarea v-model="form.reason" class="form-control border-0 bg-light" id="reason" style="height: 100px" :placeholder="headerStyles.msgPlaceholder"></textarea>
-              <label for="reason" class="text-muted small">Nội dung trao đổi</label>
-            </div>
+            <label class="form-label corp-label mb-2">Nội dung chi tiết <span class="text-danger">*</span></label>
+            <textarea v-model="form.reason" class="form-control corp-input shadow-none small" rows="3" :placeholder="headerStyles.msgPlaceholder"></textarea>
           </div>
         </div>
-      </div>
 
-      <button @click="handleSummon" class="btn btn-lg w-100 fw-bold shadow transition-all py-3 rounded-3"
-              :class="headerStyles.btnClass" :disabled="loading">
-        <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
-        <i v-else class="bi bi-send-check-fill me-2 fs-5"></i>
-        {{ loading ? 'ĐANG GỬI...' : headerStyles.btnLabel }}
-      </button>
+        <div class="border-top pt-3 d-flex justify-content-end">
+          <button @click="handleSummon" class="btn fw-medium px-4 py-2 transition-all corp-btn-submit d-flex align-items-center gap-2"
+                  :class="headerStyles.btnClass" :disabled="loading">
+            <span v-if="loading" class="spinner-border spinner-border-sm"></span>
+            <i v-else class="bi bi-send"></i>
+            {{ loading ? 'Đang xử lý...' : headerStyles.btnLabel }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -117,35 +113,31 @@ const selectedRole = ref('ALL');
 const searchQuery = ref('');
 const loading = ref(false);
 const showList = ref(false);
-const selectedIds = ref([]); // Mảng chứa các ID đã chọn
+const selectedIds = ref([]);
 
 const form = ref({ location: '', reason: '', priority: 'NORMAL' });
 
+// Style buttons theo chuẩn UI Doanh nghiệp (Xanh Navy, Đỏ Cảnh báo)
 const priorityOptions = [
-  { value: 'NORMAL', label: 'Lời mời', activeClass: 'btn-info text-white' },
-  { value: 'MEETING', label: 'Hẹn gặp', activeClass: 'btn-primary text-white' },
-  { value: 'URGENT', label: 'Gấp', activeClass: 'btn-danger text-white' }
+  { value: 'NORMAL', label: 'Thông báo thường', activeClass: 'bg-white text-dark shadow-sm border' },
+  { value: 'MEETING', label: 'Mời họp / Hẹn gặp', activeClass: 'bg-primary text-white shadow-sm' },
+  { value: 'URGENT', label: 'Lệnh khẩn cấp', activeClass: 'bg-danger text-white shadow-sm' }
 ];
 
 const headerStyles = computed(() => {
   switch (form.value.priority) {
     case 'URGENT':
-      return { bg: 'bg-danger', icon: 'bi-megaphone-fill', title: 'LỆNH TRIỆU TẬP KHẨN CẤP', btnClass: 'btn-danger', btnLabel: 'PHÁT LỆNH NGAY', locPlaceholder: 'Vị trí khẩn cấp...', msgPlaceholder: 'Lý do triệu tập...' };
+      return { headerBorder: 'border-danger-left', iconColor: 'text-danger', icon: 'bi-exclamation-triangle', title: 'Lệnh triệu tập khẩn', btnClass: 'btn-danger', btnLabel: 'Phát lệnh ngay', locPlaceholder: 'VD: Phòng họp A, Sảnh...', msgPlaceholder: 'Nêu rõ lý do triệu tập khẩn cấp...' };
     case 'MEETING':
-      return { bg: 'bg-primary', icon: 'bi-calendar-check-fill', title: 'LỊCH HẸN GẶP MẶT', btnClass: 'btn-primary', btnLabel: 'GỬI LỊCH HẸN', locPlaceholder: 'Phòng họp, Meet...', msgPlaceholder: 'Nội dung trao đổi...' };
+      return { headerBorder: 'border-primary-left', iconColor: 'text-primary', icon: 'bi-calendar-event', title: 'Lịch hẹn gặp mặt', btnClass: 'btn-primary', btnLabel: 'Gửi lời mời', locPlaceholder: 'VD: Link Google Meet, Phòng HR...', msgPlaceholder: 'Nêu nội dung buổi họp...' };
     default:
-      return { bg: 'bg-info', icon: 'bi-chat-dots-fill', title: 'GỬI LỜI MỜI / THÔNG BÁO', btnClass: 'btn-info text-white', btnLabel: 'GỬI LỜI MỜI', locPlaceholder: 'Địa điểm bất kỳ...', msgPlaceholder: 'Nội dung thông báo...' };
+      return { headerBorder: 'border-secondary-left', iconColor: 'text-secondary', icon: 'bi-envelope', title: 'Tạo thông báo mới', btnClass: 'btn-dark', btnLabel: 'Gửi thông báo', locPlaceholder: 'VD: Bất kỳ...', msgPlaceholder: 'Nội dung thông báo chung...' };
   }
 });
 
 const filteredEmployees = computed(() => {
-  // Lọc bỏ những người đã nằm trong danh sách "Thẻ" (selectedIds)
   let list = employees.value.filter(e => !selectedIds.value.includes(e[0]));
-
-  // Nếu không tìm kiếm, trả về toàn bộ list (không giới hạn số lượng)
   if (!searchQuery.value) return list;
-
-  // Lọc theo tên khi người dùng gõ
   return list.filter(e => e[1].toLowerCase().includes(searchQuery.value.toLowerCase()));
 });
 
@@ -185,14 +177,13 @@ const toggleAllMode = () => {
 };
 
 const handleSummon = async () => {
-  if (!form.value.location || !form.value.reason) return alert('Vui lòng điền đủ thông tin!');
+  if (!form.value.location || !form.value.reason) return alert('Vui lòng điền đủ thông tin bắt buộc (*)!');
   if (!isAllMode.value && selectedIds.value.length === 0) return alert('Hãy chọn ít nhất một người nhận!');
 
   if (!confirm(`Xác nhận gửi ${headerStyles.value.title.toLowerCase()}?`)) return;
 
   loading.value = true;
   try {
-    // Nếu gửi nhiều người, ta sẽ gửi một mảng ID xuống Backend
     const endpoint = isAllMode.value ? '/api/notifications/summon-bulk' : '/api/notifications/summon-multi';
     await axios.post(endpoint, {
       recipientIds: isAllMode.value ? null : selectedIds.value,
@@ -202,9 +193,9 @@ const handleSummon = async () => {
       priority: form.value.priority
     }, { headers: { Authorization: `Bearer ${auth.token}` } });
 
-    alert('Thành công!');
+    alert('Gửi thông báo thành công!');
     form.value.location = ''; form.value.reason = ''; selectedIds.value = [];
-  } catch (err) { alert('Lỗi: ' + (err.response?.data || err.message)); }
+  } catch (err) { alert('Lỗi hệ thống: ' + (err.response?.data || err.message)); }
   finally { loading.value = false; }
 };
 
@@ -212,42 +203,85 @@ onMounted(() => { fetchRoles(); fetchEmployees(); });
 </script>
 
 <style scoped>
-.appointment-card { max-width: 520px; border-radius: 20px !important; }
-.priority-group { background: #f1f3f5; }
-.transition-all { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
-.letter-spacing-1 { letter-spacing: 0.5px; }
-
-/* Tag nhân viên */
-.employee-tag { font-size: 13px; transition: all 0.2s; border: 1px solid #e9ecef !important; }
-.employee-tag:hover { transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important; }
-.text-danger-hover:hover { color: #dc3545 !important; }
-
-/* Dropdown tìm kiếm mỏng nhẹ */
-.search-dropdown { max-height: 280px; overflow-y: auto; border: 1px solid #f1f3f5 !important; }
-.search-item { cursor: pointer; border-bottom: 1px solid #f8f9fa; }
-.search-item:hover { background-color: #f0f7ff; }
-
-/* Avatar nhỏ */
-.avatar-sm { width: 32px; height: 32px; font-size: 12px; }
-.extra-small { font-size: 10px; }
-.fs-7 { font-size: 13.5px; }
-
-/* Floating label chỉnh sửa màu */
-.form-floating > .form-control:focus ~ label { color: #0d6efd; }
-.form-control:focus { background-color: #fff !important; box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1) !important; }
-.search-dropdown {
-  max-height: 300px; /* Giới hạn chiều cao dropdown để không che hết form */
-  overflow-y: auto;  /* Tự động hiện thanh cuộn khi danh sách dài */
-  z-index: 1050;     /* Đảm bảo dropdown luôn nổi lên trên cùng */
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1); /* Thêm đổ bóng cho sang */
+/* GIAO DIỆN CHUẨN DOANH NGHIỆP (ENTERPRISE) */
+.corp-card {
+  max-width: 560px;
+  background-color: #ffffff;
+  border: 1px solid #dfe1e6; /* Màu viền xám nhạt chuẩn Jira/Atlassian */
+  border-radius: 4px; /* Bo góc cực nhẹ, cứng cáp */
+  box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.05), 0 0 1px rgba(9, 30, 66, 0.1); /* Bóng mờ chuẩn văn phòng */
 }
 
-/* Làm thanh cuộn nhìn xịn hơn (Tùy chọn) */
-.search-dropdown::-webkit-scrollbar {
-  width: 6px;
+.z-10 { z-index: 1040; }
+.z-20 { z-index: 1041; }
+.transition-all { transition: all 0.2s ease; }
+.outline-none:focus { outline: none; }
+.cursor-text { cursor: text; }
+.cursor-pointer { cursor: pointer; }
+.line-height-1 { line-height: 1; }
+
+/* HEADER BORDER TRÁI CHUẨN STATUS */
+.border-danger-left { border-left: 4px solid #dc3545 !important; }
+.border-primary-left { border-left: 4px solid #0d6efd !important; }
+.border-secondary-left { border-left: 4px solid #6c757d !important; }
+
+/* LABEL VÀ TEXT */
+.corp-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #42526e; /* Xám xanh Atlassian */
 }
-.search-dropdown::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 10px;
+
+/* INPUT FORM */
+.corp-input {
+  background-color: #fafbfc;
+  border: 2px solid #dfe1e6;
+  border-radius: 4px;
+  color: #172b4d;
+  transition: background-color 0.2s, border-color 0.2s;
+  font-size: 14px;
+}
+.corp-input:focus-within, .corp-input:focus {
+  background-color: #ffffff;
+  border-color: #4c9aff; /* Xanh focus rõ ràng */
+}
+
+/* TOGGLE BUTTONS */
+.hover-bg-gray:hover { background-color: #ebecf0; color: #172b4d !important; }
+.corp-btn-toggle { border-radius: 4px; font-size: 13px; }
+
+/* CHIPS (THẺ NHÂN VIÊN) */
+.corp-chip {
+  background-color: #ebecf0; /* Nền xám nhạt chuẩn chip */
+  border: 1px solid transparent;
+}
+.corp-chip:hover { background-color: #dfe1e6; }
+.hover-dark:hover { color: #172b4d !important; }
+
+/* DROPDOWN TÌM KIẾM */
+.corp-dropdown {
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  box-shadow: 0 8px 12px rgba(9, 30, 66, 0.15), 0 0 1px rgba(9, 30, 66, 0.31);
+  z-index: 1060;
+}
+.scroll-area { max-height: 240px; overflow-y: auto; }
+.scroll-area::-webkit-scrollbar { width: 8px; }
+.scroll-area::-webkit-scrollbar-thumb { background: #c1c7d0; border-radius: 4px; }
+.search-item { cursor: pointer; transition: background 0.1s; }
+.search-item:hover { background-color: #f4f5f7; border-left: 2px solid #0d6efd; padding-left: 14px !important; }
+
+/* AVATAR DOANH NGHIỆP */
+.corp-avatar {
+  width: 28px; height: 28px;
+  border-radius: 4px; /* Avatar vuông bo nhẹ chứ không tròn xoe */
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+}
+
+/* NÚT SUBMIT */
+.corp-btn-submit {
+  border-radius: 4px;
+  font-size: 14px;
 }
 </style>
