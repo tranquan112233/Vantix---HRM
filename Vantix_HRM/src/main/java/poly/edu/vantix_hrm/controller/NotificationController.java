@@ -91,13 +91,38 @@ public class NotificationController {
     }
 
     @PostMapping("/summon-bulk")
-    public ResponseEntity<String> sendBulkSummon(
-            @RequestParam String roleName,
-            @RequestParam String location,
-            @RequestParam String reason) {
+    public ResponseEntity<String> sendBulkSummon(@RequestBody MultiSummonRequest request) { // Dùng @RequestBody
+        try {
+            String title;
+            String type;
 
-        notificationService.sendBulkSummon(roleName, location, reason);
-        return ResponseEntity.ok("Đã phát lệnh hàng loạt thành công!");
+            // Phân loại dựa trên priority gửi lên từ giao diện
+            switch (request.getPriority()) {
+                case "URGENT":
+                    title = "⚡ LỆNH TRIỆU TẬP " + request.getRoleName();
+                    type = "SUMMON"; // Hiện icon tam giác đỏ
+                    break;
+                case "MEETING":
+                    title = "📅 LỊCH HẸN GẶP " + request.getRoleName();
+                    type = "TASK"; // Hiện icon giấy note xanh dương
+                    break;
+                default:
+                    title = "📩 THÔNG BÁO MỜI " + request.getRoleName();
+                    type = "INFO"; // Hiện icon chữ i xanh lá
+            }
+            notificationService.sendBulkSummon(
+                    request.getRoleName(),
+                    request.getLocation(),
+                    request.getReason(),
+                    title, // Truyền thêm tiêu đề đã phân loại
+                    type   // Truyền thêm loại thông báo đã phân loại
+            );
+            return ResponseEntity.ok("Đã phát lệnh hàng loạt thành công!");
+        } catch (Exception e) {
+            // Log lỗi ra console để bạn dễ theo dõi nếu vẫn còn lỗi
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Lỗi Backend: " + e.getMessage());
+        }
     }
 
     @GetMapping("/recipient-list")
@@ -110,6 +135,7 @@ public class NotificationController {
     public ResponseEntity<List<Role>> getAllRoles() {
         return ResponseEntity.ok(roleRepository.findByDeletedFalse());
     }
+
 
     // 1. Xóa một thông báo cụ thể (Sửa lỗi DELETE 500)
     @DeleteMapping("/{id}")

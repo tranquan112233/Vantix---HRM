@@ -103,8 +103,10 @@ public class NotificationService {
         notificationRepository.saveAll(normalNotes);
     }
 
+    // Trong NotificationService.java
+// Thêm String title, String type vào cuối danh sách tham số
     @Transactional
-    public void sendBulkSummon(String roleName, String location, String reason) {
+    public void sendBulkSummon(String roleName, String location, String reason, String title, String type) {
         List<User> recipients;
 
         if ("ALL".equals(roleName)) {
@@ -113,12 +115,11 @@ public class NotificationService {
             recipients = userRepository.findByRoleName(roleName);
         }
 
-        String title = "⚡ LỆNH TRIỆU TẬP " + (roleName.equals("ALL") ? "TỔNG" : roleName);
-        String message = "Vui lòng đến " + location + ". Nội dung: " + reason;
+        String fullMessage = reason + " tại " + location;
 
         for (User user : recipients) {
-            // Tận dụng hàm sendNotification lẻ đã có của bạn
-            this.sendNotification(user.getId(), title, message, "SUMMON", "/my-notifications");
+            // Dùng title và type động được truyền từ Controller xuống
+            this.sendNotification(user.getId(), title, fullMessage, type, "/my-notifications");
         }
     }
 

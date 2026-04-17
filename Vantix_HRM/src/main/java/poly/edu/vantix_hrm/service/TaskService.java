@@ -18,6 +18,7 @@ public class TaskService {
     private final TaskRepository taskRepo;
     private final TaskAssignmentRepository assignmentRepo;
     private final EmployeeRepository employeeRepo;
+    private final NotificationService notificationService;
 
     /* =====================================================
        1. LẤY TẤT CẢ TASK (ADMIN)
@@ -108,7 +109,11 @@ public class TaskService {
         assignment.setStatus("IN_PROGRESS");
         assignment.setPercentComplete(0);
 
+        // Trong hàm assignTask
         assignmentRepo.save(assignment);
+// CHÈN THÊM: Báo cho nhân viên có việc mới
+        notificationService.sendNotification(employee.getUser().getId(), "📋 Công việc mới",
+                "Bạn được giao nhiệm vụ: " + task.getTaskTitle(), "TASK", "/tasks");
     }
 
     /* =====================================================

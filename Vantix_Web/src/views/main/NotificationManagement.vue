@@ -177,26 +177,47 @@ const toggleAllMode = () => {
 };
 
 const handleSummon = async () => {
-  if (!form.value.location || !form.value.reason) return alert('Vui lòng điền đủ thông tin bắt buộc (*)!');
-  if (!isAllMode.value && selectedIds.value.length === 0) return alert('Hãy chọn ít nhất một người nhận!');
+  // Kiểm tra dữ liệu rỗng
+  if (!form.value.location || !form.value.reason) {
+    return alert('Vui lòng điền đủ thông tin bắt buộc (*)!');
+  }
+  if (!isAllMode.value && selectedIds.value.length === 0) {
+    return alert('Hãy chọn ít nhất một người nhận!');
+  }
 
-  if (!confirm(`Xác nhận gửi ${headerStyles.value.title.toLowerCase()}?`)) return;
+  if (!confirm(`Xác nhận gửi ${headerStyles.value.title}?`)) return;
 
   loading.value = true;
   try {
-    const endpoint = isAllMode.value ? '/api/notifications/summon-bulk' : '/api/notifications/summon-multi';
-    await axios.post(endpoint, {
-      recipientIds: isAllMode.value ? null : selectedIds.value,
+    const endpoint = isAllMode.value
+        ? '/api/notifications/summon-bulk'
+        : '/api/notifications/summon-multi';
+
+    // Đóng gói dữ liệu chuẩn DTO
+    const payload = {
       roleName: isAllMode.value ? selectedRole.value : null,
+      recipientIds: isAllMode.value ? null : selectedIds.value,
       location: form.value.location,
       reason: form.value.reason,
       priority: form.value.priority
-    }, { headers: { Authorization: `Bearer ${auth.token}` } });
+    };
+
+    // Gửi lên Backend
+    await axios.post(endpoint, payload, {
+      headers: { Authorization: `Bearer ${auth.token}` }
+    });
 
     alert('Gửi thông báo thành công!');
-    form.value.location = ''; form.value.reason = ''; selectedIds.value = [];
-  } catch (err) { alert('Lỗi hệ thống: ' + (err.response?.data || err.message)); }
-  finally { loading.value = false; }
+
+    // Reset form sau khi gửi
+    form.value.location = '';
+    form.value.reason = '';
+    selectedIds.value = [];
+  } catch (err) {
+    alert('Lỗi hệ thống: ' + (err.response?.data || err.message));
+  } finally {
+    loading.value = false;
+  }
 };
 
 onMounted(() => { fetchRoles(); fetchEmployees(); });
@@ -207,13 +228,16 @@ onMounted(() => { fetchRoles(); fetchEmployees(); });
 .corp-card {
   max-width: 560px;
   background-color: #ffffff;
-  border: 1px solid #dfe1e6; /* Màu viền xám nhạt chuẩn Jira/Atlassian */
-  border-radius: 4px; /* Bo góc cực nhẹ, cứng cáp */
-  box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.05), 0 0 1px rgba(9, 30, 66, 0.1); /* Bóng mờ chuẩn văn phòng */
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  /* Đảm bảo bóng mờ không quá đậm gây rối mắt khi chồng lớp */
+  box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.05);
+  position: relative;
+  z-index: 1; /* Ưu tiên thấp nhất so với Header */
 }
 
-.z-10 { z-index: 1040; }
-.z-20 { z-index: 1041; }
+.z-10 { z-index: 100; }
+.z-20 { z-index: 101; }
 .transition-all { transition: all 0.2s ease; }
 .outline-none:focus { outline: none; }
 .cursor-text { cursor: text; }

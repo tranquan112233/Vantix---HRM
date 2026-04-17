@@ -26,6 +26,7 @@ public class LeaveRequestService {
     private final LeaveRequestRepository leaveRequestRepository;
     private final LeaveTypeRepository leaveTypeRepository;
     private final EmployeeRepository employeeRepository;
+    private final NotificationService notificationService;
 
     // 1. Nộp đơn xin nghỉ mới
     public LeaveResponseDTO createLeaveRequest(LeaveRequestDTO dto) {
@@ -64,6 +65,9 @@ public class LeaveRequestService {
         leaveRequest.setStatus(LeaveStatus.PENDING);
 
         LeaveRequest savedRequest = leaveRequestRepository.save(leaveRequest);
+// CHÈN THÊM: Báo cho Admin (Giả sử ID Admin/Manager là 1 hoặc lấy từ phòng ban)
+        notificationService.sendNotification(1L, "📩 Đơn nghỉ phép mới",
+                employee.getFullName() + " vừa gửi đơn xin nghỉ.", "LEAVE_MANAGE", "/leaves-manager");
         return mapToResponseDTO(savedRequest);
     }
 
@@ -111,7 +115,12 @@ public class LeaveRequestService {
             request.setRejectionReason(rejectionReason);
         }
 
+        // 2. Trong hàm updateLeaveStatus (Admin duyệt đơn)
         LeaveRequest updatedRequest = leaveRequestRepository.save(request);
+        // CHÈN THÊM: Báo cho nhân viên kết quả
+        String title = (status == LeaveStatus.APPROVED) ? "✅ Đơn nghỉ phép đã duyệt" : "❌ Đơn nghỉ phép bị từ chối";
+        notificationService.sendNotification(request.getEmployee().getUser().getId(), title,
+                "Đơn nghỉ ngày " + request.getStartDate() + " của bạn đã được xử lý.", "LEAVE", "/my-notifications");
         return mapToResponseDTO(updatedRequest);
     }
 
@@ -136,4 +145,5 @@ public class LeaveRequestService {
         }
         return dto;
     }
+
 }

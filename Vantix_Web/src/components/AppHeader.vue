@@ -84,7 +84,7 @@
             <i class="bi bi-person-circle text-muted"></i> Hồ sơ
           </RouterLink>
           <RouterLink v-if="isAdmin" to="/notifications" class="drop-item">
-            <i class="bi bi-gear text-muted"></i> Quản lý hệ thống
+            <i class="bi bi-gear text-muted"></i> Quản lý thông báo
           </RouterLink>
           <hr class="dropdown-divider my-1">
           <button class="drop-item text-danger w-100" @click="logout">
@@ -414,4 +414,6 @@ const logout = () => {
 .drop-item:hover {
   background: #f8f9fa;
 }
+
+
 </style>

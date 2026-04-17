@@ -5,8 +5,9 @@ import java.util.List;
 
 @Data
 public class MultiSummonRequest {
-    private List<Long> recipientIds; // Mảng ID nhân viên đã chọn
+    private String roleName;
+    private List<Long> recipientIds; // Phải trùng khớp 100% với tên biến trong Vue gửi lên
     private String location;
     private String reason;
-    private String priority; // NORMAL, MEETING, URGENT
+    private String priority;
 }
