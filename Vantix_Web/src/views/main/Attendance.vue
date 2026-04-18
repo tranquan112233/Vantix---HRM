@@ -247,21 +247,51 @@ const handleConfirm = async () => {
   }
 };
 
-// --- XỬ LÝ LỖI ---
+// --- XỬ LÝ LỖI ĐÃ ĐƯỢC CẬP NHẬT ---
 const handleError = (error) => {
+  console.error("Chi tiết lỗi nhận được:", error);
+
   let errorText = "❌ Không thể kết nối đến máy chủ.";
   let errorType = 'error';
 
-  if (error.response && error.response.data) {
-    const data = error.response.data;
-    errorText = typeof data === 'object' && data.message ? data.message : String(data);
-    const msgLower = String(errorText).toLowerCase();
-    if (msgLower.includes("xác nhận") || msgLower.includes("approved") || msgLower.includes("đã có trạng thái")) {
-      errorType = 'warning';
-    }
-  } else if (error.message) {
-    errorText = error.message;
+  // 1. Trường hợp Axios Interceptor đã bóc tách object và ném thẳng chuỗi lỗi
+  if (typeof error === 'string') {
+    errorText = error;
   }
+  // 2. Trường hợp giữ nguyên cấu trúc Error Object chuẩn của Axios
+  else if (error.response && error.response.data) {
+    const data = error.response.data;
+
+    if (typeof data === 'string') {
+      // BE trả về plain text
+      errorText = data;
+    } else if (typeof data === 'object') {
+      // BE trả về JSON Error
+      errorText = data.message || data.error || "Có lỗi xảy ra từ phía máy chủ.";
+    }
+  }
+  // 3. Trường hợp rớt mạng thật hoặc Spring Security chặn quyền
+  else if (error.message) {
+    if (error.message === 'Network Error') {
+      errorText = "❌ Lỗi mạng hoặc máy chủ không phản hồi (Network Error).";
+    } else {
+      errorText = error.message;
+    }
+  }
+
+  // Chuyển màu Toast sang Warning cho các lỗi logic nghiệp vụ
+  const msgLower = String(errorText).toLowerCase();
+  if (
+      msgLower.includes("xác nhận") ||
+      msgLower.includes("approved") ||
+      msgLower.includes("đã có trạng thái") ||
+      msgLower.includes("chưa đến giờ") ||
+      msgLower.includes("kết thúc ca") ||
+      msgLower.includes("đã chấm công")
+  ) {
+    errorType = 'warning';
+  }
+
   showMessage(errorText, errorType);
 };
 
