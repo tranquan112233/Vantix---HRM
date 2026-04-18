@@ -1,11 +1,11 @@
 <template>
   <div class="contract-management mgmt-page">
     <div class="page-header">
-      <div class="header-left">
-        <div class="title-icon">
+      <div class="page-header-left">
+        <div class="page-title-icon">
           <i class="bi bi-file-earmark-text-fill"></i>
         </div>
-        <div>
+        <div class="page-header-text">
           <h1 class="page-title">Hợp Đồng Nhân Sự</h1>
           <p class="page-description">Quản lý và theo dõi trạng thái hợp đồng lao động</p>
         </div>
@@ -48,7 +48,6 @@
 
     <div class="filter-card">
       <div class="filter-content">
-        <!-- 🌟 Khung tìm kiếm được bóp ngắn lại -->
         <div class="search-wrapper">
           <i class="bi bi-search search-icon"></i>
           <input
@@ -80,7 +79,6 @@
           <i class="bi bi-chevron-down select-icon"></i>
         </div>
 
-        <!-- 🌟 Khung lương được kéo giãn ra và hỗ trợ tự động điền dấu chấm -->
         <div class="salary-range-wrapper">
           <i class="bi bi-cash-coin search-icon"></i>
           <input v-model="minSalaryFormatted" type="text" placeholder="Lương từ" class="salary-input"/>
@@ -165,13 +163,15 @@
             </td>
             <td>
               <div class="action-buttons justify-content-center">
-                <button v-if="canStatusUpdate" class="action-btn edit-btn" @click="toggleContractStatus(c.contractId)" title="Đổi trạng thái">
+                <button v-if="canStatusUpdate" class="action-btn edit-btn" @click="toggleContractStatus(c.contractId)"
+                        title="Đổi trạng thái">
                   <i class="bi bi-arrow-repeat"></i>
                 </button>
                 <button class="action-btn view-btn" @click="viewAnnex(c.contractId)" title="Xem Phụ lục">
                   <i class="bi bi-eye"></i>
                 </button>
-                <button v-if="canDelete" class="action-btn delete-btn" @click="confirmDeleteContract(c.contractId)" title="Xóa">
+                <button v-if="canDelete" class="action-btn delete-btn" @click="confirmDeleteContract(c.contractId)"
+                        title="Xóa">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -208,7 +208,7 @@
                 </div>
                 <div>
                   <h3>Tạo Hợp Đồng Mới</h3>
-                  <p>Nhập thôngợp đồng cho nhân viên</p>
+                  <p>Nhập thông tin hợp đồng cho nhân viên</p>
                 </div>
               </div>
               <button class="modal-close" @click="showModal = false">
@@ -285,7 +285,6 @@
                 </div>
 
                 <div class="form-row">
-                  <!-- 🌟 Lương trong Form cũng hỗ trợ auto format dấu chấm -->
                   <div class="form-group">
                     <label>Lương cơ bản (VNĐ) <span class="required">*</span></label>
                     <div class="input-wrapper">
@@ -371,14 +370,14 @@ import {useRouter} from 'vue-router';
 import {useToast} from '@/utils/toast';
 import contractService from "@/services/contract.service";
 import positionsService from "@/services/position.service.js";
-import { useAuthStore } from '@/stores/auth.store.js';
+import {useAuthStore} from '@/stores/auth.store.js';
 
 const router = useRouter();
 const toast = useToast();
 const auth = useAuthStore();
 
-const canCreate       = computed(() => auth.can('CONTRACT_CREATE'))
-const canDelete       = computed(() => auth.can('CONTRACT_DELETE'))
+const canCreate = computed(() => auth.can('CONTRACT_CREATE'))
+const canDelete = computed(() => auth.can('CONTRACT_DELETE'))
 const canStatusUpdate = computed(() => auth.can('CONTRACT_STATUS_UPDATE'))
 
 // --- STATE ---
@@ -438,7 +437,6 @@ const baseSalaryFormatted = computed({
     form.value.baseSalary = rawValue ? Number(rawValue) : null;
   }
 });
-
 
 const positionSearch = ref('');
 const showPositionDropdown = ref(false);
@@ -757,13 +755,16 @@ onUnmounted(() => {
   gap: 16px;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+/* 🌟 ĐÃ SỬA: Ép buộc nằm ngang và canh giữa icon vs text */
+.page-header-left {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 16px;
 }
 
-.title-icon {
+/* 🌟 ĐÃ SỬA: Đổi tên class để tránh đụng độ với global CSS làm vỡ bố cục */
+.page-title-icon {
   width: 48px;
   height: 48px;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
@@ -775,6 +776,12 @@ onUnmounted(() => {
   font-size: 20px;
   box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
   flex-shrink: 0;
+}
+
+.page-header-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .page-title {
@@ -892,12 +899,12 @@ onUnmounted(() => {
   align-items: center;
 }
 
-/* 🌟 ĐÃ SỬA: Khung tìm kiếm giãn dài ra bù vào chỗ trống */
+/* 🌟 Khung tìm kiếm giãn dài ra bù vào chỗ trống */
 .search-wrapper {
   position: relative;
-  flex: 1 1 auto; /* Tự động giãn ra lấy hết khoảng trống dư thừa */
-  min-width: 220px; /* Không được nhỏ hơn mức này khi thu nhỏ trình duyệt */
-  max-width: 550px; /* Giới hạn độ dài tối đa để không bị quá dài trên màn hình to */
+  flex: 1 1 auto;
+  min-width: 220px;
+  max-width: 550px;
 }
 
 .search-icon {
@@ -988,7 +995,7 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-/* 🌟 ĐÃ SỬA: Khung lương bị ép ngắn lại 1 nửa */
+/* 🌟 Khung lương */
 .salary-range-wrapper {
   display: flex;
   align-items: center;
@@ -999,8 +1006,7 @@ onUnmounted(() => {
   position: relative;
   overflow: hidden;
   transition: all 0.2s;
-
-  flex: 1; /* Không tự động giãn bành trướng nữa */
+  flex: 1;
   min-width: 260px;
 }
 
@@ -1767,7 +1773,7 @@ onUnmounted(() => {
 
   .page-header {
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
   }
 
   .header-actions {
