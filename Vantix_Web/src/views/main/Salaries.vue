@@ -1,7 +1,7 @@
 <script setup>
 import {ref, reactive, computed, onMounted, watch} from 'vue'
 import salariesService from '@/services/salaries.service'
-import {useToast} from 'vue-toastification'
+import {useToast} from '@/utils/toast'
 
 const toast = useToast()
 
@@ -335,7 +335,7 @@ function updateStatus(data, newStatus) {
 </script>
 
 <template>
-  <div class="salary-management">
+  <div class="salary-management mgmt-page">
     <div class="page-header">
       <div class="header-left">
         <div class="title-icon bg-success-gradient">
@@ -381,7 +381,7 @@ function updateStatus(data, newStatus) {
         <div class="stat-icon pending-icon"><i class="bi bi-hourglass-split"></i></div>
         <div class="stat-content">
           <span class="stat-value">{{ pendingCount }}</span>
-          <span class="stat-label">Đang chờ duyệt (Pending)</span>
+          <span class="stat-label">Đang chờ duyệt</span>
         </div>
       </div>
       <div class="stat-card">
@@ -421,8 +421,8 @@ function updateStatus(data, newStatus) {
           <select v-model="filters.status" class="filter-select">
             <option value="">Tất cả Trạng thái</option>
             <option value="DRAFT">Nháp (Draft)</option>
-            <option value="PENDING">Chờ duyệt (Pending)</option>
-            <option value="APPROVED">Đã duyệt (Approved)</option>
+            <option value="PENDING">Chờ duyệt</option>
+            <option value="APPROVED">Đã duyệt</option>
             <option value="PAID">Đã thanh toán (Paid)</option>
           </select>
           <i class="bi bi-chevron-down select-icon"></i>

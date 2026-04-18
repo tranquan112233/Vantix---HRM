@@ -9,6 +9,7 @@ import Toast from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 
 import './assets/css/variables.css'
+import './assets/css/management.css'
 import './style.css'
 
 createApp(App)

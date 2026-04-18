@@ -8,6 +8,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import poly.edu.vantix_hrm.dto.task.KpiRankingDTO;
 import poly.edu.vantix_hrm.dto.task.TaskResponseDTO;
 import poly.edu.vantix_hrm.entity.*;
 import poly.edu.vantix_hrm.repository.*;
@@ -58,6 +59,17 @@ public class TaskController {
         }
     }
 
+    /* ================= DELETE ================= */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        try {
+            taskService.deleteTask(id);
+            return ResponseEntity.ok("Xóa task thành công");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
+    }
+
     /* ================= ASSIGN ================= */
     @PostMapping("/assign")
     public ResponseEntity<?> assignTask(@RequestBody Map<String, Object> payload) {
@@ -80,6 +92,13 @@ public class TaskController {
         return ResponseEntity.ok(
                 taskService.getTasksByEmployeeId(employeeId)
         );
+    }
+
+    /* ================= KPI RANKING ================= */
+    @GetMapping("/ranking")
+    public ResponseEntity<List<KpiRankingDTO>> ranking(
+            @RequestParam(required = false) Integer month) {
+        return ResponseEntity.ok(taskService.getKpiRanking(month));
     }
 
     /* ================= REPORT + UPLOAD FILE ================= */

@@ -13,4 +13,6 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
     @Query("SELECT ta FROM TaskAssignment ta WHERE ta.task.taskId = :taskId AND ta.employee.id = :employeeId")
     TaskAssignment findByTaskIdAndEmployeeId(@Param("taskId") Long taskId, @Param("employeeId") Long employeeId);
 
+    void deleteByTask_TaskId(Long taskId);
+
 }

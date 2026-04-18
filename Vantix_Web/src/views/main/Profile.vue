@@ -1,68 +1,118 @@
 <template>
-  <div class="profile-container">
-    <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
-      <p>Đang tải hồ sơ...</p>
+  <div class="profile-page mgmt-page">
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">Hồ sơ của tôi</h2>
+        <p class="page-desc">Thông tin cá nhân và vị trí hiện tại của tài khoản đang đăng nhập.</p>
+      </div>
+    </div>
+
+    <div v-if="loading" class="state-center table-card">
+      <div class="spin-lg mb-3"></div>
+      <div class="empty-title">Đang tải hồ sơ</div>
+      <div class="empty-sub">Hệ thống đang lấy thông tin cá nhân của bạn.</div>
+    </div>
+
+    <div v-else-if="errorMessage" class="state-center table-card">
+      <i class="bi bi-exclamation-octagon empty-icon"></i>
+      <div class="empty-title">Không thể tải hồ sơ</div>
+      <div class="empty-sub">{{ errorMessage }}</div>
+      <button class="btn-primary mt-2" @click="fetchProfile">
+        <i class="bi bi-arrow-repeat"></i> Tải lại
+      </button>
     </div>
 
     <div v-else-if="profile" class="profile-layout">
-      <div class="profile-card sidebar-card">
+      <aside class="sidebar-card profile-sidebar">
         <div class="avatar-section">
-          <div class="avatar-large">{{ getInitials(profile.fullName) }}</div>
-          <h2 class="profile-name">{{ profile.fullName }}</h2>
-          <span class="job-title">{{ profile.positionName }}</span>
+          <div class="profile-avatar" :style="{ background: `linear-gradient(135deg, ${stringToColor(profile.fullName)}, #6f86ff)` }">
+            {{ getInitials(profile.fullName) }}
+          </div>
+          <h3 class="profile-name">{{ profile.fullName }}</h3>
+          <p class="profile-position">{{ profile.positionName || 'Chưa cập nhật chức vụ' }}</p>
+          <p class="profile-dept">
+            <i class="bi bi-building"></i>
+            {{ profile.departmentName || 'Chưa cập nhật phòng ban' }}
+          </p>
           <span :class="['status-badge', profile.workStatus === 'WORKING' ? 'working' : 'resigned']">
             {{ profile.workStatus === 'WORKING' ? 'Đang làm việc' : 'Đã nghỉ việc' }}
           </span>
         </div>
-      </div>
 
-      <div class="profile-card details-card">
-        <h3 class="section-title">👤 Thông tin cá nhân</h3>
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="label">Họ và tên</span>
-            <span class="value">{{ profile.fullName }}</span>
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-meta">
+          <div class="meta-row">
+            <span class="meta-label"><i class="bi bi-envelope"></i> Email</span>
+            <span class="meta-value">{{ profile.email || 'Chưa cập nhật' }}</span>
           </div>
-          <div class="info-item">
-            <span class="label">Email liên hệ</span>
-            <span class="value">{{ profile.email }}</span>
+          <div class="meta-row">
+            <span class="meta-label"><i class="bi bi-telephone"></i> Điện thoại</span>
+            <span class="meta-value">{{ profile.phone || 'Chưa cập nhật' }}</span>
           </div>
-          <div class="info-item">
-            <span class="label">Số điện thoại</span>
-            <span class="value">{{ profile.phone || 'Chưa cập nhật' }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Giới tính</span>
-            <span class="value">{{ translateGender(profile.gender) }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Ngày sinh</span>
-            <span class="value">{{ formatDate(profile.birthDate) }}</span>
-          </div>
-          <div class="info-item full-width">
-            <span class="label">Địa chỉ</span>
-            <span class="value">{{ profile.address || 'Chưa cập nhật' }}</span>
+          <div class="meta-row">
+            <span class="meta-label"><i class="bi bi-geo-alt"></i> Địa chỉ</span>
+            <span class="meta-value">{{ profile.address || 'Chưa cập nhật' }}</span>
           </div>
         </div>
+      </aside>
 
-        <hr class="divider" />
+      <div class="profile-details">
+        <section class="info-card">
+          <div class="info-card-header">
+            <i class="bi bi-person-badge"></i>
+            <span>Thông tin cá nhân</span>
+          </div>
+          <div class="info-grid">
+            <div class="info-cell">
+              <span class="info-label">Họ và tên</span>
+              <span class="info-value">{{ profile.fullName }}</span>
+            </div>
+            <div class="info-cell">
+              <span class="info-label">Giới tính</span>
+              <span class="info-value">{{ translateGender(profile.gender) }}</span>
+            </div>
+            <div class="info-cell">
+              <span class="info-label">Ngày sinh</span>
+              <span class="info-value">{{ formatDate(profile.birthDate) }}</span>
+            </div>
+            <div class="info-cell">
+              <span class="info-label">Email liên hệ</span>
+              <span class="info-value">{{ profile.email || 'Chưa cập nhật' }}</span>
+            </div>
+            <div class="info-cell span-2">
+              <span class="info-label">Địa chỉ</span>
+              <span class="info-value">{{ profile.address || 'Chưa cập nhật' }}</span>
+            </div>
+          </div>
+        </section>
 
-        <h3 class="section-title">🏢 Thông tin công việc</h3>
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="label">Mã nhân viên</span>
-            <span class="value fw-bold">EMP-{{ profile.employeeId }}</span>
+        <section class="info-card">
+          <div class="info-card-header">
+            <i class="bi bi-briefcase"></i>
+            <span>Thông tin công việc</span>
           </div>
-          <div class="info-item">
-            <span class="label">Phòng ban</span>
-            <span class="value">{{ profile.departmentName }}</span>
+          <div class="info-grid">
+            <div class="info-cell">
+              <span class="info-label">Mã nhân viên</span>
+              <span class="info-value">EMP-{{ profile.employeeId }}</span>
+            </div>
+            <div class="info-cell">
+              <span class="info-label">Trạng thái</span>
+              <span class="info-value">
+                {{ profile.workStatus === 'WORKING' ? 'Đang làm việc' : 'Đã nghỉ việc' }}
+              </span>
+            </div>
+            <div class="info-cell">
+              <span class="info-label">Phòng ban</span>
+              <span class="info-value">{{ profile.departmentName || 'Chưa cập nhật' }}</span>
+            </div>
+            <div class="info-cell">
+              <span class="info-label">Chức vụ</span>
+              <span class="info-value">{{ profile.positionName || 'Chưa cập nhật' }}</span>
+            </div>
           </div>
-          <div class="info-item">
-            <span class="label">Chức vụ</span>
-            <span class="value">{{ profile.positionName }}</span>
-          </div>
-        </div>
+        </section>
       </div>
     </div>
   </div>
@@ -71,171 +121,71 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import EmployeeService from "@/services/employee.service.js";
+import { useToast } from "@/utils/toast";
 
 const profile = ref(null)
 const loading = ref(true)
+const errorMessage = ref('')
+const toast = useToast()
 
 const fetchProfile = async () => {
   try {
     loading.value = true
+    errorMessage.value = ''
     const response = await EmployeeService.getMyProfile()
     profile.value = response.data
   } catch (error) {
     console.error('Lỗi lấy hồ sơ:', error)
-    alert('Không thể tải hồ sơ cá nhân!')
+    profile.value = null
+    errorMessage.value = 'Hồ sơ cá nhân hiện chưa tải được. Vui lòng thử lại sau.'
+    toast.error(error, 'Không thể tải hồ sơ cá nhân.')
   } finally {
     loading.value = false
   }
 }
 
-// Hàm lấy chữ cái đầu làm Avatar
 const getInitials = (name) => {
-  if (!name) return 'U'
+  if (!name) return 'N'
   const parts = name.trim().split(' ')
   return parts[parts.length - 1].charAt(0).toUpperCase()
 }
 
-// Hàm dịch giới tính
+const stringToColor = (str = 'Người dùng') => {
+  let hash = 0
+  for (let i = 0; i < str.length; i += 1) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return `hsl(${hash % 360}, 72%, 56%)`
+}
+
 const translateGender = (gender) => {
   if (gender === 'MALE') return 'Nam'
   if (gender === 'FEMALE') return 'Nữ'
   return 'Khác'
 }
 
-// Format ngày tháng (YYYY-MM-DD -> DD/MM/YYYY)
 const formatDate = (dateString) => {
   if (!dateString) return 'Chưa cập nhật'
   const [year, month, day] = dateString.split('-')
   return `${day}/${month}/${year}`
 }
 
-onMounted(() => {
-  fetchProfile()
-})
+onMounted(fetchProfile)
 </script>
 
 <style scoped>
-.profile-container {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 30px 15px;
-  font-family: 'Inter', sans-serif;
-  color: #111827;
-}
-
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 40vh;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #4f46e5;
+.spin-lg {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #6366f1;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 15px;
-}
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-.profile-layout {
-  display: flex;
-  gap: 24px;
-  align-items: flex-start;
 }
 
-.profile-card {
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
-  border: 1px solid #e5e7eb;
-}
-
-/* Sidebar */
-.sidebar-card {
-  flex: 1;
-  min-width: 280px;
-  padding: 40px 20px;
-  text-align: center;
-}
-
-.avatar-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.avatar-large {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #4f46e5, #818cf8);
-  color: white;
-  font-size: 3rem;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
-}
-
-.profile-name { margin: 0 0 8px 0; font-size: 1.5rem; font-weight: 700; }
-.job-title { color: #6b7280; margin-bottom: 16px; font-weight: 500; }
-
-.status-badge {
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-.status-badge.working { background-color: #d1fae5; color: #065f46; }
-.status-badge.resigned { background-color: #fee2e2; color: #991b1b; }
-
-/* Details Card */
-.details-card {
-  flex: 2;
-  padding: 30px 40px;
-}
-
-.section-title {
-  margin: 0 0 20px 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #374151;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
-}
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.full-width { grid-column: span 2; }
-
-.label { font-size: 0.85rem; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
-.value { font-size: 1rem; color: #111827; font-weight: 500; }
-.fw-bold { font-weight: 700; color: #4f46e5; }
-
-.divider { border: 0; border-top: 1px solid #e5e7eb; margin: 30px 0; }
-
-@media (max-width: 768px) {
-  .profile-layout { flex-direction: column; }
-  .sidebar-card, .details-card { width: 100%; box-sizing: border-box; }
-  .info-grid { grid-template-columns: 1fr; }
-  .full-width { grid-column: span 1; }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

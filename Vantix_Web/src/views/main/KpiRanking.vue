@@ -1,18 +1,18 @@
 <template>
-  <div class="kpi-dashboard">
+  <div class="kpi-dashboard mgmt-page">
     <div class="page-header">
       <div>
-        <h2 class="page-title">🏆 Bảng Xếp Hạng KPI</h2>
-        <p class="page-desc">Tôn vinh những cá nhân xuất sắc nhất tháng qua các công việc đã hoàn thành.</p>
+        <h2 class="page-title">Xếp hạng KPI</h2>
+        <p class="page-desc">Theo dõi điểm số và số công việc hoàn thành của nhân viên theo từng tháng.</p>
       </div>
       <div class="filter-box">
-        <span class="fw-bold text-muted small me-2">Chọn tháng:</span>
+        <span class="fw-bold text-muted small me-2">Tháng:</span>
         <div class="select-wrap">
           <select v-model="selectedMonth" @change="fetchData">
-            <option value="">🌟 Toàn thời gian</option>
+            <option value="">Toàn thời gian</option>
             <option v-for="m in 12" :key="m" :value="m">Tháng {{ m }}</option>
           </select>
-          <i class="bi-chevron-down">▼</i>
+          <i class="bi bi-chevron-down"></i>
         </div>
       </div>
     </div>
@@ -22,8 +22,17 @@
       <div class="fw-bold text-muted">Đang tính toán điểm số...</div>
     </div>
 
+    <div v-else-if="errorMessage" class="state-center table-card mt-4">
+      <i class="bi bi-exclamation-octagon empty-icon"></i>
+      <div class="empty-title">Không thể tải bảng xếp hạng</div>
+      <div class="empty-sub">{{ errorMessage }}</div>
+      <button class="btn-primary mt-2" @click="fetchData">
+        <i class="bi bi-arrow-repeat"></i> Tải lại
+      </button>
+    </div>
+
     <div v-else-if="rankingData.length === 0" class="state-center table-card mt-4">
-      <div class="empty-icon">🤷‍♂️</div>
+      <i class="bi bi-bar-chart empty-icon"></i>
       <div class="empty-title">Chưa có dữ liệu thi đua</div>
       <div class="empty-sub">Chưa có ai hoàn thành công việc nào trong thời gian này.</div>
     </div>
@@ -36,8 +45,8 @@
             {{ rankingData[1].employeeName.charAt(0).toUpperCase() }}
           </div>
           <h5 class="fw-bold mt-3 mb-1">{{ rankingData[1].employeeName }}</h5>
-          <div class="points-badge silver">{{ rankingData[1].totalPoints }} pts</div>
-          <div class="task-count mt-2">✔ {{ rankingData[1].completedTasks }} tasks</div>
+          <div class="points-badge silver">{{ rankingData[1].totalPoints }} điểm</div>
+          <div class="task-count mt-2">✔ {{ rankingData[1].completedTasks }} công việc</div>
           <div class="podium-base base-2">#2</div>
         </div>
 
@@ -47,8 +56,8 @@
             {{ rankingData[0].employeeName.charAt(0).toUpperCase() }}
           </div>
           <h4 class="fw-bold mt-3 mb-1 text-gold">{{ rankingData[0].employeeName }}</h4>
-          <div class="points-badge gold">{{ rankingData[0].totalPoints }} pts</div>
-          <div class="task-count mt-2">✔ {{ rankingData[0].completedTasks }} tasks</div>
+          <div class="points-badge gold">{{ rankingData[0].totalPoints }} điểm</div>
+          <div class="task-count mt-2">✔ {{ rankingData[0].completedTasks }} công việc</div>
           <div class="podium-base base-1 shadow-lg">#1</div>
         </div>
 
@@ -58,8 +67,8 @@
             {{ rankingData[2].employeeName.charAt(0).toUpperCase() }}
           </div>
           <h5 class="fw-bold mt-3 mb-1">{{ rankingData[2].employeeName }}</h5>
-          <div class="points-badge bronze">{{ rankingData[2].totalPoints }} pts</div>
-          <div class="task-count mt-2">✔ {{ rankingData[2].completedTasks }} tasks</div>
+          <div class="points-badge bronze">{{ rankingData[2].totalPoints }} điểm</div>
+          <div class="task-count mt-2">✔ {{ rankingData[2].completedTasks }} công việc</div>
           <div class="podium-base base-3">#3</div>
         </div>
       </div>
@@ -73,7 +82,7 @@
           <tr>
             <th class="text-center" style="width: 80px;">Hạng</th>
             <th>Nhân viên</th>
-            <th class="text-center">Số Task Đã Xong</th>
+            <th class="text-center">Số công việc đã xong</th>
             <th class="text-right">Tổng Điểm</th>
           </tr>
           </thead>
@@ -92,7 +101,7 @@
               <span class="status-badge completed">✔ {{ user.completedTasks }}</span>
             </td>
             <td class="text-right fw-bold" style="color: #6366f1;">
-              {{ user.totalPoints }} pts
+              {{ user.totalPoints }} điểm
             </td>
           </tr>
           </tbody>
@@ -105,10 +114,13 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import taskService from "@/services/taskApi.service";
+import { useToast } from "@/utils/toast";
 
 const rankingData = ref([]);
 const selectedMonth = ref("");
 const loading = ref(false);
+const errorMessage = ref("");
+const toast = useToast();
 
 // Hàm tạo màu ngẫu nhiên cho Avatar
 const stringToColor = (str) => {
@@ -120,6 +132,7 @@ const stringToColor = (str) => {
 
 const fetchData = async () => {
   loading.value = true;
+  errorMessage.value = "";
   try {
     // Gọi song song API lấy Bảng xếp hạng và API lấy danh sách NV để map tên
     const [rankRes, empRes] = await Promise.all([
@@ -144,11 +157,11 @@ const fetchData = async () => {
         employeeName: emp ? (emp.fullName || emp.name) : "Nhân viên vô danh"
       };
     });
-
-    console.log("🏆 Dữ liệu xếp hạng:", rankingData.value);
   } catch (error) {
     console.error("❌ Lỗi lấy bảng xếp hạng:", error);
-    alert("Có lỗi xảy ra khi tải bảng xếp hạng!");
+    rankingData.value = [];
+    errorMessage.value = "Dữ liệu xếp hạng hiện chưa tải được. Vui lòng thử lại sau ít phút.";
+    toast.error(error, "Không thể tải bảng xếp hạng KPI.");
   } finally {
     loading.value = false;
   }

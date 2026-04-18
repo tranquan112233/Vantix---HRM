@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.*;
 
 /*
@@ -34,11 +35,12 @@ import java.util.*;
  * Thứ tự seed:
  *   1. Permissions  → 2. Roles  → 3. Departments  → 4. Positions
  *   → 5. Shifts  → 6. Leave Types
- *   → 7. Special accounts (5 người: admin + 4 managers)
+ *   → 7. Special accounts (6 người: admin + 4 managers + attendance test user)
  *   → 8. Bulk employees (3 000 người phân bổ theo phòng ban)
- *   → 9. Contracts  → 10. Monthly Schedules  → 11. Salaries (3 tháng)
+ *   → 9. Contracts  → 10. Monthly Schedules → 11. Attendance test data
+ *   → 12. Salaries (3 tháng)
  *
- * Tổng: ~3 005 nhân viên, ~3 005 hợp đồng, ~6 010 lịch tháng, ~9 015 bảng lương
+ * Tổng: ~3 006 nhân viên, ~3 006 hợp đồng, ~6 012 lịch tháng, ~9 018 bảng lương
  */
 @Slf4j
 @Component
@@ -54,6 +56,8 @@ public class DataSeeder implements ApplicationRunner {
     private final ShiftsRepository           shiftsRepository;
     private final LeaveTypeRepository        leaveTypeRepository;
     private final MonthlySchedulesRepository monthlySchedulesRepository;
+    private final DailyWorkSchedulesRepository dailyWorkSchedulesRepository;
+    private final AttendanceRepository       attendanceRepository;
     private final ContractsRepository        contractsRepository;
     private final SalariesRepository         salariesRepository;
     private final PasswordEncoder            passwordEncoder;
@@ -64,6 +68,7 @@ public class DataSeeder implements ApplicationRunner {
     private static final String DEFAULT_PASSWORD = "123456";
     private static final int    TOTAL_BULK       = 3000;
     private static final int    BATCH_SIZE       = 250;
+    private static final ZoneId VIETNAM_ZONE     = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final Random rng = new Random(42); // seeded → reproducible data
 
@@ -144,7 +149,10 @@ public class DataSeeder implements ApplicationRunner {
         // ── Phase 5: Monthly schedules (tháng trước LOCKED + tháng này OPEN) ─
         seedMonthlySchedulesForAll(allEmpIds);
 
-        // ── Phase 6: Salaries (Jan-Mar 2026, trạng thái APPROVED) ────────────
+        // ── Phase 6: Attendance test data ────────────────────────────────────
+        seedAttendanceTestData(specials);
+
+        // ── Phase 7: Salaries (Jan-Mar 2026, trạng thái APPROVED) ────────────
         seedSalariesForAll(allEmpIds, empSalaryMap);
 
         log.info("[DataSeeder] Hoàn tất! {} nhân viên — password: {}", allEmpIds.size(), DEFAULT_PASSWORD);
@@ -322,12 +330,21 @@ public class DataSeeder implements ApplicationRunner {
     // ─── 5. Shifts ────────────────────────────────────────────────────────────
 
     private void seedShifts() {
+        LocalTime now = LocalTime.now(VIETNAM_ZONE);
+        LocalTime testStart = now.isBefore(LocalTime.of(0, 20))
+                ? LocalTime.MIDNIGHT
+                : now.minusMinutes(5);
+        LocalTime testEnd = now.isAfter(LocalTime.of(22, 0))
+                ? LocalTime.of(23, 59)
+                : now.plusHours(2);
+
         shiftsRepository.saveAll(List.of(
                 shift("Ca Sáng",    LocalTime.of(6,  0), LocalTime.of(14, 0)),
                 shift("Ca Chiều",   LocalTime.of(14, 0), LocalTime.of(22, 0)),
-                shift("Hành Chính", LocalTime.of(8,  0), LocalTime.of(17, 0))
+                shift("Hành Chính", LocalTime.of(8,  0), LocalTime.of(17, 0)),
+                shift("Ca Test Chấm Công", testStart, testEnd)
         ));
-        log.info("[DataSeeder] ✓ 3 shifts");
+        log.info("[DataSeeder] ✓ 4 shifts");
     }
 
     // ─── 6. Leave Types ───────────────────────────────────────────────────────
@@ -357,7 +374,8 @@ public class DataSeeder implements ApplicationRunner {
             new Object[]{"hr_manager",    "hr@company.com",            "HR_MANAGER",         "Trần Thị Hương",   Gender.FEMALE, "1988-03-20", "0901000002", "2 Nguyễn Huệ, Q1, TP.HCM",         "HR",        "TP_HR"},
             new Object[]{"it_manager",    "it.manager@company.com",    "DEPARTMENT_MANAGER", "Lê Minh Đức",      Gender.MALE,   "1985-07-10", "0901000003", "3 CMT8, Q10, TP.HCM",               "IT",        "TP_IT"},
             new Object[]{"sales_manager", "sales.manager@company.com", "DEPARTMENT_MANAGER", "Phạm Thị Lan",     Gender.FEMALE, "1990-09-15", "0901000004", "4 Phạm Ngũ Lão, Q1, TP.HCM",       "KINHDOANH", "TP_KD"},
-            new Object[]{"hr_lead",       "hr.lead@company.com",       "DEPARTMENT_MANAGER", "Hoàng Văn Bình",   Gender.MALE,   "1987-11-05", "0901000005", "5 Lê Văn Sỹ, Q3, TP.HCM",          "HR",        "TP_HR"}
+            new Object[]{"hr_lead",       "hr.lead@company.com",       "DEPARTMENT_MANAGER", "Hoàng Văn Bình",   Gender.MALE,   "1987-11-05", "0901000005", "5 Lê Văn Sỹ, Q3, TP.HCM",          "HR",        "TP_HR"},
+            new Object[]{"attendance_staff","attendance@company.com",   "EMPLOYEE",           "Nguyễn Test Công", Gender.MALE,   "1996-04-18", "0901000006", "6 Hai Bà Trưng, Q1, TP.HCM",      "HR",        "CV_HR"}
         );
 
         for (Object[] d : defs) {
@@ -553,7 +571,61 @@ public class DataSeeder implements ApplicationRunner {
         log.info("[DataSeeder] ✓ {} monthly schedules (2 tháng/người)", empIds.size() * 2);
     }
 
-    // ─── 12. Salaries — Jan / Feb / Mar 2026 (APPROVED) ──────────────────────
+    // ─── 12. Attendance test data ────────────────────────────────────────────
+    /*
+     * Tài khoản test:
+     *   - attendance_staff / 123456: nhân viên HR dùng để check-in/check-out.
+     *   - hr_lead / 123456: trưởng phòng HR dùng để duyệt phiếu PENDING.
+     *
+     * Dữ liệu tạo sẵn:
+     *   - Hôm nay: có DailyWorkSchedules với "Ca Test Chấm Công", chưa có Attendance
+     *     để người test tự bấm Check-in.
+     *   - Hôm qua: Attendance PENDING để test màn Attendance Approval.
+     *   - Hai ngày trước: Attendance APPROVED để test lịch chấm công cá nhân.
+     */
+    private void seedAttendanceTestData(Map<String, Employee> specials) {
+        Employee staff = specials.get("attendance_staff");
+        if (staff == null) {
+            log.warn("[DataSeeder] Không tìm thấy attendance_staff, bỏ qua attendance test data.");
+            return;
+        }
+
+        Shift testShift = findShiftByName("Ca Test Chấm Công");
+        Shift officeShift = findShiftByName("Hành Chính");
+        LocalDate today = LocalDate.now(VIETNAM_ZONE);
+        LocalDate yesterday = today.minusDays(1);
+        LocalDate twoDaysAgo = today.minusDays(2);
+
+        ensureDailySchedule(staff, today, testShift);
+        ensureDailySchedule(staff, yesterday, officeShift);
+        ensureDailySchedule(staff, twoDaysAgo, officeShift);
+
+        attendanceRepository.save(Attendance.builder()
+                .employee(staff)
+                .shift(officeShift)
+                .workDate(yesterday)
+                .checkIn(LocalTime.of(8, 25))
+                .checkOut(LocalTime.of(17, 0))
+                .lateMinutes(25)
+                .earlyLeaveMinutes(0)
+                .status(Attendance.AttendanceStatus.PENDING)
+                .build());
+
+        attendanceRepository.save(Attendance.builder()
+                .employee(staff)
+                .shift(officeShift)
+                .workDate(twoDaysAgo)
+                .checkIn(LocalTime.of(7, 58))
+                .checkOut(LocalTime.of(16, 45))
+                .lateMinutes(0)
+                .earlyLeaveMinutes(15)
+                .status(Attendance.AttendanceStatus.APPROVED)
+                .build());
+
+        log.info("[DataSeeder] ✓ attendance test data for attendance_staff; manager: hr_lead");
+    }
+
+    // ─── 13. Salaries — Jan / Feb / Mar 2026 (APPROVED) ──────────────────────
     /*
      * Công thức đơn giản:
      *   earnedBase  = baseSalary × (actualDays / 22)
@@ -691,6 +763,37 @@ public class DataSeeder implements ApplicationRunner {
         s.setStartTime(start);
         s.setEndTime(end);
         return s;
+    }
+
+    private Shift findShiftByName(String name) {
+        return shiftsRepository.findAll().stream()
+                .filter(s -> name.equals(s.getShiftName()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy ca làm việc: " + name));
+    }
+
+    private void ensureDailySchedule(Employee employee, LocalDate workDate, Shift shift) {
+        MonthlySchedules monthly = monthlySchedulesRepository.findByEmployee_IdAndMonthAndYear(
+                employee.getId(), workDate.getMonthValue(), workDate.getYear());
+
+        if (monthly == null) {
+            monthly = monthlySchedulesRepository.save(MonthlySchedules.builder()
+                    .employee(employee)
+                    .month(workDate.getMonthValue())
+                    .year(workDate.getYear())
+                    .status(ScheduleStatus.OPEN)
+                    .build());
+        }
+
+        DailyWorkSchedules schedule = dailyWorkSchedulesRepository
+                .findByEmployeeIdAndWorkDate(employee.getId(), workDate)
+                .orElseGet(DailyWorkSchedules::new);
+
+        schedule.setMonthlySchedule(monthly);
+        schedule.setWorkDate(workDate);
+        schedule.setShift(shift);
+        schedule.setDayType(DailyWorkSchedules.DayType.WORK);
+        dailyWorkSchedulesRepository.save(schedule);
     }
 }
 

@@ -3,4 +3,6 @@ package poly.edu.vantix_hrm.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import poly.edu.vantix_hrm.entity.TaskReport;
 
-public interface TaskReportRepository extends JpaRepository<TaskReport, Long> {}
+public interface TaskReportRepository extends JpaRepository<TaskReport, Long> {
+    void deleteByTaskId(Long taskId);
+}

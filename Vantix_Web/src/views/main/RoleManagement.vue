@@ -1,15 +1,15 @@
 <template>
-  <div class="role-management">
+  <div class="role-management mgmt-page">
 
     <!-- Header -->
     <div class="page-header">
       <div class="header-left">
-        <h1 class="page-title">Roles</h1>
-        <p class="page-desc">{{ pagination.totalElements }} roles · {{ allPermissions.length }} permissions · {{ groupedPermissions.length }} groups</p>
+        <h1 class="page-title">Vai trò</h1>
+        <p class="page-desc">{{ pagination.totalElements }} vai trò · {{ allPermissions.length }} quyền · {{ groupedPermissions.length }} nhóm</p>
       </div>
       <div class="header-actions">
         <button v-if="canCreate" class="btn-primary" data-bs-toggle="modal" data-bs-target="#roleModal" @click="openCreate">
-          <i class="bi bi-plus-lg"></i> New Role
+          <i class="bi bi-plus-lg"></i> Thêm vai trò
         </button>
       </div>
     </div>
@@ -18,15 +18,15 @@
     <div class="filter-bar">
       <div class="search-wrapper">
         <i class="bi bi-search"></i>
-        <input v-model="filters.keyword" type="text" placeholder="Search role name or description..." @input="onSearch" />
+        <input v-model="filters.keyword" type="text" placeholder="Tìm tên hoặc mô tả vai trò..." @input="onSearch" />
         <button v-if="filters.keyword" class="clear-btn" @click="clearSearch"><i class="bi bi-x"></i></button>
       </div>
       <div class="select-wrapper">
         <select v-model.number="pagination.size" @change="onSizeChange">
-          <option :value="10">10 / page</option>
-          <option :value="20">20 / page</option>
-          <option :value="50">50 / page</option>
-          <option :value="100">100 / page</option>
+          <option :value="10">10 / trang</option>
+          <option :value="20">20 / trang</option>
+          <option :value="50">50 / trang</option>
+          <option :value="100">100 / trang</option>
         </select>
         <i class="bi bi-chevron-down"></i>
       </div>
@@ -36,15 +36,15 @@
     <div class="table-card">
       <div v-if="loading" class="state-center">
         <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
-        <span>Loading...</span>
+        <span>Đang tải...</span>
       </div>
 
       <div v-else-if="roles.length === 0" class="state-center">
         <i class="bi bi-shield empty-icon"></i>
-        <p class="empty-title">No roles found</p>
-        <p class="empty-sub">Create a role to start assigning permissions.</p>
+        <p class="empty-title">Không tìm thấy vai trò</p>
+        <p class="empty-sub">Tạo vai trò để bắt đầu gán quyền.</p>
         <button class="btn-primary" data-bs-toggle="modal" data-bs-target="#roleModal" @click="openCreate">
-          <i class="bi bi-plus-lg"></i> Create role
+          <i class="bi bi-plus-lg"></i> Tạo vai trò
         </button>
       </div>
 
@@ -54,11 +54,11 @@
             <thead>
             <tr>
               <th class="th-num">#</th>
-              <th class="sortable" @click="toggleSort('name')">Role <i :class="'bi ' + getSortIcon('name')"></i></th>
-              <th class="sortable" @click="toggleSort('description')">Description <i :class="'bi ' + getSortIcon('description')"></i></th>
-              <th>Permissions</th>
-              <th class="sortable" @click="toggleSort('createdAt')">Created <i :class="'bi ' + getSortIcon('createdAt')"></i></th>
-              <th class="th-actions">Actions</th>
+              <th class="sortable" @click="toggleSort('name')">Vai trò <i :class="'bi ' + getSortIcon('name')"></i></th>
+              <th class="sortable" @click="toggleSort('description')">Mô tả <i :class="'bi ' + getSortIcon('description')"></i></th>
+              <th>Quyền</th>
+              <th class="sortable" @click="toggleSort('createdAt')">Ngày tạo <i :class="'bi ' + getSortIcon('createdAt')"></i></th>
+              <th class="th-actions">Thao tác</th>
             </tr>
             </thead>
             <tbody>
@@ -83,10 +83,10 @@
               <td class="td-meta">{{ formatDate(role.createdAt) }}</td>
               <td>
                 <div class="row-actions">
-                  <button v-if="canEdit" class="icon-btn" data-bs-toggle="modal" data-bs-target="#roleModal" @click="openEdit(role)" title="Edit">
+                  <button v-if="canEdit" class="icon-btn" data-bs-toggle="modal" data-bs-target="#roleModal" @click="openEdit(role)" title="Sửa">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button v-if="canDelete" class="icon-btn danger" data-bs-toggle="modal" data-bs-target="#deleteRoleModal" @click="confirmDelete(role)" title="Delete">
+                  <button v-if="canDelete" class="icon-btn danger" data-bs-toggle="modal" data-bs-target="#deleteRoleModal" @click="confirmDelete(role)" title="Xóa">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
@@ -98,7 +98,7 @@
 
         <!-- Pagination -->
         <div v-if="pagination.totalPages > 0" class="pagination-bar">
-          <span class="pagination-info">{{ startEntry }}–{{ endEntry }} of {{ pagination.totalElements }}</span>
+          <span class="pagination-info">{{ startEntry }}–{{ endEntry }} / {{ pagination.totalElements }}</span>
           <div class="page-controls">
             <button :disabled="pagination.page === 0" @click="goPage(0)"><i class="bi bi-chevron-double-left"></i></button>
             <button :disabled="pagination.page === 0" @click="goPage(pagination.page - 1)"><i class="bi bi-chevron-left"></i></button>
@@ -116,8 +116,8 @@
         <div class="modal-content modal-custom">
           <div class="modal-header-custom">
             <div>
-              <h5 class="modal-title" id="roleModalLabel">{{ modal.isEdit ? 'Edit Role' : 'New Role' }}</h5>
-              <p class="modal-subtitle">{{ modal.isEdit ? 'Update role and permissions' : 'Create a new role with permissions' }}</p>
+              <h5 class="modal-title" id="roleModalLabel">{{ modal.isEdit ? 'Sửa vai trò' : 'Thêm vai trò' }}</h5>
+              <p class="modal-subtitle">{{ modal.isEdit ? 'Cập nhật vai trò và quyền' : 'Tạo vai trò mới kèm quyền' }}</p>
             </div>
             <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
           </div>
@@ -128,39 +128,39 @@
             </div>
 
             <div class="field" :class="{ 'field-error': errors.name }">
-              <label>Role Name <span class="req">*</span></label>
+              <label>Tên vai trò <span class="req">*</span></label>
               <div class="input-wrap">
                 <i class="bi bi-tag"></i>
-                <input v-model="form.name" type="text" placeholder="Enter role name" @input="clearError('name')" />
+                <input v-model="form.name" type="text" placeholder="Nhập tên vai trò" @input="clearError('name')" />
               </div>
               <span v-if="errors.name" class="err-msg">{{ errors.name }}</span>
             </div>
 
             <div class="field">
-              <label>Description</label>
-              <textarea v-model="form.description" rows="2" class="textarea-field" placeholder="Describe what this role can do..."></textarea>
+              <label>Mô tả</label>
+              <textarea v-model="form.description" rows="2" class="textarea-field" placeholder="Mô tả quyền hạn của vai trò..."></textarea>
             </div>
 
             <div class="field" :class="{ 'field-error': errors.permissionIds }">
-              <label>Permissions <span class="req">*</span></label>
+              <label>Quyền <span class="req">*</span></label>
 
               <div class="perms-panel">
                 <div class="perms-panel-header">
-                  <span class="perms-count"><strong>{{ form.permissionIds?.length || 0 }}</strong> selected</span>
+                  <span class="perms-count"><strong>{{ form.permissionIds?.length || 0 }}</strong> đã chọn</span>
                   <button type="button" class="link-btn" @click="toggleAllPermissions">
-                    {{ allPermissionsSelected ? 'Deselect All' : 'Select All' }}
+                    {{ allPermissionsSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả' }}
                   </button>
                 </div>
 
                 <div class="perms-search">
                   <i class="bi bi-search"></i>
-                  <input v-model="permissionSearch" type="text" placeholder="Search permissions..." />
+                  <input v-model="permissionSearch" type="text" placeholder="Tìm quyền..." />
                 </div>
 
                 <div class="perms-list">
                   <div v-if="filteredGroupedPermissions.length === 0" class="no-results">
                     <i class="bi bi-search"></i>
-                    <p>No permissions found</p>
+                    <p>Không tìm thấy quyền</p>
                   </div>
 
                   <div v-for="group in filteredGroupedPermissions" :key="group.name" class="perm-group">
@@ -191,12 +191,12 @@
           </div>
 
           <div class="modal-footer-custom">
-            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Hủy</button>
             <button type="button" class="btn-primary" :disabled="submitting" @click="submitForm">
               <span v-if="submitting" class="spin-sm"></span>
               <template v-else>
                 <i :class="modal.isEdit ? 'bi bi-check-lg' : 'bi bi-plus-lg'"></i>
-                {{ modal.isEdit ? 'Save Changes' : 'Create Role' }}
+                {{ modal.isEdit ? 'Lưu thay đổi' : 'Tạo vai trò' }}
               </template>
             </button>
           </div>
@@ -210,8 +210,8 @@
         <div class="modal-content modal-custom">
           <div class="modal-header-custom">
             <div>
-              <h5 class="modal-title">Delete Role</h5>
-              <p class="modal-subtitle">This action cannot be undone</p>
+              <h5 class="modal-title">Xóa vai trò</h5>
+              <p class="modal-subtitle">Hành động này không thể hoàn tác</p>
             </div>
             <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
           </div>
@@ -220,14 +220,14 @@
               {{ deleteModal.role ? getInitials(deleteModal.role.name) : '' }}
             </div>
             <p class="del-name">{{ deleteModal.role?.name }}</p>
-            <p class="del-sub">{{ deleteModal.role?.description || 'No description' }}</p>
-            <p class="del-warn">Permanently delete this role?</p>
+            <p class="del-sub">{{ deleteModal.role?.description || 'Không có mô tả' }}</p>
+            <p class="del-warn">Xóa vĩnh viễn vai trò này?</p>
           </div>
           <div class="modal-footer-custom">
-            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Hủy</button>
             <button type="button" class="btn-danger" :disabled="submitting" @click="doDelete">
               <span v-if="submitting" class="spin-sm"></span>
-              <template v-else><i class="bi bi-trash"></i> Delete</template>
+              <template v-else><i class="bi bi-trash"></i> Xóa</template>
             </button>
           </div>
         </div>
@@ -242,7 +242,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Modal } from 'bootstrap'
 import roleService from '@/services/role.service.js'
 import permissionService from '@/services/permission.service.js'
-import { useToast } from 'vue-toastification'
+import { useToast } from '@/utils/toast'
 import { useAuthStore } from '@/stores/auth.store.js'
 
 const toast = useToast()
@@ -311,7 +311,7 @@ function openCreate() {
     setTimeout(() => {
       const modalElement = roleModalEl.value
       if (modalElement) {
-        const nameInput = modalElement.querySelector('input[placeholder="Enter role name"]')
+        const nameInput = modalElement.querySelector('input[placeholder="Nhập tên vai trò"]')
         if (nameInput) nameInput.focus()
       }
     }, 150)
@@ -338,7 +338,7 @@ function openEdit(role) {
     setTimeout(() => {
       const modalElement = roleModalEl.value
       if (modalElement) {
-        const nameInput = modalElement.querySelector('input[placeholder="Enter role name"]')
+        const nameInput = modalElement.querySelector('input[placeholder="Nhập tên vai trò"]')
         if (nameInput) nameInput.focus()
       }
     }, 150)
@@ -404,7 +404,7 @@ const groupedPermissions = computed(() => {
       { name: g.displayName, displayName: g.displayName, icon: g.icon, permissions: [] }
     ])
   )
-  const otherGroup = { name: 'Other', displayName: 'Other', icon: 'bi bi-grid-3x3-gap-fill', permissions: [] }
+  const otherGroup = { name: 'Other', displayName: 'Khác', icon: 'bi bi-grid-3x3-gap-fill', permissions: [] }
 
   allPermissions.value.forEach(perm => {
     const upper = perm.name.toUpperCase()
@@ -523,7 +523,7 @@ async function fetchAllPermissions() {
     const response = await permissionService.getAll({ page: 0, size: 1000 })
     allPermissions.value = response.data?.content || response.data?.data || response.data || []
   } catch (error) {
-    toast.error('Failed to load permissions')
+    toast.error('Không thể tải danh sách quyền')
     console.error(error)
   }
 }
@@ -545,7 +545,7 @@ async function fetchRoles() {
     pagination.totalPages = data.totalPages || 0
     pagination.last = data.last || false
   } catch (error) {
-    toast.error('Failed to load roles')
+    toast.error('Không thể tải danh sách vai trò')
     console.error(error)
   } finally {
     loading.value = false
@@ -555,11 +555,11 @@ async function fetchRoles() {
 async function submitForm() {
   // Check permissions before submit
   if (modal.isEdit && !canEdit.value) {
-    toast.error('You do not have permission to edit roles')
+    toast.error('Bạn không có quyền sửa vai trò')
     return
   }
   if (!modal.isEdit && !canCreate.value) {
-    toast.error('You do not have permission to create roles')
+    toast.error('Bạn không có quyền tạo vai trò')
     return
   }
 
@@ -578,19 +578,19 @@ async function submitForm() {
       const currentUserRole = auth.user?.role
       if (currentUserRole === form.name) {
         await auth.refreshPermissions()
-        toast.info('Your permissions have been updated. Some features may change.', {
+        toast.info('Quyền của bạn đã được cập nhật. Một số chức năng có thể thay đổi.', {
           timeout: 5000
         })
       }
 
-      toast.success('Role updated successfully')
+      toast.success('Đã cập nhật vai trò')
     } else {
       await roleService.create({
         name: form.name,
         description: form.description,
         permissionIds: form.permissionIds
       })
-      toast.success('Role created successfully')
+      toast.success('Đã tạo vai trò')
     }
 
     pagination.page = 0
@@ -601,8 +601,8 @@ async function submitForm() {
     if (err?.errors) {
       Object.assign(errors, err.errors)
     } else if (err?.status === 403) {
-      errors.general = 'You do not have permission to perform this action'
-      toast.error('Permission denied')
+      errors.general = 'Bạn không có quyền thực hiện thao tác này'
+      toast.error('Không đủ quyền')
     } else {
       errors.general = err?.message || 'Something went wrong'
       toast.error(errors.general)
@@ -615,7 +615,7 @@ async function submitForm() {
 async function doDelete() {
   // Check delete permission
   if (!canDelete.value) {
-    toast.error('You do not have permission to delete roles')
+    toast.error('Bạn không có quyền xóa vai trò')
     return
   }
 
@@ -626,21 +626,21 @@ async function doDelete() {
     // Check if current user's role is being deleted
     if (auth.user?.role === deleteModal.role.name) {
       await auth.refreshPermissions()
-      toast.warning('Your role has been deleted. You will be logged out.', {
+      toast.warning('Vai trò của bạn đã bị xóa. Hệ thống sẽ đăng xuất.', {
         timeout: 3000
       })
       setTimeout(() => auth.logout(), 3000)
     }
 
     await fetchRoles()
-    toast.success(`Role ${deleteModal.role.name} deleted`)
+    toast.success(`Đã xóa vai trò ${deleteModal.role.name}`)
     bsDeleteModal.hide()
 
   } catch (error) {
     if (error?.status === 403) {
-      toast.error('You do not have permission to delete roles')
+      toast.error('Bạn không có quyền xóa vai trò')
     } else {
-      toast.error('Failed to delete role')
+      toast.error('Không thể xóa vai trò')
     }
     console.error(error)
   } finally {
@@ -708,7 +708,7 @@ function toggleExportDropdown() {
 
 async function exportRoles(format) {
   showExportDropdown.value = false
-  toast.info(`Exporting as ${format.toUpperCase()}...`)
+  toast.info(`Đang xuất dạng ${format.toUpperCase()}...`)
   // Implement export logic here
 }
 
@@ -742,7 +742,7 @@ function avatarGradient(name) {
 onMounted(() => {
   // Check view permission
   if (!canView.value) {
-    toast.error('You do not have permission to view roles')
+    toast.error('Bạn không có quyền xem vai trò')
     return
   }
 

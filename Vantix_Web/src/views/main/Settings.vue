@@ -1,10 +1,10 @@
 <template>
-  <div class="settings-page">
+  <div class="settings-page mgmt-page">
     <!-- Header -->
     <div class="page-header">
       <div>
-        <h1 class="page-title">Settings</h1>
-        <p class="page-desc">System configuration and preferences</p>
+        <h1 class="page-title">Cài đặt</h1>
+        <p class="page-desc">Cấu hình hệ thống và tùy chọn cá nhân</p>
       </div>
     </div>
 
@@ -29,7 +29,7 @@
         <section v-if="activeTab === 'system'" class="setting-section">
           <div class="section-heading">
             <i class="bi bi-info-circle"></i>
-            <span>System Information</span>
+            <span>Thông tin hệ thống</span>
           </div>
           <div class="info-grid">
             <div class="info-row" v-for="r in sysInfo" :key="r.label">
@@ -40,14 +40,14 @@
 
           <div class="section-heading mt">
             <i class="bi bi-shield-check"></i>
-            <span>API Health</span>
+            <span>Trạng thái API</span>
           </div>
           <div class="health-row">
             <span class="health-dot" :class="apiStatus"></span>
-            <span class="health-label">Backend API</span>
-            <span class="health-status">{{ apiStatus === 'ok' ? 'Connected' : apiStatus === 'checking' ? 'Checking…' : 'Unreachable' }}</span>
+            <span class="health-label">API Backend</span>
+            <span class="health-status">{{ apiStatus === 'ok' ? 'Đã kết nối' : apiStatus === 'checking' ? 'Đang kiểm tra...' : 'Không thể kết nối' }}</span>
             <button class="btn-sm" @click="checkApi">
-              <i class="bi bi-arrow-repeat"></i> Check
+              <i class="bi bi-arrow-repeat"></i> Kiểm tra
             </button>
           </div>
         </section>
@@ -56,11 +56,11 @@
         <section v-if="activeTab === 'account'" class="setting-section">
           <div class="section-heading">
             <i class="bi bi-person-circle"></i>
-            <span>Account</span>
+            <span>Tài khoản</span>
           </div>
           <div class="info-grid">
             <div class="info-row">
-              <span class="info-label">Username</span>
+              <span class="info-label">Tên đăng nhập</span>
               <span class="info-value">{{ auth.user?.username || '—' }}</span>
             </div>
             <div class="info-row">
@@ -68,26 +68,26 @@
               <span class="info-value">{{ auth.user?.email || '—' }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">Role</span>
-              <span class="info-value"><span class="badge-role">{{ auth.user?.roleName || '—' }}</span></span>
+              <span class="info-label">Vai trò</span>
+              <span class="info-value"><span class="badge-role">{{ auth.user?.roleName || auth.user?.role || '—' }}</span></span>
             </div>
           </div>
 
           <div class="action-row">
             <router-link to="/profile" class="btn-primary">
-              <i class="bi bi-person-gear"></i> Edit Profile
+              <i class="bi bi-person-gear"></i> Chỉnh sửa hồ sơ
             </router-link>
           </div>
 
           <div class="section-heading mt">
             <i class="bi bi-lock"></i>
-            <span>Security</span>
+            <span>Bảo mật</span>
           </div>
           <div class="toggle-list">
             <div class="toggle-row">
               <div>
-                <div class="toggle-label">Session Auto-Logout</div>
-                <div class="toggle-desc">Automatically logout after inactivity</div>
+                <div class="toggle-label">Tự động đăng xuất</div>
+                <div class="toggle-desc">Tự động đăng xuất sau thời gian không hoạt động</div>
               </div>
               <label class="switch">
                 <input type="checkbox" v-model="prefs.autoLogout" @change="savePrefs">
@@ -101,13 +101,13 @@
         <section v-if="activeTab === 'appearance'" class="setting-section">
           <div class="section-heading">
             <i class="bi bi-palette"></i>
-            <span>Display</span>
+            <span>Hiển thị</span>
           </div>
           <div class="toggle-list">
             <div class="toggle-row">
               <div>
-                <div class="toggle-label">Compact Mode</div>
-                <div class="toggle-desc">Reduce spacing in tables and lists</div>
+                <div class="toggle-label">Chế độ gọn</div>
+                <div class="toggle-desc">Giảm khoảng cách trong bảng và danh sách</div>
               </div>
               <label class="switch">
                 <input type="checkbox" v-model="prefs.compact" @change="savePrefs">
@@ -116,8 +116,8 @@
             </div>
             <div class="toggle-row">
               <div>
-                <div class="toggle-label">Show Row Numbers</div>
-                <div class="toggle-desc">Display row index in all tables</div>
+                <div class="toggle-label">Hiển thị số thứ tự</div>
+                <div class="toggle-desc">Hiển thị số dòng trong tất cả bảng</div>
               </div>
               <label class="switch">
                 <input type="checkbox" v-model="prefs.showRowNumbers" @change="savePrefs">
@@ -128,10 +128,10 @@
 
           <div class="section-heading mt">
             <i class="bi bi-translate"></i>
-            <span>Language & Region</span>
+            <span>Ngôn ngữ và khu vực</span>
           </div>
           <div class="select-row">
-            <label class="sr-label">Date Format</label>
+            <label class="sr-label">Định dạng ngày</label>
             <div class="select-wrap">
               <select v-model="prefs.dateFormat" @change="savePrefs">
                 <option value="DD/MM/YYYY">DD/MM/YYYY</option>
@@ -142,12 +142,12 @@
             </div>
           </div>
           <div class="select-row">
-            <label class="sr-label">Default Page Size</label>
+            <label class="sr-label">Số dòng mặc định</label>
             <div class="select-wrap">
               <select v-model.number="prefs.defaultPageSize" @change="savePrefs">
-                <option :value="10">10 rows</option>
-                <option :value="20">20 rows</option>
-                <option :value="50">50 rows</option>
+                <option :value="10">10 dòng</option>
+                <option :value="20">20 dòng</option>
+                <option :value="50">50 dòng</option>
               </select>
               <i class="bi bi-chevron-down"></i>
             </div>
@@ -158,7 +158,7 @@
         <section v-if="activeTab === 'notif'" class="setting-section">
           <div class="section-heading">
             <i class="bi bi-bell"></i>
-            <span>Notification Preferences</span>
+            <span>Tùy chọn thông báo</span>
           </div>
           <div class="toggle-list">
             <div class="toggle-row" v-for="n in notifOptions" :key="n.key">
@@ -179,14 +179,16 @@
 
     <!-- Save toast -->
     <transition name="fade">
-      <div v-if="saved" class="save-toast"><i class="bi bi-check-circle-fill"></i> Preferences saved</div>
+      <div v-if="saved" class="save-toast"><i class="bi bi-check-circle-fill"></i> Đã lưu tùy chọn</div>
     </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth.store.js'
+import api from '@/services/axios.js'
+import pkg from '../../../package.json'
 
 const auth = useAuthStore()
 
@@ -195,26 +197,26 @@ const apiStatus = ref('checking') // 'ok' | 'error' | 'checking'
 const saved = ref(false)
 
 const tabs = [
-  { key: 'system',     label: 'System',       icon: 'bi-info-circle' },
-  { key: 'account',    label: 'Account',       icon: 'bi-person' },
-  { key: 'appearance', label: 'Appearance',    icon: 'bi-palette' },
-  { key: 'notif',      label: 'Notifications', icon: 'bi-bell' },
+  { key: 'system',     label: 'Hệ thống',     icon: 'bi-info-circle' },
+  { key: 'account',    label: 'Tài khoản',    icon: 'bi-person' },
+  { key: 'appearance', label: 'Giao diện',     icon: 'bi-palette' },
+  { key: 'notif',      label: 'Thông báo',     icon: 'bi-bell' },
 ]
 
-const sysInfo = [
-  { label: 'Application',    value: 'Vantix HRM',   cls: '' },
-  { label: 'Version',        value: 'v1.0.0',        cls: '' },
-  { label: 'Environment',    value: 'Development',   cls: 'badge-env' },
-  { label: 'Backend',        value: 'Spring Boot 3 · Java 17', cls: '' },
-  { label: 'Frontend',       value: 'Vue 3 + Vite',  cls: '' },
-  { label: 'Database',       value: 'MySQL',          cls: '' },
-]
+const sysInfo = computed(() => [
+  { label: 'Ứng dụng', value: 'Vantix HRM', cls: '' },
+  { label: 'Phiên bản', value: pkg.version || '—', cls: '' },
+  { label: 'Môi trường', value: import.meta.env.MODE, cls: 'badge-env' },
+  { label: 'Người dùng đăng nhập', value: auth.user?.username || '—', cls: '' },
+  { label: 'Vai trò', value: auth.user?.roleName || auth.user?.role || '—', cls: '' },
+  { label: 'Quyền', value: auth.userPermissions.length.toLocaleString('vi-VN'), cls: '' },
+])
 
 const notifOptions = [
-  { key: 'leaveApproval',  label: 'Leave Approval',   desc: 'When a leave request is approved or rejected' },
-  { key: 'contractExpiry', label: 'Contract Expiry',  desc: 'Reminder when a contract is about to expire' },
-  { key: 'newEmployee',    label: 'New Employee',      desc: 'When a new employee is added to the system' },
-  { key: 'salaryReady',    label: 'Salary Ready',      desc: 'When monthly salary batch is processed' },
+  { key: 'leaveApproval',  label: 'Duyệt nghỉ phép',   desc: 'Khi đơn nghỉ phép được duyệt hoặc từ chối' },
+  { key: 'contractExpiry', label: 'Hết hạn hợp đồng',  desc: 'Nhắc khi hợp đồng sắp hết hạn' },
+  { key: 'newEmployee',    label: 'Nhân viên mới',     desc: 'Khi nhân viên mới được thêm vào hệ thống' },
+  { key: 'salaryReady',    label: 'Lương đã xử lý',    desc: 'Khi đợt lương tháng được xử lý' },
 ]
 
 // ── Preferences (stored in localStorage) ─────────────────────────────────────
@@ -257,24 +259,16 @@ function savePrefs() {
 async function checkApi() {
   apiStatus.value = 'checking'
   try {
-    await fetch('/api/auth/health').then(r => { if (!r.ok) throw new Error() })
+    await api.get('/auth/me')
     apiStatus.value = 'ok'
   } catch {
-    // Fallback: try any endpoint
-    try {
-      const token = localStorage.getItem('token')
-      const r = await fetch('/api/employees?page=0&size=1', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      })
-      apiStatus.value = r.status < 500 ? 'ok' : 'error'
-    } catch {
-      apiStatus.value = 'error'
-    }
+    apiStatus.value = 'error'
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   loadPrefs()
+  await auth.fetchMe()
   checkApi()
 })
 </script>

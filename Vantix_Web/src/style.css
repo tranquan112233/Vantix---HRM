@@ -1,98 +1,80 @@
-/* ─── Global Variables ───────────────────────────────────────────────────── */
-:root {
-  --primary:       #6366f1;
-  --primary-light: rgba(99,102,241,0.1);
-  --primary-hover: #4f46e5;
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
 
-  --bg:            #f8fafc;
-  --bg-white:      #ffffff;
-  --border:        #e2e8f0;
-
-  --text:          #0f172a;
-  --text-muted:    #64748b;
-  --text-dim:      #94a3b8;
-
-  --danger:        #ef4444;
-  --success:       #22c55e;
-
-  --radius:        10px;
-  --radius-sm:     7px;
-  --shadow-sm:     0 1px 3px rgba(0,0,0,0.06);
-  --shadow:        0 4px 16px rgba(0,0,0,0.08);
-  --transition:    0.15s ease;
-}
+/* Design tokens live in assets/css/variables.css — this file is global resets
+   and third-party overrides only.                                            */
 
 /* ─── Reset ──────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
-body {
-  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  -webkit-font-smoothing: antialiased;
+html, body {
+  margin: 0;
+  padding: 0;
 }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text-dark);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+a { color: inherit; }
+
+button { font-family: inherit; }
 
 /* ─── Scrollbar ──────────────────────────────────────────────────────────── */
-::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar       { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-pill); }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
 
-/* ─── Toast override ─────────────────────────────────────────────────────── */
-/* ===== BASE ===== */
+/* ─── Toast overrides (vue-toastification) ───────────────────────────────── */
 .Vue-Toastification__toast {
-  background: #ffffff;
-  color: #0f172a;
-  border-radius: 10px;
-  font-size: 8px;
-  padding: 16px 16px; /* Thêm padding để có chiều cao hợp lý */
-  min-height: 50px; /* Đảm bảo chiều cao tối thiểu */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  background: var(--bg-white);
+  color: var(--text-dark);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 14px 16px;
+  min-height: 52px;
+  box-shadow: var(--shadow);
 }
 
-/* ===== ICON ===== */
 .Vue-Toastification__icon {
-  font-size: 15px;
+  font-size: 18px;
   opacity: 1;
 }
 
-/* ===== PROGRESS BAR ===== */
 .Vue-Toastification__progress-bar {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
-/* ===== SUCCESS ===== */
-.Vue-Toastification__toast--success .Vue-Toastification__icon {
-  color: #22c55e;
-}
+.Vue-Toastification__toast--success .Vue-Toastification__icon,
 .Vue-Toastification__toast--success .Vue-Toastification__progress-bar {
-  background: #22c55e;
+  color: var(--success-color);
+  background: var(--success-color);
 }
 
-/* ===== ERROR ===== */
-.Vue-Toastification__toast--error .Vue-Toastification__icon {
-  color: #ef4444;
-}
+.Vue-Toastification__toast--error .Vue-Toastification__icon,
 .Vue-Toastification__toast--error .Vue-Toastification__progress-bar {
-  background: #ef4444;
+  color: var(--danger-color);
+  background: var(--danger-color);
 }
 
-/* ===== WARNING ===== */
-.Vue-Toastification__toast--warning .Vue-Toastification__icon {
-  color: #f59e0b;
-}
+.Vue-Toastification__toast--warning .Vue-Toastification__icon,
 .Vue-Toastification__toast--warning .Vue-Toastification__progress-bar {
-  background: #f59e0b;
+  color: var(--warning-color);
+  background: var(--warning-color);
 }
 
-/* ===== INFO ===== */
-.Vue-Toastification__toast--info .Vue-Toastification__icon {
-  color: #6366f1; /* match màu primary của bạn */
-}
+.Vue-Toastification__toast--info .Vue-Toastification__icon,
 .Vue-Toastification__toast--info .Vue-Toastification__progress-bar {
-  background: #6366f1;
+  color: var(--primary-color);
+  background: var(--primary-color);
 }
 
 .Vue-Toastification__close-button {
-  color: #94a3b8; /* xám nhẹ */
+  color: var(--text-dim);
 }

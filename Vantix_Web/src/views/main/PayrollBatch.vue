@@ -1,6 +1,6 @@
 <script setup>
 import {ref, reactive, computed, onMounted} from 'vue'
-import {useToast} from 'vue-toastification'
+import {useToast} from '@/utils/toast'
 import payrollbatchService from '@/services/payrollbatch.service'
 import salariesService from '@/services/salaries.service'
 
@@ -235,7 +235,7 @@ function getStatusLabel(status) {
 </script>
 
 <template>
-  <div class="salary-management">
+  <div class="salary-management mgmt-page">
 
     <div class="page-header">
       <div class="header-left">

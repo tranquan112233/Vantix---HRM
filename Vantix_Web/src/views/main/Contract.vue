@@ -1,5 +1,5 @@
 <template>
-  <div class="contract-management">
+  <div class="contract-management mgmt-page">
     <div class="page-header">
       <div class="header-left">
         <div class="title-icon">
@@ -121,14 +121,13 @@
           </tr>
           </thead>
           <tbody>
-          <tr v-for="(c, index) in filteredContracts" :key="c.contractId" class="table-row">
-            <td class="col-num text-muted">{{ index + 1 }}</td>
+          <tr v-for="(c, index) in paginatedContracts" :key="c.contractId" class="table-row">
+            <td class="col-num text-muted">{{ pageStart + index + 1 }}</td>
 
             <td>
               <div class="user-cell">
-                <div class="avatar"
-                     :style="{ background: avatarGradient(c.fullName || c.employeeId?.toString() || 'U') }">
-                  {{ getInitials(c.fullName || c.employeeId?.toString() || 'U') }}
+                <div class="avatar" :style="{ background: c.avatarBg }">
+                  {{ c.initials }}
                 </div>
                 <div class="user-info">
                   <span class="user-name">{{ c.fullName || 'Chưa rõ tên' }}</span>
@@ -142,20 +141,20 @@
             <td>
               <span class="role-badge">
                 <i class="bi bi-file-text"></i>
-                {{ getTypeLabel(c.type) }}
+                {{ c.typeLabel }}
               </span>
             </td>
 
             <td>
               <div class="time-cell">
-                <span>{{ formatDate(c.startDate) }}</span>
+                <span>{{ c.startDateLabel }}</span>
                 <i class="bi bi-arrow-right-short text-muted"></i>
-                <span>{{ formatDate(c.endDate) }}</span>
+                <span>{{ c.endDateLabel }}</span>
               </div>
             </td>
 
             <td>
-              <span class="salary-text">{{ formatCurrency(c.baseSalary) }}</span>
+              <span class="salary-text">{{ c.salaryLabel }}</span>
             </td>
 
             <td>
@@ -180,6 +179,21 @@
           </tr>
           </tbody>
         </table>
+      </div>
+
+      <div v-if="filteredContracts.length > pageSize" class="pagination-bar">
+        <div class="pagination-info">
+          Hiển thị {{ pageStart + 1 }}-{{ pageEnd }} / {{ filteredContracts.length }} hợp đồng
+        </div>
+        <div class="pagination-actions">
+          <button class="page-btn" :disabled="currentPage === 1" @click="currentPage -= 1">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          <span class="page-current">Trang {{ currentPage }} / {{ totalPages }}</span>
+          <button class="page-btn" :disabled="currentPage === totalPages" @click="currentPage += 1">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -352,9 +366,9 @@
 </template>
 
 <script setup>
-import {ref, computed, onMounted, watch} from 'vue';
+import {ref, computed, onMounted, onUnmounted, watch} from 'vue';
 import {useRouter} from 'vue-router';
-import {useToast} from 'vue-toastification';
+import {useToast} from '@/utils/toast';
 import contractService from "@/services/contract.service";
 import positionsService from "@/services/position.service.js";
 import { useAuthStore } from '@/stores/auth.store.js';
@@ -378,8 +392,12 @@ const contractIdToDelete = ref(null);
 
 const currentFilter = ref('ALL');
 const searchQuery = ref('');
+const debouncedSearchQuery = ref('');
 const selectedType = ref('ALL');
 const selectedPosition = ref('ALL');
+const currentPage = ref(1);
+const pageSize = 25;
+let searchTimer = null;
 
 // 🌟 Lưu giá trị thật (số thô)
 const minSalary = ref(null);
@@ -451,15 +469,18 @@ const selectPosition = (pos) => {
 };
 
 // --- HELPER FORMATTERS ---
-const formatCurrency = (value) => new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(value);
-const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleDateString('vi-VN', {
+const currencyFormatter = new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'});
+const dateFormatter = new Intl.DateTimeFormat('vi-VN', {
   day: '2-digit',
   month: '2-digit',
   year: 'numeric'
-}) : 'Vô thời hạn';
+});
+const typeLabels = {'YEAR_1': '1 Năm', 'YEAR_3': '3 Năm', 'INDEFINITE': 'Vô thời hạn'};
+
+const formatCurrency = (value) => currencyFormatter.format(value || 0);
+const formatDate = (dateStr) => dateStr ? dateFormatter.format(new Date(dateStr)) : 'Vô thời hạn';
 const getTypeLabel = (type) => {
-  const map = {'YEAR_1': '1 Năm', 'YEAR_3': '3 Năm', 'INDEFINITE': 'Vô thời hạn'};
-  return map[type] || type;
+  return typeLabels[type] || type;
 };
 const getInitials = (name) => name ? name.charAt(0).toUpperCase() : 'U';
 
@@ -476,6 +497,20 @@ const avatarGradient = (name) => {
   return GRADIENTS[Math.abs(hash) % GRADIENTS.length];
 };
 
+const normalizeContract = (contract) => {
+  const displayName = contract.fullName || contract.employeeId?.toString() || 'U';
+  return {
+    ...contract,
+    typeLabel: getTypeLabel(contract.type),
+    startDateLabel: formatDate(contract.startDate),
+    endDateLabel: formatDate(contract.endDate),
+    salaryLabel: formatCurrency(contract.baseSalary),
+    initials: getInitials(displayName),
+    avatarBg: avatarGradient(displayName),
+    searchText: `${contract.fullName || ''} ${contract.employeeId || ''}`.toLowerCase(),
+  };
+};
+
 const availablePositions = computed(() => {
   const positions = contracts.value.map(c => c.position).filter(Boolean);
   return [...new Set(positions)];
@@ -483,8 +518,17 @@ const availablePositions = computed(() => {
 
 // --- COMPUTED STATS ---
 const totalContracts = computed(() => contracts.value.length);
-const activeContracts = computed(() => contracts.value.filter(c => c.status === 'ACTIVE').length);
-const expiredContracts = computed(() => contracts.value.filter(c => c.status === 'EXPIRED').length);
+const contractStats = computed(() => {
+  let active = 0;
+  let expired = 0;
+  for (const contract of contracts.value) {
+    if (contract.status === 'ACTIVE') active += 1;
+    if (contract.status === 'EXPIRED') expired += 1;
+  }
+  return {active, expired};
+});
+const activeContracts = computed(() => contractStats.value.active);
+const expiredContracts = computed(() => contractStats.value.expired);
 
 // --- LOGIC LỌC ĐA TẦNG ---
 const filteredContracts = computed(() => {
@@ -498,16 +542,17 @@ const filteredContracts = computed(() => {
   if (minSalary.value !== null && minSalary.value !== '') result = result.filter(c => c.baseSalary >= Number(minSalary.value));
   if (maxSalary.value !== null && maxSalary.value !== '') result = result.filter(c => c.baseSalary <= Number(maxSalary.value));
 
-  if (searchQuery.value.trim() !== '') {
-    const query = searchQuery.value.toLowerCase().trim();
-    result = result.filter(c => {
-      const nameMatch = c.fullName?.toLowerCase().includes(query);
-      const idMatch = c.employeeId?.toString().includes(query);
-      return nameMatch || idMatch;
-    });
+  if (debouncedSearchQuery.value.trim() !== '') {
+    const query = debouncedSearchQuery.value.toLowerCase().trim();
+    result = result.filter(c => c.searchText.includes(query));
   }
   return result;
 });
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredContracts.value.length / pageSize)));
+const pageStart = computed(() => (currentPage.value - 1) * pageSize);
+const pageEnd = computed(() => Math.min(pageStart.value + pageSize, filteredContracts.value.length));
+const paginatedContracts = computed(() => filteredContracts.value.slice(pageStart.value, pageEnd.value));
 
 const isFilterActive = computed(() => {
   return currentFilter.value !== 'ALL' || selectedType.value !== 'ALL' ||
@@ -519,11 +564,27 @@ const isFilterActive = computed(() => {
 const clearFilters = () => {
   currentFilter.value = 'ALL';
   searchQuery.value = '';
+  debouncedSearchQuery.value = '';
   selectedType.value = 'ALL';
   selectedPosition.value = 'ALL';
   minSalary.value = null;
   maxSalary.value = null;
 };
+
+watch(searchQuery, (value) => {
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    debouncedSearchQuery.value = value;
+  }, 180);
+});
+
+watch([currentFilter, debouncedSearchQuery, selectedType, selectedPosition, minSalary, maxSalary], () => {
+  currentPage.value = 1;
+});
+
+watch(totalPages, (pages) => {
+  if (currentPage.value > pages) currentPage.value = pages;
+});
 
 // --- AUTO-CALCULATE END DATE ---
 watch([() => form.value.startDate, () => form.value.type], ([newStart, newType]) => {
@@ -546,7 +607,7 @@ const fetchContracts = async () => {
   loading.value = true;
   try {
     const response = await contractService.getAll();
-    contracts.value = response.data;
+    contracts.value = (response.data || []).map(normalizeContract);
   } catch (error) {
     toast.error("Lỗi khi tải danh sách hợp đồng");
   } finally {
@@ -653,6 +714,10 @@ const viewAnnex = (id) => router.push({name: 'ContractAnnex', params: {id}});
 onMounted(() => {
   fetchContracts();
   fetchPositions();
+});
+
+onUnmounted(() => {
+  if (searchTimer) clearTimeout(searchTimer);
 });
 </script>
 
@@ -1115,6 +1180,54 @@ onMounted(() => {
 
 .table-responsive {
   overflow-x: auto;
+}
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid #f1f5f9;
+  background: #fafbff;
+}
+
+.pagination-info,
+.page-current {
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-btn {
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  border-color: #c7d2fe;
+  color: #4f46e5;
+  background: #f8fafc;
+}
+
+.page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .data-table {
@@ -1676,6 +1789,15 @@ onMounted(() => {
 
   .stats-row {
     gap: 10px;
+  }
+
+  .pagination-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pagination-actions {
+    justify-content: space-between;
   }
 }
 </style>

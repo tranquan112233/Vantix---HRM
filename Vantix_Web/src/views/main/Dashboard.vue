@@ -1,12 +1,17 @@
 <template>
-  <div class="dashboard">
+  <div class="dashboard mgmt-page">
     <!-- Header -->
-    <div class="dash-header">
+    <div class="page-header dash-header">
       <div>
-        <h1 class="dash-title">Dashboard</h1>
-        <p class="dash-sub">{{ greeting }}, <strong>{{ auth.user?.fullName || auth.user?.username }}</strong></p>
+        <h1 class="page-title dash-title">Bảng điều khiển</h1>
+        <p class="page-desc dash-sub">{{ greeting }}, <strong>{{ auth.user?.fullName || auth.user?.username }}</strong></p>
       </div>
-      <span class="dash-date">{{ todayStr }}</span>
+      <div class="header-actions">
+        <span class="status-badge open dash-date">
+          <span class="dot"></span>
+          {{ todayStr }}
+        </span>
+      </div>
     </div>
 
     <!-- Stat Cards -->
@@ -33,15 +38,15 @@
       <!-- Recent Hires -->
       <div class="card-block recent-block">
         <div class="block-header">
-          <span class="block-title"><i class="bi bi-person-plus"></i> Recent Hires</span>
-          <router-link to="/employees" class="block-link">View all <i class="bi bi-arrow-right"></i></router-link>
+          <span class="block-title"><i class="bi bi-person-plus"></i> Nhân viên mới</span>
+          <router-link to="/employees" class="block-link">Xem tất cả <i class="bi bi-arrow-right"></i></router-link>
         </div>
         <div v-if="loading.recent" class="state-center-sm">
           <div class="spinner-border spinner-border-sm text-secondary"></div>
         </div>
         <div v-else-if="recentEmployees.length === 0" class="state-center-sm">
           <i class="bi bi-people" style="font-size:28px;color:#ccc"></i>
-          <p style="color:#aaa;margin-top:6px;font-size:13px">No employees yet</p>
+          <p style="color:#aaa;margin-top:6px;font-size:13px">Chưa có nhân viên</p>
         </div>
         <ul v-else class="hire-list">
           <li v-for="emp in recentEmployees" :key="emp.id" class="hire-item">
@@ -60,8 +65,8 @@
       <!-- Departments -->
       <div class="card-block dept-block">
         <div class="block-header">
-          <span class="block-title"><i class="bi bi-diagram-3"></i> Departments</span>
-          <router-link to="/departments" class="block-link">Manage <i class="bi bi-arrow-right"></i></router-link>
+          <span class="block-title"><i class="bi bi-diagram-3"></i> Phòng ban</span>
+          <router-link to="/departments" class="block-link">Quản lý <i class="bi bi-arrow-right"></i></router-link>
         </div>
         <div v-if="loading.depts" class="state-center-sm">
           <div class="spinner-border spinner-border-sm text-secondary"></div>
@@ -80,7 +85,7 @@
       <!-- Quick Links -->
       <div class="card-block quick-block">
         <div class="block-header">
-          <span class="block-title"><i class="bi bi-lightning"></i> Quick Access</span>
+          <span class="block-title"><i class="bi bi-lightning"></i> Truy cập nhanh</span>
         </div>
         <div class="quick-grid">
           <router-link v-for="q in quickLinks" :key="q.to" :to="q.to" class="quick-item">
@@ -116,28 +121,28 @@ const departments     = ref([])
 
 const stats = computed(() => [
   {
-    label: 'Total Employees',
+    label: 'Tổng nhân viên',
     value: totalEmployees.value,
     icon: 'bi-people-fill',
     bg: 'linear-gradient(135deg,#6366f1,#818cf8)',
     trend: null
   },
   {
-    label: 'Working',
+    label: 'Đang làm việc',
     value: totalWorking.value,
     icon: 'bi-person-check-fill',
     bg: 'linear-gradient(135deg,#10b981,#34d399)',
     trend: null
   },
   {
-    label: 'Resigned',
+    label: 'Đã nghỉ việc',
     value: totalResigned.value,
     icon: 'bi-person-dash-fill',
     bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)',
     trend: null
   },
   {
-    label: 'Departments',
+    label: 'Phòng ban',
     value: totalDepts.value,
     icon: 'bi-diagram-3-fill',
     bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)',
@@ -147,9 +152,9 @@ const stats = computed(() => [
 
 const greeting = computed(() => {
   const h = new Date().getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 18) return 'Good afternoon'
-  return 'Good evening'
+  if (h < 12) return 'Chào buổi sáng'
+  if (h < 18) return 'Chào buổi chiều'
+  return 'Chào buổi tối'
 })
 
 const todayStr = computed(() =>
@@ -157,12 +162,12 @@ const todayStr = computed(() =>
 )
 
 const quickLinks = [
-  { label: 'Employees',   to: '/employees',    icon: 'bi-people',         bg: 'linear-gradient(135deg,#6366f1,#818cf8)' },
-  { label: 'Contracts',   to: '/contracts',    icon: 'bi-file-text',      bg: 'linear-gradient(135deg,#10b981,#34d399)' },
-  { label: 'Attendance',  to: '/attendances',  icon: 'bi-calendar-check', bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)' },
-  { label: 'Schedules',   to: '/schedules',    icon: 'bi-calendar3',      bg: 'linear-gradient(135deg,#8b5cf6,#a78bfa)' },
-  { label: 'Salaries',    to: '/salaries',     icon: 'bi-cash-coin',      bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)' },
-  { label: 'Leave Mgr',   to: '/leaves-manager',icon: 'bi-inbox',         bg: 'linear-gradient(135deg,#ef4444,#f87171)' },
+  { label: 'Nhân viên',   to: '/employees',    icon: 'bi-people',         bg: 'linear-gradient(135deg,#6366f1,#818cf8)' },
+  { label: 'Hợp đồng',    to: '/contracts',    icon: 'bi-file-text',      bg: 'linear-gradient(135deg,#10b981,#34d399)' },
+  { label: 'Chấm công',   to: '/attendances',  icon: 'bi-calendar-check', bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)' },
+  { label: 'Lịch làm',    to: '/schedules',    icon: 'bi-calendar3',      bg: 'linear-gradient(135deg,#8b5cf6,#a78bfa)' },
+  { label: 'Lương',       to: '/salaries',     icon: 'bi-cash-coin',      bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)' },
+  { label: 'Duyệt nghỉ',  to: '/leaves-manager',icon: 'bi-inbox',         bg: 'linear-gradient(135deg,#ef4444,#f87171)' },
 ]
 
 // ── Lifecycle ────────────────────────────────────────────────────────────────

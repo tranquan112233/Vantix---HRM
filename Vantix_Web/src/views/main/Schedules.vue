@@ -14,6 +14,7 @@ const canUpdateStatus   = computed(() => auth.can('SCHEDULE_STATUS_UPDATE'));
 
 const employees = ref([]);
 const selectedEmployeeId = ref(null);
+const selectedEmployee = computed(() => employees.value.find(emp => emp.id === selectedEmployeeId.value) || null);
 
 // Biến nhận diện Trưởng phòng hay Nhân viên
 const isManager = ref(false);
@@ -79,7 +80,7 @@ const fetchSchedules = async (month, year) => {
 
   } catch (error) {
     console.error("Lỗi khi tải dữ liệu lịch làm việc:", error);
-    showMessage("❌ Lỗi kết nối khi tải dữ liệu!", 'error');
+    showMessage("Không thể tải dữ liệu lịch làm việc.", 'error');
   }
 };
 
@@ -89,8 +90,9 @@ watch(selectedEmployeeId, () => {
   }
 });
 
-onMounted(() => {
-  fetchSchedules(expandedMonths.value[0], selectedYear.value);
+onMounted(async () => {
+  if (!auth.user && auth.token) await auth.fetchMe();
+  await fetchSchedules(expandedMonths.value[0], selectedYear.value);
 
   setTimeout(() => {
     const currentMonth = expandedMonths.value[0];
@@ -263,7 +265,7 @@ const clearMonth = (month) => {
 
 const saveSchedule = async (month) => {
   if (!selectedEmployeeId.value) {
-    showMessage("⚠️ Vui lòng chọn một nhân viên trước khi lưu!", 'warning');
+    showMessage("Vui lòng chọn một nhân viên trước khi lưu.", 'warning');
     return;
   }
 
@@ -284,11 +286,11 @@ const saveSchedule = async (month) => {
 
   try {
     await ScheduleService.saveDailySchedules(selectedEmployeeId.value, month, selectedYear.value, dailyData);
-    showMessage("🎉 Lưu lịch làm việc thành công!", 'success');
+    showMessage("Lưu lịch làm việc thành công.", 'success');
     await fetchSchedules(month, selectedYear.value);
   } catch (error) {
     console.error("Lỗi khi lưu lịch:", error);
-    showMessage("❌ Có lỗi xảy ra khi lưu lịch!", 'error');
+    showMessage("Có lỗi xảy ra khi lưu lịch.", 'error');
   }
 };
 
@@ -311,16 +313,36 @@ const toggleLockStatus = async (month) => {
   try {
     await ScheduleService.updateStatus(emp.monthlySchedule.monthlyScheduleId, newStatus);
     emp.monthlySchedule.status = newStatus;
-    showMessage(`✅ Đã ${actionText} thành công!`, 'success');
+    showMessage(`Đã ${actionText.toLowerCase()} thành công.`, 'success');
   } catch (error) {
     console.error("Lỗi khi cập nhật trạng thái:", error);
-    showMessage("❌ Có lỗi xảy ra khi đổi trạng thái!", 'error');
+    showMessage("Có lỗi xảy ra khi đổi trạng thái.", 'error');
   }
 };
 </script>
 
 <template>
-  <div class="page-wrapper">
+  <div class="schedule-page mgmt-page">
+    <div class="page-header">
+      <div class="header-left">
+        <h1 class="page-title">Lịch làm việc</h1>
+        <p class="page-desc">
+          {{ isManager ? 'Phân ca cho nhân viên đang chọn và chốt lịch làm việc theo tháng.' : 'Xem lịch làm việc cá nhân theo từng tháng.' }}
+        </p>
+      </div>
+      <div class="header-actions">
+        <span v-if="isManager && selectedEmployee" class="role-badge selected-employee">
+          <i class="bi bi-person-circle"></i>
+          {{ selectedEmployee.name }}
+        </span>
+        <div class="select-wrapper compact-select">
+          <select v-model="selectedYear" @change="fetchSchedules(expandedMonths[0], selectedYear)">
+            <option v-for="y in 5" :key="y" :value="currentYear - 2 + y">Năm {{ currentYear - 2 + y }}</option>
+          </select>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+      </div>
+    </div>
 
     <transition name="fade">
       <div v-if="message" :class="['alert-toast', messageType]">
@@ -328,116 +350,112 @@ const toggleLockStatus = async (month) => {
       </div>
     </transition>
 
-    <div class="schedules-layout">
-      <div class="sidebar content-card" v-if="isManager">
-        <div class="sidebar-header">
-          <h3>Nhân viên ({{ employees.length }})</h3>
+    <div class="schedule-layout">
+      <aside v-if="isManager" class="sidebar-card team-sidebar">
+        <div class="panel-heading">
+          <i class="bi bi-people"></i>
+          <span>Nhân viên</span>
+        </div>
+        <p class="panel-copy">Chọn nhân viên để phân ca, lưu và khóa lịch theo từng tháng.</p>
+
+        <div v-if="employees.length === 0" class="empty-sidebar">
+          <i class="bi bi-people"></i>
+          <span>Đang tải dữ liệu hoặc chưa có nhân viên khả dụng.</span>
         </div>
 
-        <div class="employee-list-container">
-          <div v-if="employees.length === 0" class="text-muted" style="padding: 12px; text-align: center;">
-            Đang tải dữ liệu hoặc không có nhân viên...
-          </div>
-
-          <template v-else>
-            <div class="employee-list">
-              <label
-                  v-for="emp in employees"
-                  :key="emp.id"
-                  :class="['employee-item', { 'is-selected-emp': selectedEmployeeId === emp.id }]"
-              >
-                <input
-                    type="radio"
-                    name="employeeSelection"
-                    :value="emp.id"
-                    v-model="selectedEmployeeId"
-                    class="custom-radio"
-                />
-                <div class="emp-info">
-                  <span class="emp-name">{{ emp.name }}</span>
-                  <span class="emp-code">{{ emp.code }}</span>
-                </div>
-              </label>
+        <div v-else class="employee-list">
+          <label
+            v-for="emp in employees"
+            :key="emp.id"
+            :class="['employee-item', { 'is-selected-emp': selectedEmployeeId === emp.id }]"
+          >
+            <input
+              v-model="selectedEmployeeId"
+              type="radio"
+              name="employeeSelection"
+              :value="emp.id"
+              class="custom-radio"
+            />
+            <div class="emp-info">
+              <span class="emp-name">{{ emp.name }}</span>
+              <span class="emp-code">{{ emp.code }}</span>
             </div>
-          </template>
+          </label>
         </div>
-      </div>
+      </aside>
 
-      <div class="main-content content-card">
+      <div class="content-card schedule-content">
         <div class="card-header">
           <div class="header-title">
-            <span class="header-icon">🗓️</span>
+            <span class="header-icon"><i class="bi bi-calendar3"></i></span>
             <div>
               <h2>{{ isManager ? 'Lịch làm việc tổng hợp' : 'Lịch làm việc cá nhân' }}</h2>
-              <p>{{ isManager ? 'Phân ca làm việc cho nhân viên đang chọn' : 'Xem chi tiết lịch làm việc của bạn' }}</p>
-            </div>
-          </div>
-          <div class="header-filters">
-            <div class="search-box">
-              <select v-model="selectedYear" class="flat-select"
-                      @change="fetchSchedules(expandedMonths[0], selectedYear)">
-                <option v-for="y in 5" :key="y" :value="currentYear - 2 + y">Năm {{ currentYear - 2 + y }}</option>
-              </select>
+              <p>{{ isManager ? 'Phân ca cho nhân viên đang chọn bằng thao tác kéo thả trên lịch.' : 'Theo dõi các ca làm việc đã được phân cho bạn.' }}</p>
             </div>
           </div>
         </div>
 
         <div class="months-container">
-          <div
-              v-for="month in 12"
-              :key="month"
-              :id="'month-card-' + month"
-              class="month-card"
-          >
-            <div class="month-header" @click="toggleMonth(month)" :class="{ 'is-open': isMonthExpanded(month) }">
+          <div v-for="month in 12" :key="month" :id="'month-card-' + month" class="month-card">
+            <div class="month-header" :class="{ 'is-open': isMonthExpanded(month) }" @click="toggleMonth(month)">
               <div class="month-title">
                 <h3>Tháng {{ month }}</h3>
                 <span class="month-badge">Năm {{ selectedYear }}</span>
+                <span
+                  v-if="isMonthExpanded(month) && isManager && getCurrentScheduleStatus()"
+                  :class="['status-badge', getCurrentScheduleStatus() === 'LOCKED' ? 'resigned' : 'open']"
+                >
+                  {{ getCurrentScheduleStatus() === 'LOCKED' ? 'Đã khóa' : 'Đang mở' }}
+                </span>
               </div>
-              <div class="toggle-icon">
-                {{ isMonthExpanded(month) ? '▲' : '▼' }}
-              </div>
+              <i :class="['bi month-toggle', isMonthExpanded(month) ? 'bi-chevron-up' : 'bi-chevron-down']"></i>
             </div>
 
             <transition name="slide-fade">
               <div v-if="isMonthExpanded(month)" class="month-body">
-
-                <div class="quick-actions" v-if="isManager">
+                <div v-if="isManager" class="quick-actions">
                   <div class="shift-selector">
-                    <span class="fw-600">Phân ca:</span>
-                    <select v-model="selectedShift" class="flat-select shift-select">
-                      <option v-for="shift in shiftOptions" :key="shift.id" :value="shift.id">
-                        {{ shift.label }}
-                      </option>
-                    </select>
+                    <span class="selector-label">Ca làm</span>
+                    <div class="select-wrapper shift-select-wrap">
+                      <select v-model="selectedShift">
+                        <option v-for="shift in shiftOptions" :key="shift.id" :value="shift.id">
+                          {{ shift.label }}
+                        </option>
+                      </select>
+                      <i class="bi bi-chevron-down"></i>
+                    </div>
                   </div>
+
                   <div class="action-buttons">
-                    <button v-if="canManageSchedule" class="btn btn-primary" @click="applyMonToSat(month)">
-                      ✅ Chọn T2 - T7
+                    <button v-if="canManageSchedule" class="btn-ghost" @click="applyMonToSat(month)">
+                      <i class="bi bi-calendar-week"></i>
+                      Chọn T2 - T7
                     </button>
-                    <button v-if="canManageSchedule" class="btn btn-outline text-danger" @click="clearMonth(month)">
-                      🗑️ Xóa lưới
+                    <button v-if="canManageSchedule" class="btn-ghost danger-ghost" @click="clearMonth(month)">
+                      <i class="bi bi-eraser"></i>
+                      Xóa lưới
                     </button>
-                    <button v-if="canManageSchedule" class="btn btn-primary" style="background-color: #67c23a;" @click="saveSchedule(month)">
-                      💾 Lưu Lịch
-                    </button>
-
-                    <button
-                        v-if="canUpdateStatus && getCurrentScheduleStatus() === 'OPEN'"
-                        class="btn btn-outline"
-                        style="border-color: #e6a23c; color: #e6a23c;"
-                        @click="toggleLockStatus(month)"
-                    >
-                      🔓 Đang Nháp (Bấm để Chốt)
+                    <button v-if="canManageSchedule" class="btn-primary" @click="saveSchedule(month)">
+                      <i class="bi bi-floppy"></i>
+                      Lưu lịch
                     </button>
 
                     <button
-                        v-if="canUpdateStatus && getCurrentScheduleStatus() === 'LOCKED'"
-                        class="btn btn-primary"
-                        style="background-color: #f56c6c; border-color: #f56c6c;"
-                        @click="toggleLockStatus(month)"
+                      v-if="canUpdateStatus && getCurrentScheduleStatus() === 'OPEN'"
+                      class="btn-ghost warning-ghost"
+                      @click="toggleLockStatus(month)"
                     >
-                      🔒 Đã Chốt (Bấm để Mở)
+                      <i class="bi bi-lock"></i>
+                      Chốt lịch
+                    </button>
+
+                    <button
+                      v-if="canUpdateStatus && getCurrentScheduleStatus() === 'LOCKED'"
+                      class="btn-danger"
+                      @click="toggleLockStatus(month)"
+                    >
+                      <i class="bi bi-unlock"></i>
+                      Mở khóa
                     </button>
                   </div>
                 </div>
@@ -455,24 +473,24 @@ const toggleLockStatus = async (month) => {
 
                   <div class="calendar-grid">
                     <div
-                        v-for="(day, index) in getCalendarDays(selectedYear, month)"
-                        :key="index"
-                        :class="[
-                          'calendar-cell',
-                          { 'is-clickable': day && isManager },
-                          { 'is-selected': getEffectiveShift(month, day) },
-                          { 'is-sunday': isDaySunday(month, day) },
-                          { 'is-previewing': isInDragRange(month, day) }
-                        ]"
-                        @mousedown.prevent="startDrag(month, day)"
-                        @mouseenter="onDragOver(month, day)"
+                      v-for="(day, index) in getCalendarDays(selectedYear, month)"
+                      :key="index"
+                      :class="[
+                        'calendar-cell',
+                        { 'is-clickable': day && isManager },
+                        { 'is-selected': getEffectiveShift(month, day) },
+                        { 'is-sunday': isDaySunday(month, day) },
+                        { 'is-previewing': isInDragRange(month, day) }
+                      ]"
+                      @mousedown.prevent="startDrag(month, day)"
+                      @mouseenter="onDragOver(month, day)"
                     >
                       <template v-if="day">
                         <div class="date-num">{{ day }}</div>
                         <div class="date-status-text">
                           <span
-                              v-if="getEffectiveShift(month, day)"
-                              :class="['vt-badge', getShiftBadgeClass(getEffectiveShift(month, day))]"
+                            v-if="getEffectiveShift(month, day)"
+                            :class="['vt-badge', getShiftBadgeClass(getEffectiveShift(month, day))]"
                           >
                             {{ getShiftName(getEffectiveShift(month, day)) }}
                           </span>
@@ -484,7 +502,6 @@ const toggleLockStatus = async (month) => {
                 </div>
               </div>
             </transition>
-
           </div>
         </div>
       </div>
@@ -493,320 +510,300 @@ const toggleLockStatus = async (month) => {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
-* { box-sizing: border-box; }
-
-/* ── Base ── */
-.page-wrapper {
-  padding: 28px 32px;
-  background: #f0f4ff;
-  min-height: 100vh;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  scroll-behavior: smooth;
+.schedule-page {
+  gap: 22px;
 }
 
-/* ── Toast ── */
-.alert-toast {
-  padding: 12px 18px;
-  border-radius: 12px;
-  margin-bottom: 20px;
+.schedule-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.team-sidebar,
+.schedule-content {
+  padding: 24px;
+}
+
+.team-sidebar {
+  position: sticky;
+  top: 32px;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  color: #222;
   font-size: 14px;
-  font-weight: 500;
-}
-.alert-toast.success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-.alert-toast.error   { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-.alert-toast.warning { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-
-.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
-
-/* ── Cards ── */
-.content-card {
-  background: white;
-  border-radius: 16px;
-  border: 1.5px solid #e8edff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  padding: 22px;
+  font-weight: 700;
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
+.panel-heading i {
+  color: var(--primary-color);
+}
+
+.panel-copy {
+  margin: 0 0 18px;
+  color: #888;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.compact-select {
+  min-width: 150px;
+}
+
+.selected-employee {
+  display: inline-flex;
   align-items: center;
-  margin-bottom: 20px;
+  gap: 6px;
 }
 
-.header-title { display: flex; align-items: center; gap: 14px; }
-
-.header-icon {
-  width: 46px; height: 46px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  border-radius: 13px;
+.empty-sidebar {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.32);
-  flex-shrink: 0;
+  gap: 10px;
+  padding: 28px 12px;
+  color: var(--text-muted);
+  text-align: center;
 }
 
-.header-title h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 800;
-  color: #0f172a;
-  letter-spacing: -0.4px;
+.empty-sidebar i {
+  font-size: 28px;
+  color: var(--text-dim);
 }
 
-.header-title p { margin: 2px 0 0 0; font-size: 13px; color: #64748b; }
-
-.search-box {
+.employee-list {
   display: flex;
-  align-items: center;
-  background: #fafbff;
-  border: 1.5px solid #e8edff;
-  border-radius: 10px;
-  padding: 0 12px;
-  transition: border-color 0.2s;
+  flex-direction: column;
+  gap: 8px;
 }
-.search-box:hover { border-color: #a5b4fc; }
-
-.flat-select {
-  border: none; background: transparent;
-  padding: 8px 4px; font-size: 14px; color: #334155;
-  outline: none; cursor: pointer; min-width: 100px;
-  font-family: inherit;
-}
-
-.fw-600 { font-weight: 600; }
-
-/* ── Layout ── */
-.schedules-layout { display: flex; gap: 22px; align-items: flex-start; }
-
-.sidebar {
-  width: 270px; flex-shrink: 0;
-  padding: 18px;
-  position: sticky; top: 24px;
-}
-
-.main-content { flex: 1; min-width: 0; }
-
-.sidebar-header {
-  margin-bottom: 14px;
-  border-bottom: 1.5px solid #e8edff;
-  padding-bottom: 12px;
-}
-.sidebar-header h3 { margin: 0; font-size: 15px; font-weight: 700; color: #0f172a; }
-
-.employee-list-container { display: flex; flex-direction: column; gap: 3px; }
 
 .employee-item {
   display: flex;
   align-items: center;
-  padding: 10px 10px;
-  border-radius: 10px;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  background: #fafafa;
   cursor: pointer;
-  transition: background 0.2s;
-  gap: 10px;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
-.employee-item:hover { background: #eef2ff; }
+
+.employee-item:hover {
+  background: #f7f7ff;
+  border-color: #d8def7;
+  transform: translateY(-1px);
+}
 
 .is-selected-emp {
-  background: #eef2ff !important;
-  border: 1.5px solid #a5b4fc;
+  background: #ede9fe;
+  border-color: #c7d2fe;
 }
 
-.custom-radio { width: 16px; height: 16px; cursor: pointer; accent-color: #6366f1; margin: 0; }
+.custom-radio {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #6366f1;
+}
 
-.emp-info { display: flex; flex-direction: column; }
-.emp-name { font-size: 13px; color: #1e293b; font-weight: 600; }
-.emp-code { font-size: 11px; color: #94a3b8; }
+.emp-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 
-/* ── Month Cards ── */
-.months-container { display: flex; flex-direction: column; gap: 12px; scroll-margin-top: 20px; }
+.emp-name {
+  color: var(--text-dark);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.emp-code {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.months-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 
 .month-card {
-  border: 1.5px solid #e8edff;
+  border: 1px solid #f0f0f0;
   border-radius: 14px;
   overflow: hidden;
-  background: white;
-  scroll-margin-top: 24px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  background: #fff;
 }
 
 .month-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  background: #fafbff;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #fafafa;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s ease;
 }
-.month-header:hover { background: #f0f4ff; }
-.month-header.is-open { background: #eef2ff; border-bottom: 1.5px solid #e8edff; }
 
-.month-title { display: flex; align-items: center; gap: 12px; }
-.month-title h3 { margin: 0; font-size: 15px; font-weight: 700; color: #0f172a; }
+.month-header:hover {
+  background: #f5f5fb;
+}
 
-.month-badge {
-  font-size: 11px;
-  background: #ede9fe;
-  color: #5b21b6;
-  padding: 3px 10px;
-  border-radius: 20px;
+.month-header.is-open {
+  background: #f7f7ff;
+}
+
+.month-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.month-title h3 {
+  margin: 0;
+  color: #222;
+  font-size: 15px;
   font-weight: 700;
 }
 
-.toggle-icon { color: #64748b; font-size: 12px; }
+.month-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f2f4f7;
+  color: #475467;
+  font-size: 11px;
+  font-weight: 700;
+}
 
-.month-body { padding: 18px; background: white; }
+.month-toggle {
+  color: #888;
+  font-size: 12px;
+}
 
-.slide-fade-enter-active { transition: all 0.3s ease-out; }
-.slide-fade-leave-active { transition: all 0.2s ease-in; }
-.slide-fade-enter-from, .slide-fade-leave-to { transform: translateY(-10px); opacity: 0; }
+.month-body {
+  padding: 18px;
+  border-top: 1px solid #f0f0f0;
+}
 
-/* ── Quick Actions ── */
 .quick-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f8faff;
-  padding: 12px 16px;
-  border-radius: 12px;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px;
   margin-bottom: 16px;
-  border: 1.5px solid #e8edff;
-}
-
-.shift-selector { display: flex; align-items: center; gap: 12px; }
-
-.shift-select {
-  background: white;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 7px 12px;
-  font-weight: 600;
-  font-family: inherit;
-  font-size: 13px;
-  color: #334155;
-  transition: border-color 0.2s;
-}
-.shift-select:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
-
-.action-buttons { display: flex; gap: 10px; }
-
-/* ── Buttons ── */
-.btn {
-  padding: 8px 16px;
-  border-radius: 9px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  border: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
-  box-shadow: 0 2px 8px rgba(99,102,241,0.25);
-}
-.btn-primary:hover { box-shadow: 0 5px 14px rgba(99,102,241,0.4); transform: translateY(-1px); }
-
-.btn-outline {
-  background: white;
-  border: 1.5px solid #e2e8f0;
-  color: #475569;
-}
-.btn-outline:hover { background: #fafbff; border-color: #a5b4fc; color: #4f46e5; }
-
-.text-danger { color: #dc2626 !important; border-color: #fecaca !important; }
-.text-danger:hover {
-  color: white !important;
-  background: linear-gradient(135deg, #f43f5e, #dc2626) !important;
-  border-color: transparent !important;
-  box-shadow: 0 2px 8px rgba(220,38,38,0.25);
-}
-
-/* ── Calendar ── */
-.calendar-wrapper {
-  border: 1.5px solid #e8edff;
+  border: 1px solid #f0f0f0;
   border-radius: 12px;
-  overflow: hidden;
+  background: #fafafa;
 }
 
-.calendar-header {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  background: #fafbff;
-  border-bottom: 1.5px solid #e8edff;
+.shift-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.weekday {
-  padding: 11px;
-  text-align: center;
-  font-weight: 700;
-  font-size: 12px;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.sunday-col { color: #dc2626; }
-
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  grid-auto-rows: minmax(80px, auto);
-  user-select: none;
+.selector-label {
+  color: #555;
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.calendar-cell {
-  border-right: 1px solid #f1f5f9;
-  border-bottom: 1px solid #f1f5f9;
-  padding: 8px 10px;
+.shift-select-wrap {
+  min-width: 180px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.warning-ghost {
+  border-color: #fedf89;
+  color: #b54708;
+}
+
+.warning-ghost:hover {
+  background: #fffaeb;
+  border-color: #f7c65c;
+  color: #8a5a00;
+}
+
+.danger-ghost {
+  border-color: #fecdca;
+  color: #b42318;
+}
+
+.danger-ghost:hover {
+  background: #fef3f2;
+  border-color: #fda29b;
+  color: #912018;
+}
+
+.date-status-text {
   display: flex;
   flex-direction: column;
-  transition: all 0.15s ease;
-  background: #fefefe;
-}
-.calendar-cell:nth-child(7n) { border-right: none; }
-.calendar-cell.is-clickable { cursor: pointer; }
-.calendar-cell.is-clickable:hover { box-shadow: inset 0 0 0 2px #6366f1; background: #fafbff; }
-.calendar-cell.is-selected { background: #f0fdf4 !important; }
-.calendar-cell.is-previewing { background: #eef2ff !important; }
-
-/* ── Badges ── */
-.vt-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 11px;
+  align-items: flex-start;
+  gap: 4px;
 }
 
-.badge-hc       { background: #d1fae5; color: #065f46; }
-.badge-morning  { background: #ede9fe; color: #5b21b6; }
-.badge-afternoon{ background: #fef3c7; color: #92400e; }
+.calendar-cell.is-selected {
+  background: #ecfdf3 !important;
+}
 
-.is-sunday .date-num { color: #dc2626; }
-.date-num { font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
-.date-status-text { font-size: 11px; margin-top: auto; }
-.text-muted { color: #cbd5e1; font-weight: 400; }
+.calendar-cell.is-previewing {
+  background: #eef4ff !important;
+}
 
-/* ── Responsive ── */
+.calendar-cell.is-sunday {
+  background: #fafafa;
+}
+
+.calendar-cell.is-clickable:hover {
+  box-shadow: inset 0 0 0 1px rgba(70, 95, 255, 0.24);
+  background: #f8fbff;
+}
+
+.slide-fade-enter-active {
+  transition: all 0.24s ease;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.18s ease;
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
 @media (max-width: 992px) {
-  .schedules-layout { flex-direction: column; }
-  .sidebar { width: 100%; position: static; }
-  .quick-actions { flex-direction: column; gap: 12px; align-items: stretch; }
-  .action-buttons { justify-content: flex-end; }
-  .calendar-header .weekday { font-size: 10px; padding: 7px 3px; }
-  .calendar-cell { padding: 4px; }
-  .date-status-text { font-size: 9px; }
+  .schedule-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .team-sidebar {
+    position: static;
+  }
+
+  .action-buttons {
+    justify-content: flex-start;
+  }
 }
 </style>

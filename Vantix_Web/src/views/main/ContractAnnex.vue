@@ -1,7 +1,7 @@
 <script setup>
 import {ref, reactive, onMounted, computed, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {useToast} from 'vue-toastification';
+import {useToast} from '@/utils/toast';
 
 // Import service
 import contractAnnexService from '@/services/contractannex.service';
@@ -244,7 +244,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="annex-management">
+  <div class="annex-management mgmt-page">
     <div class="page-header">
       <div class="header-left">
         <div class="title-icon">

@@ -47,25 +47,25 @@ const router = createRouter({
                     path: 'login',
                     name: 'login',
                     component: Login,
-                    meta: {title: 'Login'}
+                    meta: {title: 'Đăng nhập'}
                 },
                 {
                     path: 'forgot-password',
                     name: 'forgot-password',
                     component: ForgotPassword,
-                    meta: {title: 'Forgot Password'}
+                    meta: {title: 'Quên mật khẩu'}
                 },
                 {
                     path: 'verify-otp',
                     name: 'verify-otp',
                     component: VerifyOTP,
-                    meta: {title: 'Verify OTP'}
+                    meta: {title: 'Xác thực OTP'}
                 },
                 {
                     path: 'reset-password',
                     name: 'reset-password',
                     component: ResetPassword,
-                    meta: {title: 'Reset Password'}
+                    meta: {title: 'Đặt lại mật khẩu'}
                 }
             ]
         },
@@ -79,118 +79,118 @@ const router = createRouter({
                 {
                     path: '',
                     component: Dashboard,
-                    meta: {title: 'Dashboard'}
+                    meta: {title: 'Bảng điều khiển'}
                 },
                 {
                     path: 'users',
                     component: UserManagement,
-                    meta: {title: 'Users Management'}
+                    meta: {title: 'Quản lý người dùng'}
                 },
                 {
                     path: 'roles',
                     component: RoleManagement,
-                    meta: {title: 'Roles Management'}
+                    meta: {title: 'Quản lý vai trò'}
                 },
                 {
                     path: 'departments',
                     component: DepartmentManagement,
-                    meta: {title: 'Departments Management'}
+                    meta: {title: 'Quản lý phòng ban'}
                 },
                 {
                     path: 'positions',
                     component: PositionManagement,
-                    meta: {title: 'Positions Management'}
+                    meta: {title: 'Quản lý chức vụ'}
                 },
                 {
                     path: 'employees',
                     component: EmployeeManagement,
-                    meta: {title: 'Employees Management'}
+                    meta: {title: 'Quản lý nhân viên'}
                 },
                 {
                     path: 'leaves',
                     component: LeaveRequest,
-                    meta: {title: 'Leaves Request'}
+                    meta: {title: 'Đơn nghỉ phép'}
                 },
                 {
                     path: 'leaves-manager',
                     component: LeaveManagement,
-                    meta: {title: 'Leaves Management'}
+                    meta: {title: 'Duyệt nghỉ phép'}
                 },
                 {
                     path: 'leave-types',
                     component: LeaveTypes,
-                    meta: {title: 'Leaves Types'}
+                    meta: {title: 'Loại nghỉ phép'}
                 },
                 {
                     path: 'schedules',
                     component: Schedules,
-                    meta: {title: 'Schedules Management'}
+                    meta: {title: 'Quản lý lịch làm việc'}
                 },
                 {
                     path: 'contract-annexes/:id',
                     name: 'ContractAnnex',
                     component: ContractAnnex,
-                    meta: {title: 'Contract Annex'}
+                    meta: {title: 'Phụ lục hợp đồng'}
                 },
                 {
                     path: 'contracts',
                     component: Contract,
-                    meta: {title: 'Contract'}
+                    meta: {title: 'Hợp đồng'}
                 },
                 {
                     path: 'attendances-management',
                     component: AttendanceManagement,
-                    meta: {title: 'Attendance Management'}
+                    meta: {title: 'Duyệt chấm công'}
                 },
                 {
                     path: 'attendances',
                     component: Attendance,
-                    meta: {title: 'Attendance'}
+                    meta: {title: 'Chấm công'}
                 },
                 {
                     path: 'profile',
                     component: Profile,
-                    meta: {title: 'Profile'}
+                    meta: {title: 'Hồ sơ'}
                 },
                 {
                     path: 'task-management',
                     component: TaskListManagement,
-                    meta: {title: 'Task Management'}
+                    meta: {title: 'Quản lý công việc'}
                 },
                 {
                     path: 'my-task',
                     component: MyTaskManagement,
-                    meta: {title: 'My Task'}
+                    meta: {title: 'Công việc của tôi'}
                 },
                 {
                     path: 'kpi-ranking',
                     component: KpiRanking,
-                    meta: {title: 'KPI Ranking'}
+                    meta: {title: 'Xếp hạng KPI'}
                 },
                 {
                     path: 'salaries',
                     component: Salaries,
-                    meta: {title: 'Salaries Management'}
+                    meta: {title: 'Quản lý lương'}
                 },
                 {
                     path: 'payrollbatch',
                     component: PayrollBatch,
-                    meta: {title: 'Payroll Batch'}
+                    meta: {title: 'Đợt trả lương'}
                 },
                 {
                     path: 'settings',
                     component: Settings,
-                    meta: {title: 'Settings', permission: 'SYSTEM_CONFIG'}
+                    meta: {title: 'Cài đặt', permission: 'SYSTEM_CONFIG'}
                 },
                 {
                     path: 'notifications',
                     component: Notification,
-                    meta: {title: 'Notification'}
+                    meta: {title: 'Thông báo'}
                 },
                 {
                     path: 'my-notifications',
                     component: MyNotifications,
-                    meta: {title: 'My Notifications'}
+                    meta: {title: 'Thông báo của tôi'}
                 }
 
                 // Ví dụ thêm
@@ -206,7 +206,7 @@ const router = createRouter({
         {
             path: '/403',
             component: () => import('@/views/errors/Forbidden.vue'),
-            meta: {title: 'Forbidden'}
+            meta: {title: 'Không có quyền'}
         },
 
         {path: '/:pathMatch(.*)*', redirect: '/'}

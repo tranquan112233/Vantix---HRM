@@ -1,14 +1,14 @@
 <template>
-  <div class="employee-management">
+  <div class="employee-management mgmt-page">
     <!-- Header -->
     <div class="page-header">
       <div class="header-left">
-        <h1 class="page-title">Employees</h1>
-        <p class="page-desc">{{ pagination.totalElements }} employees · {{ workingCount }} working · {{ resignedCount }} resigned</p>
+        <h1 class="page-title">Nhân viên</h1>
+        <p class="page-desc">{{ pagination.totalElements }} nhân viên · {{ workingCount }} đang làm · {{ resignedCount }} đã nghỉ</p>
       </div>
       <div class="header-actions">
         <button v-if="canCreate" class="btn-primary" data-bs-toggle="modal" data-bs-target="#employeeModal" @click="openCreate">
-          <i class="bi bi-plus-lg"></i> New Employee
+          <i class="bi bi-plus-lg"></i> Thêm nhân viên
         </button>
       </div>
     </div>
@@ -17,30 +17,30 @@
     <div class="filter-bar">
       <div class="search-wrapper">
         <i class="bi bi-search"></i>
-        <input v-model="filters.keyword" type="text" placeholder="Search by name, username or email..." @input="onSearch" />
+        <input v-model="filters.keyword" type="text" placeholder="Tìm theo tên, tài khoản hoặc email..." @input="onSearch" />
         <button v-if="filters.keyword" class="clear-btn" @click="clearSearch"><i class="bi bi-x"></i></button>
       </div>
       <div class="select-wrapper">
         <select v-model="filters.workStatus" @change="onFilterChange">
-          <option value="">All Status</option>
-          <option value="WORKING">Working</option>
-          <option value="RESIGNED">Resigned</option>
+          <option value="">Tất cả trạng thái</option>
+          <option value="WORKING">Đang làm việc</option>
+          <option value="RESIGNED">Đã nghỉ việc</option>
         </select>
         <i class="bi bi-chevron-down"></i>
       </div>
       <div class="select-wrapper">
         <select v-model="filters.departmentId" @change="onFilterChange">
-          <option :value="null">All Departments</option>
+          <option :value="null">Tất cả phòng ban</option>
           <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
         </select>
         <i class="bi bi-chevron-down"></i>
       </div>
       <div class="select-wrapper">
         <select v-model.number="pagination.size" @change="onSizeChange">
-          <option :value="10">10 / page</option>
-          <option :value="20">20 / page</option>
-          <option :value="50">50 / page</option>
-          <option :value="100">100 / page</option>
+          <option :value="10">10 / trang</option>
+          <option :value="20">20 / trang</option>
+          <option :value="50">50 / trang</option>
+          <option :value="100">100 / trang</option>
         </select>
         <i class="bi bi-chevron-down"></i>
       </div>
@@ -50,15 +50,15 @@
     <div class="table-card">
       <div v-if="loading" class="state-center">
         <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
-        <span>Loading...</span>
+        <span>Đang tải...</span>
       </div>
 
       <div v-else-if="employees.length === 0" class="state-center">
         <i class="bi bi-people empty-icon"></i>
-        <p class="empty-title">No employees found</p>
-        <p class="empty-sub">Create an employee to get started.</p>
+        <p class="empty-title">Không tìm thấy nhân viên</p>
+        <p class="empty-sub">Tạo nhân viên mới để bắt đầu.</p>
         <button class="btn-primary" data-bs-toggle="modal" data-bs-target="#employeeModal" @click="openCreate">
-          <i class="bi bi-plus-lg"></i> Create employee
+          <i class="bi bi-plus-lg"></i> Tạo nhân viên
         </button>
       </div>
 
@@ -68,12 +68,12 @@
             <thead>
             <tr>
               <th class="th-num">#</th>
-              <th class="sortable" @click="toggleSort('fullName')">Employee <i :class="'bi ' + getSortIcon('fullName')"></i></th>
-              <th>Department / Position</th>
-              <th>Contact</th>
-              <th class="sortable" @click="toggleSort('workStatus')">Status <i :class="'bi ' + getSortIcon('workStatus')"></i></th>
-              <th class="sortable" @click="toggleSort('createdAt')">Created <i :class="'bi ' + getSortIcon('createdAt')"></i></th>
-              <th class="th-actions">Actions</th>
+              <th class="sortable" @click="toggleSort('fullName')">Nhân viên <i :class="'bi ' + getSortIcon('fullName')"></i></th>
+              <th>Phòng ban / Chức vụ</th>
+              <th>Liên hệ</th>
+              <th class="sortable" @click="toggleSort('workStatus')">Trạng thái <i :class="'bi ' + getSortIcon('workStatus')"></i></th>
+              <th class="sortable" @click="toggleSort('createdAt')">Ngày tạo <i :class="'bi ' + getSortIcon('createdAt')"></i></th>
+              <th class="th-actions">Thao tác</th>
             </tr>
             </thead>
             <tbody>
@@ -103,16 +103,16 @@
               <td>
                   <span :class="['status-badge', emp.workStatus === 'WORKING' ? 'working' : 'resigned']">
                     <span class="dot"></span>
-                    {{ emp.workStatus === 'WORKING' ? 'Working' : 'Resigned' }}
+                    {{ emp.workStatus === 'WORKING' ? 'Đang làm việc' : 'Đã nghỉ việc' }}
                   </span>
               </td>
               <td class="td-meta">{{ formatDate(emp.createdAt) }}</td>
               <td>
                 <div class="row-actions">
-                  <button v-if="canEdit" class="icon-btn" data-bs-toggle="modal" data-bs-target="#employeeModal" @click="openEdit(emp)" title="Edit">
+                  <button v-if="canEdit" class="icon-btn" data-bs-toggle="modal" data-bs-target="#employeeModal" @click="openEdit(emp)" title="Sửa">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button v-if="canDelete" class="icon-btn danger" data-bs-toggle="modal" data-bs-target="#deleteEmployeeModal" @click="confirmDelete(emp)" title="Delete">
+                  <button v-if="canDelete" class="icon-btn danger" data-bs-toggle="modal" data-bs-target="#deleteEmployeeModal" @click="confirmDelete(emp)" title="Xóa">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
@@ -124,7 +124,7 @@
 
         <!-- Pagination -->
         <div v-if="pagination.totalPages > 0" class="pagination-bar">
-          <span class="pagination-info">{{ startEntry }}–{{ endEntry }} of {{ pagination.totalElements }}</span>
+          <span class="pagination-info">{{ startEntry }}–{{ endEntry }} / {{ pagination.totalElements }}</span>
           <div class="page-controls">
             <button :disabled="pagination.page === 0" @click="goPage(0)"><i class="bi bi-chevron-double-left"></i></button>
             <button :disabled="pagination.page === 0" @click="goPage(pagination.page - 1)"><i class="bi bi-chevron-left"></i></button>
@@ -142,8 +142,8 @@
         <div class="modal-content modal-custom">
           <div class="modal-header-custom">
             <div>
-              <h5 class="modal-title">{{ modal.isEdit ? 'Edit Employee' : 'New Employee' }}</h5>
-              <p class="modal-subtitle">{{ modal.isEdit ? 'Update employee information' : 'Create a new employee account' }}</p>
+              <h5 class="modal-title">{{ modal.isEdit ? 'Sửa nhân viên' : 'Thêm nhân viên' }}</h5>
+              <p class="modal-subtitle">{{ modal.isEdit ? 'Cập nhật thông tin nhân viên' : 'Tạo tài khoản nhân viên mới' }}</p>
             </div>
             <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
           </div>
@@ -156,15 +156,15 @@
             <!-- User Information Section -->
             <div class="section-title">
               <i class="bi bi-person-circle"></i>
-              <span>Account Information</span>
+              <span>Thông tin tài khoản</span>
             </div>
 
             <div class="form-row">
               <div class="field" :class="{ 'field-error': errors.username }">
-                <label>Username <span class="req">*</span></label>
+                <label>Tên đăng nhập <span class="req">*</span></label>
                 <div class="input-wrap">
                   <i class="bi bi-person"></i>
-                  <input v-model="form.username" type="text" placeholder="Enter username" @input="clearError('username')" />
+                  <input v-model="form.username" type="text" placeholder="Nhập tên đăng nhập" @input="clearError('username')" />
                 </div>
                 <span v-if="errors.username" class="err-msg">{{ errors.username }}</span>
               </div>
@@ -173,17 +173,17 @@
                 <label>Email <span class="req">*</span></label>
                 <div class="input-wrap">
                   <i class="bi bi-envelope"></i>
-                  <input v-model="form.email" type="email" placeholder="Enter email" @input="clearError('email')" />
+                  <input v-model="form.email" type="email" placeholder="Nhập email" @input="clearError('email')" />
                 </div>
                 <span v-if="errors.email" class="err-msg">{{ errors.email }}</span>
               </div>
             </div>
 
             <div v-if="!modal.isEdit" class="field" :class="{ 'field-error': errors.password }">
-              <label>Password <span class="req">*</span></label>
+              <label>Mật khẩu <span class="req">*</span></label>
               <div class="input-wrap">
                 <i class="bi bi-lock"></i>
-                <input :type="showPassword ? 'text' : 'password'" v-model="form.password" placeholder="Enter password (min 6 characters)" @input="clearError('password')" />
+                <input :type="showPassword ? 'text' : 'password'" v-model="form.password" placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)" @input="clearError('password')" />
                 <button type="button" class="toggle-pw" @click="showPassword = !showPassword">
                   <i :class="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
                 </button>
@@ -192,10 +192,10 @@
             </div>
 
             <div class="field" :class="{ 'field-error': errors.roleId }">
-              <label>Role <span class="req">*</span></label>
+              <label>Vai trò <span class="req">*</span></label>
               <div class="select-wrap">
                 <select v-model="form.roleId" @change="clearError('roleId')">
-                  <option :value="null">— Select role —</option>
+                  <option :value="null">— Chọn vai trò —</option>
                   <option v-for="role in roles" :key="role.id" :value="role.id">{{ role.name }}</option>
                 </select>
                 <i class="bi bi-chevron-down"></i>
@@ -206,26 +206,26 @@
             <!-- Personal Information Section -->
             <div class="section-title">
               <i class="bi bi-person-vcard"></i>
-              <span>Personal Information</span>
+              <span>Thông tin cá nhân</span>
             </div>
 
             <div class="form-row">
               <div class="field" :class="{ 'field-error': errors.fullName }">
-                <label>Full Name <span class="req">*</span></label>
+                <label>Họ và tên <span class="req">*</span></label>
                 <div class="input-wrap">
                   <i class="bi bi-person"></i>
-                  <input v-model="form.fullName" type="text" placeholder="Enter full name" @input="clearError('fullName')" />
+                  <input v-model="form.fullName" type="text" placeholder="Nhập họ và tên" @input="clearError('fullName')" />
                 </div>
                 <span v-if="errors.fullName" class="err-msg">{{ errors.fullName }}</span>
               </div>
 
               <div class="field" :class="{ 'field-error': errors.gender }">
-                <label>Gender <span class="req">*</span></label>
+                <label>Giới tính <span class="req">*</span></label>
                 <div class="select-wrap">
                   <select v-model="form.gender" @change="clearError('gender')">
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                    <option value="OTHER">Other</option>
+                    <option value="MALE">Nam</option>
+                    <option value="FEMALE">Nữ</option>
+                    <option value="OTHER">Khác</option>
                   </select>
                   <i class="bi bi-chevron-down"></i>
                 </div>
@@ -235,7 +235,7 @@
 
             <div class="form-row">
               <div class="field" :class="{ 'field-error': errors.birthDate }">
-                <label>Birth Date <span class="req">*</span></label>
+                <label>Ngày sinh <span class="req">*</span></label>
                 <div class="input-wrap">
                   <i class="bi bi-calendar"></i>
                   <input v-model="form.birthDate" type="date" @input="clearError('birthDate')" />
@@ -244,20 +244,20 @@
               </div>
 
               <div class="field" :class="{ 'field-error': errors.phone }">
-                <label>Phone <span class="req">*</span></label>
+                <label>Số điện thoại <span class="req">*</span></label>
                 <div class="input-wrap">
                   <i class="bi bi-telephone"></i>
-                  <input v-model="form.phone" type="tel" placeholder="Enter phone number" @input="clearError('phone')" />
+                  <input v-model="form.phone" type="tel" placeholder="Nhập số điện thoại" @input="clearError('phone')" />
                 </div>
                 <span v-if="errors.phone" class="err-msg">{{ errors.phone }}</span>
               </div>
             </div>
 
             <div class="field" :class="{ 'field-error': errors.address }">
-              <label>Address <span class="req">*</span></label>
+              <label>Địa chỉ <span class="req">*</span></label>
               <div class="input-wrap">
                 <i class="bi bi-geo-alt"></i>
-                <input v-model="form.address" type="text" placeholder="Enter address" @input="clearError('address')" />
+                <input v-model="form.address" type="text" placeholder="Nhập địa chỉ" @input="clearError('address')" />
               </div>
               <span v-if="errors.address" class="err-msg">{{ errors.address }}</span>
             </div>
@@ -265,15 +265,15 @@
             <!-- Organization Section -->
             <div class="section-title">
               <i class="bi bi-building"></i>
-              <span>Organization</span>
+              <span>Tổ chức</span>
             </div>
 
             <div class="form-row">
               <div class="field" :class="{ 'field-error': errors.departmentId }">
-                <label>Department <span class="req">*</span></label>
+                <label>Phòng ban <span class="req">*</span></label>
                 <div class="select-wrap">
                   <select v-model="form.departmentId" @change="onDepartmentChange">
-                    <option :value="null">— Select department —</option>
+                    <option :value="null">— Chọn phòng ban —</option>
                     <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
                   </select>
                   <i class="bi bi-chevron-down"></i>
@@ -282,10 +282,10 @@
               </div>
 
               <div class="field" :class="{ 'field-error': errors.positionId }">
-                <label>Position <span class="req">*</span></label>
+                <label>Chức vụ <span class="req">*</span></label>
                 <div class="select-wrap">
                   <select v-model="form.positionId" :disabled="!form.departmentId">
-                    <option :value="null">— Select position —</option>
+                    <option :value="null">— Chọn chức vụ —</option>
                     <option v-for="pos in filteredPositions" :key="pos.id" :value="pos.id">{{ pos.name }}</option>
                   </select>
                   <i class="bi bi-chevron-down"></i>
@@ -295,11 +295,11 @@
             </div>
 
             <div v-if="modal.isEdit" class="field">
-              <label>Work Status</label>
+              <label>Trạng thái làm việc</label>
               <div class="select-wrap">
                 <select v-model="form.workStatus">
-                  <option value="WORKING">Working</option>
-                  <option value="RESIGNED">Resigned</option>
+                  <option value="WORKING">Đang làm việc</option>
+                  <option value="RESIGNED">Đã nghỉ việc</option>
                 </select>
                 <i class="bi bi-chevron-down"></i>
               </div>
@@ -307,12 +307,12 @@
           </div>
 
           <div class="modal-footer-custom">
-            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Hủy</button>
             <button type="button" class="btn-primary" :disabled="submitting" @click="submitForm">
               <span v-if="submitting" class="spin-sm"></span>
               <template v-else>
                 <i :class="modal.isEdit ? 'bi bi-check-lg' : 'bi bi-plus-lg'"></i>
-                {{ modal.isEdit ? 'Save Changes' : 'Create Employee' }}
+                {{ modal.isEdit ? 'Lưu thay đổi' : 'Tạo nhân viên' }}
               </template>
             </button>
           </div>
@@ -326,8 +326,8 @@
         <div class="modal-content modal-custom">
           <div class="modal-header-custom">
             <div>
-              <h5 class="modal-title">Delete Employee</h5>
-              <p class="modal-subtitle">This action cannot be undone</p>
+              <h5 class="modal-title">Xóa nhân viên</h5>
+              <p class="modal-subtitle">Hành động này không thể hoàn tác</p>
             </div>
             <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
           </div>
@@ -337,13 +337,13 @@
             </div>
             <p class="del-name">{{ deleteModal.employee?.fullName }}</p>
             <p class="del-email">{{ deleteModal.employee?.email }}</p>
-            <p class="del-warn">Permanently delete this employee and their user account?</p>
+            <p class="del-warn">Xóa vĩnh viễn nhân viên này và tài khoản liên kết?</p>
           </div>
           <div class="modal-footer-custom">
-            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Hủy</button>
             <button type="button" class="btn-danger" :disabled="submitting" @click="doDelete">
               <span v-if="submitting" class="spin-sm"></span>
-              <template v-else><i class="bi bi-trash"></i> Delete</template>
+              <template v-else><i class="bi bi-trash"></i> Xóa</template>
             </button>
           </div>
         </div>
@@ -359,7 +359,7 @@ import employeeService from '@/services/employee.service.js'
 import departmentService from '@/services/department.service.js'
 import positionService from '@/services/position.service.js'
 import roleService from '@/services/role.service.js'
-import { useToast } from 'vue-toastification'
+import { useToast } from '@/utils/toast'
 import { useAuthStore } from '@/stores/auth.store.js'
 
 const toast = useToast()
@@ -442,7 +442,7 @@ async function fetchRoles() {
     const response = await roleService.getAll({ size: 100 })
     roles.value = response.data?.content || []
   } catch (error) {
-    console.error('Failed to fetch roles:', error)
+    console.error('Không thể tải vai trò:', error)
   }
 }
 
@@ -451,7 +451,7 @@ async function fetchDepartments() {
     const response = await departmentService.getAll({ size: 1000 })
     departments.value = response.data?.content || []
   } catch (error) {
-    console.error('Failed to fetch departments:', error)
+    console.error('Không thể tải phòng ban:', error)
   }
 }
 
@@ -460,7 +460,7 @@ async function fetchPositionsByDepartment(departmentId) {
     const response = await positionService.getByDepartment(departmentId)
     positions.value = response.data || []
   } catch (error) {
-    console.error('Failed to fetch positions:', error)
+    console.error('Không thể tải chức vụ:', error)
   }
 }
 
@@ -482,7 +482,7 @@ async function fetchEmployees() {
     pagination.totalPages = data.totalPages || 0
     pagination.last = data.last || false
   } catch (error) {
-    toast.error('Failed to load employees')
+    toast.error('Không thể tải danh sách nhân viên')
     console.error(error)
   } finally {
     loading.value = false
@@ -608,11 +608,11 @@ function confirmDelete(emp) {
 
 async function submitForm() {
   if (!form.departmentId) {
-    errors.departmentId = 'Please select a department'
+    errors.departmentId = 'Vui lòng chọn phòng ban'
     return
   }
   if (!form.positionId) {
-    errors.positionId = 'Please select a position'
+    errors.positionId = 'Vui lòng chọn chức vụ'
     return
   }
 
@@ -624,10 +624,10 @@ async function submitForm() {
     if (modal.isEdit) {
       delete submitData.password
       await employeeService.update(modal.employeeId, submitData)
-      toast.success('Employee updated successfully')
+      toast.success('Đã cập nhật nhân viên')
     } else {
       await employeeService.create(submitData)
-      toast.success('Employee created successfully')
+      toast.success('Đã tạo nhân viên')
     }
 
     pagination.page = 0
@@ -637,7 +637,7 @@ async function submitForm() {
     if (err?.errors) {
       Object.assign(errors, err.errors)
     } else {
-      errors.general = err?.message || 'Something went wrong'
+      errors.general = err?.message || 'Đã xảy ra lỗi'
       toast.error(errors.general)
     }
     console.error('Submit error:', err)
@@ -651,10 +651,10 @@ async function doDelete() {
   try {
     await employeeService.delete(deleteModal.employee.id)
     await fetchEmployees()
-    toast.success(`Employee ${deleteModal.employee.fullName} deleted`)
+    toast.success(`Đã xóa nhân viên ${deleteModal.employee.fullName}`)
     bsDeleteModal.hide()
   } catch (error) {
-    toast.error(error?.message || 'Failed to delete employee')
+    toast.error(error?.message || 'Không thể xóa nhân viên')
     console.error('Delete error:', error)
   } finally {
     submitting.value = false

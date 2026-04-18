@@ -1,6 +1,6 @@
 <template>
   <header class="app-header">
-    <button class="icon-btn" title="Toggle sidebar" @click="$emit('toggle-sidebar')">
+    <button class="icon-btn" title="Thu gọn/mở rộng menu" @click="$emit('toggle-sidebar')">
       <i class="bi bi-list fs-5"></i>
     </button>
     <div class="header-right">
@@ -101,13 +101,12 @@ import {computed, onMounted, onUnmounted, ref} from 'vue'
 import {useRouter, RouterLink} from 'vue-router'
 import {useAuthStore} from '@/stores/auth.store'
 import notifService from '@/services/notification.service'
-import axios from 'axios'
 
 defineEmits(['toggle-sidebar'])
 const router = useRouter()
 const auth = useAuthStore()
 
-const username = computed(() => auth.user?.username ?? 'User')
+const username = computed(() => auth.user?.username ?? 'Người dùng')
 const email = computed(() => auth.user?.email ?? '')
 const firstLetter = computed(() => username.value.charAt(0).toUpperCase())
 const isAdmin = computed(() => auth.userRole === 'ADMIN')
@@ -118,7 +117,7 @@ const unreadCount = ref(0)
 const fetchNotifications = async () => {
   if (!auth.user?.id) return
   try {
-    const res = await axios.get(`/api/notifications/my?userId=${auth.user.id}`)
+    const res = await notifService.getMyNotifications(auth.user.id)
     notifications.value = res.data
     unreadCount.value = notifications.value.filter(n => !n.read).length
   } catch (err) {
@@ -145,7 +144,7 @@ onUnmounted(() => {
 
 const handleNotifClick = async (note) => {
   if (!note.read) {
-    await axios.put(`/api/notifications/${note.id}/read`)
+    await notifService.markAsRead(note.id)
     note.read = true
     unreadCount.value = Math.max(0, unreadCount.value - 1)
   }
@@ -154,7 +153,7 @@ const handleNotifClick = async (note) => {
 
 const toggleStar = async (note) => {
   try {
-    await axios.put(`/api/notifications/${note.id}/star`)
+    await notifService.toggleStar(note.id)
     note.starred = !note.starred
   } catch (err) {
     console.error(err)
@@ -164,7 +163,7 @@ const toggleStar = async (note) => {
 const deleteNotif = async (id) => {
   if (!confirm('Xóa thông báo này?')) return
   try {
-    await axios.delete(`/api/notifications/${id}`)
+    await notifService.delete(id)
     notifications.value = notifications.value.filter(n => n.id !== id)
     unreadCount.value = notifications.value.filter(n => !n.read).length
   } catch (err) {
@@ -176,7 +175,7 @@ const deleteNotif = async (id) => {
 const clearAllExceptStarred = async () => {
   if (!confirm('Bạn có muốn xóa toàn bộ thông báo thường và chỉ giữ lại các mục đã lưu?')) return
   try {
-    await axios.delete(`/api/notifications/clear-all?userId=${auth.user.id}`)
+    await notifService.clearAllExceptStarred(auth.user.id)
     // Lọc lại mảng ngay lập tức trên giao diện
     notifications.value = notifications.value.filter(n => n.starred)
     unreadCount.value = notifications.value.filter(n => !n.read).length
@@ -187,7 +186,7 @@ const clearAllExceptStarred = async () => {
 
 const markAllAsRead = async () => {
   try {
-    await axios.put(`/api/notifications/read-all?userId=${auth.user.id}`)
+    await notifService.markAllAsRead(auth.user.id)
     notifications.value.forEach(n => n.read = true)
     unreadCount.value = 0
   } catch (err) {
@@ -228,15 +227,55 @@ const logout = () => {
 </script>
 
 <style scoped>
+.app-header {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: var(--bg-white);
+  border-bottom: 1px solid var(--border-light);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted-dark);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.icon-btn:hover {
+  background: var(--surface-muted);
+  color: var(--primary-color);
+}
+
+/* ── Notification panel ─────────────────────────────────────────────── */
 .notification-panel {
-  width: 340px;
-  border-radius: 12px !important;
+  width: 360px;
+  border-radius: var(--radius-md) !important;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow);
 }
 
 .notif-header {
-  background: #f8f9fa;
+  background: var(--surface-muted) !important;
 }
 
 .btn-action-text {
@@ -254,21 +293,21 @@ const logout = () => {
 
 .notif-item {
   position: relative;
-  transition: all 0.2s ease;
+  transition: background var(--transition);
 }
 
 .notif-item:hover {
-  background: #f8f9fa;
+  background: var(--surface-muted);
 }
 
 .notif-item.unread {
-  background: #f0f7ff;
-  border-left: 3px solid #0d6efd;
+  background: var(--primary-color-light);
+  border-left: 3px solid var(--primary-color);
 }
 
 .notif-actions {
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--transition);
   padding-right: 4px;
 }
 
@@ -281,18 +320,19 @@ const logout = () => {
   border: none;
   padding: 4px;
   font-size: 14px;
-  color: #adb5bd;
+  color: var(--text-dim);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition), color var(--transition);
 }
 
 .action-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: #212529;
+  background: var(--surface-muted-strong);
+  color: var(--text-dark);
 }
 
 .bi-star-fill {
-  color: #ffc107 !important;
+  color: var(--warning-color) !important;
 }
 
 .notif-icon-circle {
@@ -308,70 +348,40 @@ const logout = () => {
 .notif-footer {
   font-size: 12px;
   font-weight: 600;
-  color: #0d6efd;
-  background: #fff;
+  color: var(--primary-color);
+  background: var(--bg-white);
+  transition: background var(--transition);
 }
 
 .notif-footer:hover {
-  background: #f8f9fa;
+  background: var(--surface-muted);
 }
 
-.app-header {
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  background: #fff;
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.icon-btn {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  border-radius: 8px;
-  color: #6c757d;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.icon-btn:hover {
-  background: #f1f3f5;
-  color: #212529;
-}
-
+/* ── User menu ──────────────────────────────────────────────────────── */
 .user-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  border: none;
+  gap: 10px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid transparent;
   background: transparent;
-  padding: 4px;
+  border-radius: var(--radius);
   cursor: pointer;
-  border-radius: 8px;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.user-btn:hover {
+  background: var(--surface-muted);
+  border-color: var(--border-light);
 }
 
 .avatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: #0d6efd;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-color-dark));
   color: #fff;
-  font-weight: bold;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -383,18 +393,23 @@ const logout = () => {
   line-height: 1.2;
   display: flex;
   flex-direction: column;
-  max-width: 120px;
+  max-width: 140px;
 }
 
 .user-name {
   font-size: 13px;
-  font-weight: 600;
-  color: #343a40;
+  font-weight: 700;
+  color: var(--text-dark);
 }
 
 .user-email {
   font-size: 11px;
-  color: #adb5bd;
+  color: var(--text-dim);
+}
+
+.caret {
+  color: var(--text-dim);
+  font-size: 11px;
 }
 
 .drop-item {
@@ -403,17 +418,17 @@ const logout = () => {
   gap: 10px;
   padding: 8px 12px;
   font-size: 13.5px;
-  color: #343a40;
+  color: var(--text-darker);
   text-decoration: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: none;
   background: none;
   text-align: left;
+  transition: background var(--transition), color var(--transition);
 }
 
 .drop-item:hover {
-  background: #f8f9fa;
+  background: var(--surface-muted);
+  color: var(--primary-color);
 }
-
-
 </style>

@@ -1,23 +1,25 @@
 <template>
-  <div class="task-management">
+  <div class="task-management mgmt-page">
     <div class="row">
       <div class="col-md-8">
 
         <div class="page-header">
           <div>
-            <h2 class="page-title">Task Inventory</h2>
+            <h2 class="page-title">Quản lý công việc</h2>
             <p class="page-desc">Quản lý, theo dõi và đánh giá công việc của nhân viên.</p>
           </div>
         </div>
 
         <div class="filter-bar">
           <div class="search-wrapper">
-            <i>🔍</i>
+            <i class="bi bi-search"></i>
             <input v-model="searchQuery" type="text" placeholder="Tìm tên nhân viên, công việc...">
-            <button v-if="searchQuery" class="clear-btn" @click="searchQuery = ''">✖</button>
+            <button v-if="searchQuery" class="clear-btn" @click="searchQuery = ''">
+              <i class="bi bi-x"></i>
+            </button>
           </div>
           <button class="btn-primary" @click="openCreateModal">
-            + New Task
+            <i class="bi bi-plus-lg"></i> Tạo công việc
           </button>
         </div>
 
@@ -26,18 +28,18 @@
             <table>
               <thead>
               <tr>
-                <th>Task Info</th>
-                <th class="text-center">Diff / Urg</th>
-                <th class="text-center">Points</th>
-                <th>Status</th>
-                <th class="text-right">Actions</th>
+                <th>Thông tin công việc</th>
+                <th class="text-center">Khó / Gấp</th>
+                <th class="text-center">Điểm</th>
+                <th>Trạng thái</th>
+                <th class="text-right">Thao tác</th>
               </tr>
               </thead>
               <tbody>
               <tr v-if="filteredTasks.length === 0">
                 <td colspan="5">
                   <div class="state-center">
-                    <div class="empty-icon">🕵️‍♂️</div>
+                    <i class="bi bi-kanban empty-icon"></i>
                     <div class="empty-title">Không tìm thấy công việc nào!</div>
                     <div class="empty-sub">Vui lòng tạo công việc mới hoặc thử tìm kiếm khác.</div>
                   </div>
@@ -53,17 +55,17 @@
                     <div>
                       <div class="employee-name" :class="task.status === 'CANCELLED' ? 'text-decoration-line-through text-muted' : ''">
                         {{ task.taskTitle }}
-                        <span v-if="task.fileUrl" title="Có file minh chứng">📎</span>
+                        <i v-if="task.fileUrl" class="bi bi-paperclip attachment-icon" title="Có file minh chứng"></i>
                         <span v-if="task.status === 'DONE'" class="status-badge done ms-2" style="font-size: 10px; padding: 2px 6px;">MỚI NỘP</span>
                       </div>
                       <div class="employee-username">
-                        👤 {{ task.employeeName || getEmployeeName(task.employeeId) }}
+                        <i class="bi bi-person-circle"></i> {{ task.employeeName || getEmployeeName(task.employeeId) }}
                       </div>
                     </div>
                   </div>
                 </td>
                 <td class="text-center td-num">{{ task.difficultyLevel }} / {{ task.urgencyLevel }}</td>
-                <td class="text-center font-weight-bold" style="color: #16a34a;">+{{ task.point }} pts</td>
+                <td class="text-center font-weight-bold" style="color: #16a34a;">+{{ task.point }} điểm</td>
                 <td>
                     <span class="status-badge" :class="statusClass(task.status)">
                       <span class="dot"></span> {{ task.status || 'OPEN' }}
@@ -72,10 +74,10 @@
                 <td class="text-right">
                   <div class="row-actions justify-content-end">
                     <button v-if="task.status !== 'COMPLETED' && task.status !== 'CANCELLED'" class="icon-btn" title="Sửa" @click.stop="openEditModal(task)">
-                      ✏️
+                      <i class="bi bi-pencil"></i>
                     </button>
-                    <span v-else-if="task.status === 'COMPLETED'" class="status-badge working">✔ Finalized</span>
-                    <span v-else class="status-badge resigned">🚫 Hủy</span>
+                    <span v-else-if="task.status === 'COMPLETED'" class="status-badge working"><i class="bi bi-check-circle"></i> Đã chốt</span>
+                    <span v-else class="status-badge resigned"><i class="bi bi-x-circle"></i> Hủy</span>
                   </div>
                 </td>
               </tr>
@@ -88,18 +90,20 @@
       <div class="col-md-4">
         <div class="table-card p-4 shadow-sm" style="position: sticky; top: 20px;">
           <div class="section-title mb-4">
-            👨‍💼 Task Monitoring
+            <i class="bi bi-activity"></i> Theo dõi công việc
           </div>
 
           <div v-if="selectedTask">
             <div class="p-3 rounded-3 mb-4" :style="selectedTask.status === 'DONE' ? 'background: #fffbeb; border: 1px solid #fde68a;' : 'background: #f8f8f6; border: 1px solid #e8e8e8;'">
-              <div class="small text-uppercase fw-bold mb-1" style="color: #6366f1;">Target Task:</div>
+              <div class="small text-uppercase fw-bold mb-1" style="color: #6366f1;">Công việc đang chọn:</div>
               <strong class="fs-5 text-dark d-block mb-3">{{ selectedTask.taskTitle }}</strong>
 
               <div class="bg-white p-3 rounded-3 shadow-sm border mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                   <span class="td-meta fw-bold">Người làm:</span>
-                  <span class="employee-name" style="color: #16a34a;">👤 {{ selectedTask.employeeName || getEmployeeName(selectedTask.employeeId) }}</span>
+                  <span class="employee-name d-inline-flex align-items-center gap-2" style="color: #16a34a;">
+                    <i class="bi bi-person-circle"></i>{{ selectedTask.employeeName || getEmployeeName(selectedTask.employeeId) }}
+                  </span>
                 </div>
 
                 <div class="mb-3" v-if="selectedTask.status !== 'OPEN'">
@@ -113,32 +117,32 @@
                 </div>
 
                 <div v-if="selectedTask.workDescription" class="mb-3 p-3 rounded-3" style="background: #f8f8f6; border: 1px dashed #ccc;">
-                  <span class="td-meta fw-bold d-block mb-1">📝 Lời nhắn từ nhân viên:</span>
+                  <span class="td-meta fw-bold d-block mb-1"><i class="bi bi-chat-left-text me-1"></i>Lời nhắn từ nhân viên:</span>
                   <span class="td-desc fst-italic">"{{ selectedTask.workDescription }}"</span>
                 </div>
 
                 <div v-if="selectedTask.fileUrl" class="mt-3">
                   <button class="btn-primary w-100 justify-content-center" @click="downloadEvidence(selectedTask.fileUrl)">
-                    📄 Tải file minh chứng
+                    <i class="bi bi-file-earmark-arrow-down"></i> Tải file minh chứng
                   </button>
                 </div>
 
                 <div v-else-if="selectedTask.status === 'DONE'" class="alert-error mt-3">
-                  <strong>⚠️</strong> Nhân viên nộp bài nhưng KHÔNG đính kèm file!
+                  <strong><i class="bi bi-exclamation-triangle"></i></strong> Nhân viên nộp bài nhưng KHÔNG đính kèm file!
                 </div>
               </div>
 
               <div v-if="selectedTask.status === 'DONE'" class="d-flex flex-column gap-2">
                 <button class="btn-primary justify-content-center" style="background: #16a34a;" @click="handleApprove(selectedTask.taskId)">
-                  ✅ PHÊ DUYỆT & CHỐT ĐIỂM
+                  <i class="bi bi-check-circle"></i> PHÊ DUYỆT & CHỐT ĐIỂM
                 </button>
                 <button class="btn-ghost justify-content-center" style="color: #d97706; border-color: #fcd34d;" @click="handleReopen(selectedTask.taskId)">
-                  🔄 YÊU CẦU LÀM LẠI
+                  <i class="bi bi-arrow-counterclockwise"></i> YÊU CẦU LÀM LẠI
                 </button>
               </div>
 
               <div v-if="selectedTask.status === 'CANCELLED'" class="alert-error mt-2 justify-content-center">
-                🚫 Công việc này đã bị hủy.
+                <i class="bi bi-x-octagon"></i> Công việc này đã bị hủy.
               </div>
             </div>
 
@@ -152,7 +156,7 @@
                       {{ e.fullName || e.name }}
                     </option>
                   </select>
-                  <i class="bi-chevron-down">▼</i>
+                  <i class="bi bi-chevron-down"></i>
                 </div>
               </div>
               <button class="btn-primary w-100 justify-content-center" @click="handleAssign" :disabled="loadingAssign || !assignData.employeeId">
@@ -162,14 +166,14 @@
 
             <div v-if="selectedTask.status === 'OPEN' || selectedTask.status === 'IN_PROGRESS'" class="mt-4 pt-3" style="border-top: 1px solid #f0f0f0;">
               <button class="btn-danger w-100 justify-content-center" @click="handleCancel(selectedTask.taskId)">
-                🚫 Hủy công việc này
+                <i class="bi bi-x-octagon"></i> Hủy công việc này
               </button>
             </div>
           </div>
 
           <div v-else class="state-center">
-            <div class="empty-icon">👉</div>
-            <div class="empty-title">Chọn task để xem</div>
+            <i class="bi bi-arrow-left-circle empty-icon"></i>
+            <div class="empty-title">Chọn công việc để xem</div>
           </div>
         </div>
       </div>
@@ -183,7 +187,7 @@
               <h3 class="modal-title">{{ isEditMode ? 'Chỉnh sửa công việc' : 'Tạo công việc mới' }}</h3>
               <p class="modal-subtitle">Điền thông tin chi tiết cho công việc</p>
             </div>
-            <button class="btn-close-custom" @click="closeModal">✖</button>
+            <button class="btn-close-custom" @click="closeModal"><i class="bi bi-x-lg"></i></button>
           </div>
 
           <div class="modal-body-custom">
@@ -231,6 +235,10 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue"
 import taskService from "@/services/taskApi.service"
+import { confirmDialog } from "@/composables/useConfirmDialog"
+import { getErrorMessage, useToast } from "@/utils/toast"
+
+const toast = useToast()
 
 const tasks = ref([]);
 const employees = ref([]);
@@ -270,11 +278,14 @@ const loadData = async () => {
     else if (tRes.data && Array.isArray(tRes.data.content)) taskList = tRes.data.content;
     tasks.value = taskList;
 
-    if (selectedTask.value && tasks.value.length > 0) {
+    if (selectedTask.value) {
       const found = tasks.value.find(t => t.taskId === selectedTask.value.taskId);
-      if (found) selectedTask.value = found;
+      selectedTask.value = found || null;
     }
-  } catch (err) { console.error("❌ Lỗi khi load data:", err); }
+  } catch (err) {
+    console.error("❌ Lỗi khi load data:", err);
+    toast.error(err, "Không thể tải danh sách công việc.");
+  }
 };
 
 const getEmployeeName = (id) => {
@@ -288,14 +299,14 @@ const filteredTasks = computed(() => {
   const query = searchQuery.value.toLowerCase();
   return tasks.value.filter(task => {
     const empName = task.employeeName || getEmployeeName(task.employeeId);
-    return empName.toLowerCase().includes(query) || task.taskTitle.toLowerCase().includes(query);
+    return empName.toLowerCase().includes(query) || (task.taskTitle || "").toLowerCase().includes(query);
   });
 });
 
 // Truyền vào 'fileUrl' thay vì 'taskId' anh nhé!
 const downloadEvidence = (fileUrl) => {
   if (!fileUrl) {
-    alert("⚠️ Công việc này không có file!");
+    toast.info("Công việc này chưa có file minh chứng.");
     return;
   }
 
@@ -320,44 +331,88 @@ const selectTask = (task) => {
 }
 
 const handleApprove = async (id) => {
-  if (!confirm("Duyệt task này? Nhân viên sẽ nhận được điểm thưởng.")) return;
+  const confirmed = await confirmDialog({
+    title: "Phê duyệt công việc",
+    message: "Công việc này sẽ được chốt điểm thưởng cho nhân viên.",
+    confirmText: "Phê duyệt",
+    cancelText: "Để sau",
+    variant: "success",
+    icon: "bi bi-check-circle"
+  });
+
+  if (!confirmed) return;
+
   try {
     await taskService.approve(id);
-    alert("✅ Đã chốt thành công!");
+    toast.success("Đã phê duyệt và chốt điểm công việc.");
     await loadData();
-  } catch (e) { alert("Lỗi khi phê duyệt!"); }
+  } catch (e) {
+    toast.error(e, "Không thể phê duyệt công việc.");
+  }
 }
 
 const handleReopen = async (id) => {
-  if (!confirm("⚠️ Bắt nhân viên làm lại task này?")) return;
+  const confirmed = await confirmDialog({
+    title: "Yêu cầu làm lại",
+    message: "Công việc này sẽ được mở lại để nhân viên cập nhật thêm.",
+    confirmText: "Yêu cầu làm lại",
+    cancelText: "Hủy",
+    variant: "primary",
+    icon: "bi bi-arrow-counterclockwise"
+  });
+
+  if (!confirmed) return;
+
   try {
     await taskService.reopen(id);
-    alert("🔄 Đã trả lại task cho nhân viên làm lại!");
+    toast.success("Đã trả task về trạng thái làm lại.");
     await loadData();
-  } catch (e) { alert("Lỗi khi yêu cầu làm lại!"); }
+  } catch (e) {
+    toast.error(e, "Không thể yêu cầu làm lại công việc.");
+  }
 }
 
 const handleAssign = async () => {
+  if (!assignData.employeeId) {
+    toast.warning("Vui lòng chọn nhân viên trước khi giao việc.");
+    return;
+  }
+
   loadingAssign.value = true;
   try {
     await taskService.assign(assignData);
-    alert("Đã giao việc!");
+    toast.success("Đã giao việc thành công.");
     await loadData();
-  } catch (e) { alert("Lỗi giao việc!"); }
+  } catch (e) {
+    toast.error(e, "Không thể giao việc.");
+  }
   finally { loadingAssign.value = false; }
 }
 
 const handleCancel = async (id) => {
-  if (!confirm("⚠️ Bạn có chắc chắn muốn HỦY công việc này không?")) return;
+  const confirmed = await confirmDialog({
+    title: "Hủy công việc",
+    message: "Công việc này sẽ bị hủy và không còn được xử lý tiếp.",
+    confirmText: "Hủy công việc",
+    cancelText: "Quay lại",
+    variant: "danger",
+    icon: "bi bi-x-octagon"
+  });
+
+  if (!confirmed) return;
+
   try {
     await taskService.cancel(id);
-    alert("🚫 Đã hủy công việc!");
+    toast.success("Đã hủy công việc.");
     await loadData();
-  } catch (e) { alert("Lỗi khi hủy công việc!"); }
+  } catch (e) {
+    toast.error(e, "Không thể hủy công việc.");
+  }
 }
 
 const openCreateModal = () => {
   isEditMode.value = false;
+  editingTaskId.value = null;
   Object.assign(newTask, { taskTitle: "", description: "", difficultyLevel: 1, urgencyLevel: 1, status: "OPEN" });
   showModal.value = true;
 }
@@ -372,7 +427,10 @@ const openEditModal = (task) => {
 const closeModal = () => { showModal.value = false; }
 
 const saveTask = async () => {
-  if (!newTask.taskTitle) return alert("Vui lòng nhập tiêu đề!");
+  if (!newTask.taskTitle?.trim()) {
+    toast.warning("Vui lòng nhập tiêu đề công việc.");
+    return;
+  }
 
   loading.value = true;
   try {
@@ -388,10 +446,11 @@ const saveTask = async () => {
     }
 
     closeModal();
+    toast.success(isEditMode.value ? "Đã cập nhật công việc." : "Đã tạo công việc mới.");
     await loadData();
   } catch (err) {
     console.error("Lỗi lưu task:", err);
-    alert("Lỗi hệ thống khi lưu công việc!");
+    toast.error(getErrorMessage(err, "Không thể lưu công việc."));
   } finally {
     loading.value = false;
   }
@@ -650,6 +709,8 @@ td {
 .employee-cell { display: flex; align-items: center; gap: 10px; }
 .employee-name { font-size: 13.5px; font-weight: 600; color: #111; }
 .employee-username { font-size: 11.5px; color: #999; margin-top: 2px; }
+.employee-username i { margin-right: 4px; font-size: 11px; }
+.attachment-icon { margin-left: 6px; color: #6366f1; font-size: 12px; }
 
 /* Row Actions */
 .row-actions { display: flex; gap: 4px; }

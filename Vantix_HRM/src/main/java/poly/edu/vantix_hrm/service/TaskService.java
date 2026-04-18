@@ -3,6 +3,7 @@ package poly.edu.vantix_hrm.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import poly.edu.vantix_hrm.dto.task.KpiRankingDTO;
 import poly.edu.vantix_hrm.dto.task.TaskResponseDTO;
 import poly.edu.vantix_hrm.entity.*;
 import poly.edu.vantix_hrm.repository.*;
@@ -17,6 +18,7 @@ public class TaskService {
 
     private final TaskRepository taskRepo;
     private final TaskAssignmentRepository assignmentRepo;
+    private final TaskReportRepository reportRepo;
     private final EmployeeRepository employeeRepo;
     private final NotificationService notificationService;
 
@@ -37,6 +39,17 @@ public class TaskService {
         return taskRepo.findTasksByEmployeeId(employeeId)
                 .stream()
                 .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<KpiRankingDTO> getKpiRanking(Integer month) {
+        return taskRepo.findKpiRanking(month)
+                .stream()
+                .map(row -> new KpiRankingDTO(
+                        (Long) row[0],
+                        ((Number) row[1]).longValue(),
+                        ((Number) row[2]).longValue()
+                ))
                 .collect(Collectors.toList());
     }
 
@@ -84,6 +97,16 @@ public class TaskService {
         task.setPoint((diff + urg) * 10);
 
         return taskRepo.save(task);
+    }
+
+    @Transactional
+    public void deleteTask(Long id) {
+        if (!taskRepo.existsById(id)) {
+            throw new RuntimeException("Không tìm thấy Task");
+        }
+        assignmentRepo.deleteByTask_TaskId(id);
+        reportRepo.deleteByTaskId(id);
+        taskRepo.deleteById(id);
     }
 
     /* =====================================================

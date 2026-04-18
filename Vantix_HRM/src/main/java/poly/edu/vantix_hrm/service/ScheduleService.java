@@ -1,7 +1,6 @@
 package poly.edu.vantix_hrm.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import poly.edu.vantix_hrm.dto.schedule.DailyScheduleDTO;
@@ -38,7 +37,11 @@ public class ScheduleService {
         List<EmployeeScheduleDTO> result = new ArrayList<>();
 
         // Xác định xem người đang xem có phải Manager/Admin không (dựa trên Role)
-        boolean isManager = viewer.getUser() != null && viewer.getUser().getRole() != null && ("MANAGER".equalsIgnoreCase(viewer.getUser().getRole().getName()) || "ADMIN".equalsIgnoreCase(viewer.getUser().getRole().getName()));
+        boolean isManager = viewer.getUser() != null
+                && viewer.getUser().getRole() != null
+                && ("DEPARTMENT_MANAGER".equalsIgnoreCase(viewer.getUser().getRole().getName())
+                || "HR_MANAGER".equalsIgnoreCase(viewer.getUser().getRole().getName())
+                || "ADMIN".equalsIgnoreCase(viewer.getUser().getRole().getName()));
 
         if (isManager) {
             List<Employee> staffList = employeeRepository.findByDepartment_Id(viewer.getDepartment().getId());

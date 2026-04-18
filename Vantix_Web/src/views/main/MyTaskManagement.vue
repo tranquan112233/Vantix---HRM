@@ -1,9 +1,9 @@
 <template>
-  <div class="task-management">
+  <div class="task-management mgmt-page">
     <div class="page-header">
       <div>
-        <h2 class="page-title">🧑‍💻 My Tasks</h2>
-        <p class="page-desc">Hoàn thành 100% tiến độ để nộp bài và chờ Admin phê duyệt.</p>
+        <h2 class="page-title">Công việc của tôi</h2>
+        <p class="page-desc">Hoàn thành 100% tiến độ để nộp bài và chờ quản trị viên phê duyệt.</p>
       </div>
       <div class="status-badge in_progress" style="font-size: 14px; padding: 6px 16px;">
         Đang thực hiện: {{ tasks.length }}
@@ -12,7 +12,7 @@
 
     <div v-if="tasks.length === 0" class="table-card mt-4">
       <div class="state-center">
-        <div class="empty-icon">🎉</div>
+        <i class="bi bi-stars empty-icon"></i>
         <div class="empty-title">Bạn đã hoàn thành sạch sẽ!</div>
         <div class="empty-sub">Không còn công việc nào đang chờ xử lý dưới 100%.</div>
       </div>
@@ -42,12 +42,12 @@
         </div>
 
         <div class="d-flex justify-content-between td-meta fw-bold mb-4">
-          <span>⭐ Khó: {{ task.difficultyLevel }}</span>
-          <span style="color: #16a34a;">+{{ task.point }} pts</span>
+          <span><i class="bi bi-bar-chart-line me-1"></i>Khó: {{ task.difficultyLevel }}</span>
+          <span style="color: #16a34a;">+{{ task.point }} điểm</span>
         </div>
 
         <button class="btn-ghost w-100 justify-content-center" @click="openReport(task)">
-          Cập nhật tiến độ
+          <i class="bi bi-arrow-repeat"></i> Cập nhật tiến độ
         </button>
       </div>
     </div>
@@ -61,7 +61,7 @@
               <h3 class="modal-title">Cập nhật tiến độ</h3>
               <p class="modal-subtitle">Ghi lại những gì bạn đã làm được</p>
             </div>
-            <button class="btn-close-custom" @click="closeModal">✖</button>
+            <button class="btn-close-custom" @click="closeModal"><i class="bi bi-x-lg"></i></button>
           </div>
 
           <div class="modal-body-custom">
@@ -84,7 +84,7 @@
             </div>
 
             <div v-if="report.progressPercent == 100" class="alert-warning-custom mt-2">
-              <strong>⚠️ Chú ý:</strong> Đạt 100% Task sẽ được gửi cho Admin duyệt và <b>ẩn khỏi danh sách</b>.
+              <strong><i class="bi bi-exclamation-triangle me-1"></i>Chú ý:</strong> Đạt 100% công việc sẽ được gửi cho quản trị viên duyệt và <b>ẩn khỏi danh sách</b>.
             </div>
           </div>
 
@@ -106,10 +106,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import taskService from "@/services/taskApi.service"
-import { getUser } from "@/utils/jwtDecode"
-import api from "@/services/axios.js";
+import { useToast } from "@/utils/toast"
+import { useAuthStore } from "@/stores/auth.store"
+
+const toast = useToast()
+const auth = useAuthStore()
 
 // --- STATE ---
 const tasks = ref([])
@@ -117,8 +120,7 @@ const showModal = ref(false)
 const loadingReport = ref(false)
 const selectedFile = ref(null)
 
-const user = getUser()
-const currentEmployeeId = user?.id || user?.employeeId || user?.sub || 6
+const currentEmployeeId = computed(() => auth.user?.employeeId ?? null)
 
 const report = reactive({
   taskId: null,
@@ -128,8 +130,15 @@ const report = reactive({
 
 // --- LOGIC TẢI DỮ LIỆU ---
 const loadTasks = async () => {
+  if (!auth.user && auth.token) await auth.fetchMe();
+  if (!currentEmployeeId.value) {
+    tasks.value = [];
+    toast.error("Không tìm thấy mã nhân viên của tài khoản đăng nhập.");
+    return;
+  }
+
   try {
-    const res = await taskService.myTasks(currentEmployeeId)
+    const res = await taskService.myTasks(currentEmployeeId.value)
 
     let rawData = []
     if (Array.isArray(res.data)) {
@@ -147,6 +156,7 @@ const loadTasks = async () => {
   } catch (error) {
     console.error("❌ Lỗi tải Task:", error);
     tasks.value = [];
+    toast.error(error, "Không thể tải danh sách công việc.");
   }
 }
 
@@ -169,16 +179,22 @@ const handleFileUpload = (e) => {
 const closeModal = () => { showModal.value = false }
 
 const submitReport = async () => {
-  if (!report.taskId)
-    return alert("❌ Lỗi hệ thống: Không lấy được ID công việc!");
+  if (!report.taskId) {
+    toast.error("Không xác định được công việc cần cập nhật.");
+    return;
+  }
 
-  if (!report.workDescription?.trim())
-    return alert("Vui lòng nhập mô tả công việc!");
+  if (!report.workDescription?.trim()) {
+    toast.warning("Vui lòng nhập mô tả công việc đã thực hiện.");
+    return;
+  }
 
   const is100 = Number(report.progressPercent) === 100;
 
-  if (is100 && !selectedFile.value)
-    return alert("⚠️ Phải đính kèm file khi hoàn thành 100%!");
+  if (is100 && !selectedFile.value) {
+    toast.warning("Cần đính kèm file minh chứng khi hoàn thành 100%.");
+    return;
+  }
 
   loadingReport.value = true;
 
@@ -186,7 +202,7 @@ const submitReport = async () => {
     const fd = new FormData();
 
     fd.append("taskId", report.taskId);
-    fd.append("employeeId", currentEmployeeId);
+    fd.append("employeeId", currentEmployeeId.value);
     fd.append("workDescription", report.workDescription);
     fd.append("progressPercent", report.progressPercent);
     fd.append("status", is100 ? "DONE" : "IN_PROGRESS");
@@ -199,10 +215,10 @@ const submitReport = async () => {
     // ✅ CHỈ GỌI 1 API DUY NHẤT
     await taskService.report(fd);
 
-    alert(
-        is100
-            ? "🎉 Nộp bài thành công! Task đang chờ duyệt."
-            : "✅ Đã lưu tiến độ."
+    toast.success(
+      is100
+        ? "Đã nộp task thành công. Công việc đang chờ duyệt."
+        : "Đã lưu tiến độ công việc."
     );
 
     closeModal();
@@ -210,10 +226,7 @@ const submitReport = async () => {
 
   } catch (error) {
     console.error("Lỗi nộp bài:", error);
-    alert(
-        error.response?.data ||
-        "❌ Không thể gửi báo cáo!"
-    );
+    toast.error(error, "Không thể gửi báo cáo công việc.");
   } finally {
     loadingReport.value = false;
   }

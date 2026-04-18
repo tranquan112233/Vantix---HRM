@@ -1,5 +1,5 @@
 <template>
-  <div class="corporate-wrapper py-3">
+  <div class="corporate-wrapper mgmt-page py-3">
     <div v-if="showList" class="position-fixed top-0 start-0 w-100 h-100 z-10" @click="showList = false"></div>
 
     <div class="corp-card mx-auto position-relative z-20">
@@ -102,8 +102,8 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
-import axios from 'axios';
 import { useAuthStore } from '@/stores/auth.store';
+import notifService from '@/services/notification.service';
 
 const auth = useAuthStore();
 const roles = ref([]);
@@ -157,15 +157,12 @@ const getEmployeeName = (id) => {
 };
 
 const fetchRoles = async () => {
-  const res = await axios.get('/api/notifications/roles', { headers: { Authorization: `Bearer ${auth.token}` } });
+  const res = await notifService.getRoles();
   roles.value = res.data;
 };
 
 const fetchEmployees = async () => {
-  const res = await axios.get('/api/notifications/recipient-list', {
-    params: { roleName: selectedRole.value },
-    headers: { Authorization: `Bearer ${auth.token}` }
-  });
+  const res = await notifService.getRecipientList(selectedRole.value);
   employees.value = res.data;
 };
 
@@ -189,10 +186,6 @@ const handleSummon = async () => {
 
   loading.value = true;
   try {
-    const endpoint = isAllMode.value
-        ? '/api/notifications/summon-bulk'
-        : '/api/notifications/summon-multi';
-
     // Đóng gói dữ liệu chuẩn DTO
     const payload = {
       roleName: isAllMode.value ? selectedRole.value : null,
@@ -203,9 +196,11 @@ const handleSummon = async () => {
     };
 
     // Gửi lên Backend
-    await axios.post(endpoint, payload, {
-      headers: { Authorization: `Bearer ${auth.token}` }
-    });
+    if (isAllMode.value) {
+      await notifService.sendBulkSummon(payload);
+    } else {
+      await notifService.sendMultiSummon(payload);
+    }
 
     alert('Gửi thông báo thành công!');
 
@@ -224,88 +219,114 @@ onMounted(() => { fetchRoles(); fetchEmployees(); });
 </script>
 
 <style scoped>
-/* GIAO DIỆN CHUẨN DOANH NGHIỆP (ENTERPRISE) */
 .corp-card {
-  max-width: 560px;
-  background-color: #ffffff;
-  border: 1px solid #dfe1e6;
-  border-radius: 4px;
-  /* Đảm bảo bóng mờ không quá đậm gây rối mắt khi chồng lớp */
-  box-shadow: 0 4px 8px -2px rgba(9, 30, 66, 0.05);
+  max-width: 620px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
   position: relative;
-  z-index: 1; /* Ưu tiên thấp nhất so với Header */
+  z-index: 1;
+}
+
+.corp-header {
+  background: var(--surface-muted);
 }
 
 .z-10 { z-index: 100; }
 .z-20 { z-index: 101; }
-.transition-all { transition: all 0.2s ease; }
+.transition-all { transition: all var(--transition); }
 .outline-none:focus { outline: none; }
 .cursor-text { cursor: text; }
 .cursor-pointer { cursor: pointer; }
 .line-height-1 { line-height: 1; }
 
-/* HEADER BORDER TRÁI CHUẨN STATUS */
-.border-danger-left { border-left: 4px solid #dc3545 !important; }
-.border-primary-left { border-left: 4px solid #0d6efd !important; }
-.border-secondary-left { border-left: 4px solid #6c757d !important; }
+.border-danger-left    { border-left: 4px solid var(--danger-color) !important; }
+.border-primary-left   { border-left: 4px solid var(--primary-color) !important; }
+.border-secondary-left { border-left: 4px solid var(--text-muted-dark) !important; }
 
-/* LABEL VÀ TEXT */
 .corp-label {
+  color: var(--text-darker);
   font-size: 13px;
   font-weight: 600;
-  color: #42526e; /* Xám xanh Atlassian */
 }
 
-/* INPUT FORM */
 .corp-input {
-  background-color: #fafbfc;
-  border: 2px solid #dfe1e6;
-  border-radius: 4px;
-  color: #172b4d;
-  transition: background-color 0.2s, border-color 0.2s;
+  background: var(--bg);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  color: var(--text-dark);
   font-size: 14px;
-}
-.corp-input:focus-within, .corp-input:focus {
-  background-color: #ffffff;
-  border-color: #4c9aff; /* Xanh focus rõ ràng */
+  transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
 }
 
-/* TOGGLE BUTTONS */
-.hover-bg-gray:hover { background-color: #ebecf0; color: #172b4d !important; }
-.corp-btn-toggle { border-radius: 4px; font-size: 13px; }
+.corp-input:focus-within,
+.corp-input:focus {
+  background: var(--bg-white);
+  border-color: var(--primary-color);
+  box-shadow: var(--primary-focus-shadow);
+}
 
-/* CHIPS (THẺ NHÂN VIÊN) */
+.hover-bg-gray:hover {
+  background: var(--surface-muted-strong);
+  color: var(--text-dark) !important;
+}
+
+.corp-btn-toggle {
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .corp-chip {
-  background-color: #ebecf0; /* Nền xám nhạt chuẩn chip */
+  background: var(--primary-color-light);
   border: 1px solid transparent;
+  color: var(--primary-color);
 }
-.corp-chip:hover { background-color: #dfe1e6; }
-.hover-dark:hover { color: #172b4d !important; }
 
-/* DROPDOWN TÌM KIẾM */
+.corp-chip:hover {
+  background: var(--surface-muted-strong);
+}
+
+.hover-dark:hover { color: var(--text-dark) !important; }
+
 .corp-dropdown {
-  border: 1px solid #dfe1e6;
-  border-radius: 4px;
-  box-shadow: 0 8px 12px rgba(9, 30, 66, 0.15), 0 0 1px rgba(9, 30, 66, 0.31);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
   z-index: 1060;
 }
-.scroll-area { max-height: 240px; overflow-y: auto; }
-.scroll-area::-webkit-scrollbar { width: 8px; }
-.scroll-area::-webkit-scrollbar-thumb { background: #c1c7d0; border-radius: 4px; }
-.search-item { cursor: pointer; transition: background 0.1s; }
-.search-item:hover { background-color: #f4f5f7; border-left: 2px solid #0d6efd; padding-left: 14px !important; }
 
-/* AVATAR DOANH NGHIỆP */
-.corp-avatar {
-  width: 28px; height: 28px;
-  border-radius: 4px; /* Avatar vuông bo nhẹ chứ không tròn xoe */
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px;
+.scroll-area { max-height: 240px; overflow-y: auto; }
+
+.search-item {
+  cursor: pointer;
+  transition: background var(--transition);
 }
 
-/* NÚT SUBMIT */
+.search-item:hover {
+  background: var(--surface-muted);
+  border-left: 2px solid var(--primary-color);
+  padding-left: 14px !important;
+}
+
+.corp-avatar {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--primary-color-light) !important;
+  color: var(--primary-color) !important;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .corp-btn-submit {
-  border-radius: 4px;
-  font-size: 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 700;
 }
 </style>

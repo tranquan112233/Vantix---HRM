@@ -1,9 +1,11 @@
 <script setup>
 import {ref, onMounted, watch, computed} from 'vue';
 import attendanceService from "@/services/attendance.service.js";
+import {useAuthStore} from '@/stores/auth.store';
 
 // --- CẤU HÌNH ---
-const employeeId = ref(8); // Giả lập ID nhân viên
+const auth = useAuthStore();
+const employeeId = computed(() => auth.user?.employeeId ?? null);
 
 // --- FORMATTER & HELPERS ---
 const formatTime = (timeStr) => timeStr ? timeStr.slice(0, 5) : '--:--';
@@ -101,6 +103,11 @@ const showMessage = (text, type = 'success') => {
 
 // --- 1. LẤY DỮ LIỆU VÀ XỬ LÝ LỊCH ---
 const fetchAttendanceData = async () => {
+  if (!employeeId.value) {
+    attendanceList.value = [];
+    return;
+  }
+
   try {
     const response = await attendanceService.getMonthlyAttendance(
         employeeId.value,
@@ -179,6 +186,10 @@ const openDayDetail = (day) => {
 // --- 3. HÀM CHẤM CÔNG VÀ XÁC NHẬN ---
 const handleCheckIn = async () => {
   if (loading.value) return;
+  if (!employeeId.value) {
+    showMessage('Không tìm thấy mã nhân viên của tài khoản đăng nhập.', 'error');
+    return;
+  }
   loading.value = true;
   try {
     const response = await attendanceService.checkIn(employeeId.value);
@@ -202,6 +213,10 @@ const requestCheckOut = () => {
 
 const confirmCheckOut = async () => {
   showConfirmModal.value = false;
+  if (!employeeId.value) {
+    showMessage('Không tìm thấy mã nhân viên của tài khoản đăng nhập.', 'error');
+    return;
+  }
   loading.value = true;
   try {
     await attendanceService.checkOutManual(employeeId.value);
@@ -216,6 +231,10 @@ const confirmCheckOut = async () => {
 
 const handleConfirm = async () => {
   if (loading.value) return;
+  if (!employeeId.value) {
+    showMessage('Không tìm thấy mã nhân viên của tài khoản đăng nhập.', 'error');
+    return;
+  }
   loading.value = true;
   try {
     await attendanceService.confirmCheckOut(employeeId.value);
@@ -246,12 +265,15 @@ const handleError = (error) => {
   showMessage(errorText, errorType);
 };
 
-watch([selectedMonth, selectedYear], fetchAttendanceData);
-onMounted(() => fetchAttendanceData());
+watch([selectedMonth, selectedYear, employeeId], fetchAttendanceData);
+onMounted(async () => {
+  if (!auth.user && auth.token) await auth.fetchMe();
+  await fetchAttendanceData();
+});
 </script>
 
 <template>
-  <div class="page-wrapper">
+  <div class="page-wrapper mgmt-page">
     <div class="dashboard-metric-cards">
       <div class="metric-card" @click="!loading && handleCheckIn()" :class="{ 'loading-state': loading }">
         <div class="metric-info">
@@ -381,7 +403,7 @@ onMounted(() => fetchAttendanceData());
                   {{ att.earlyLeaveMinutes > 0 ? att.earlyLeaveMinutes : '-' }}
                 </td>
                 <td>
-                  <span :class="['vt-badge', getStatusClass(att.status)]">{{ att.status || 'Draft' }}</span>
+                  <span :class="['vt-badge', getStatusClass(att.status)]">{{ att.status || 'Bản nháp' }}</span>
                 </td>
               </tr>
               </tbody>
@@ -418,7 +440,7 @@ onMounted(() => fetchAttendanceData());
 /* (Phần CSS chung giữ nguyên) */
 .page-wrapper {
   padding: 24px;
-  background-color: #f5f7fa;
+  background-color: var(--bg);
   min-height: calc(100vh - 60px);
   font-family: 'Inter', 'Segoe UI', sans-serif;
   box-sizing: border-box;
@@ -439,14 +461,14 @@ onMounted(() => fetchAttendanceData());
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--border-light);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .metric-card:hover {
-  border-color: #409eff;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow);
   transform: translateY(-2px);
 }
 
@@ -457,14 +479,14 @@ onMounted(() => fetchAttendanceData());
 
 .metric-title {
   font-size: 13px;
-  color: #909399;
+  color: var(--text-muted);
   margin-bottom: 8px;
   font-weight: 500;
 }
 
 .metric-action {
   font-size: 18px;
-  color: #303133;
+  color: var(--text-dark);
   margin: 0;
   font-weight: 600;
 }
@@ -481,7 +503,7 @@ onMounted(() => fetchAttendanceData());
 
 .bg-blue {
   background: #e6f1fc;
-  color: #409eff;
+  color: var(--primary-color);
 }
 
 .bg-orange {
@@ -503,7 +525,7 @@ onMounted(() => fetchAttendanceData());
   background: #ffffff;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--border-light);
   padding: 24px;
 }
 
@@ -530,14 +552,14 @@ onMounted(() => fetchAttendanceData());
 .header-title h2 {
   margin: 0;
   font-size: 18px;
-  color: #303133;
+  color: var(--text-dark);
   font-weight: 600;
 }
 
 .header-title p {
   margin: 4px 0 0 0;
   font-size: 13px;
-  color: #909399;
+  color: var(--text-muted);
 }
 
 .header-filters {
@@ -548,7 +570,7 @@ onMounted(() => fetchAttendanceData());
 .search-box {
   display: flex;
   align-items: center;
-  background: #f5f7fa;
+  background: var(--bg);
   border: 1px solid #dcdfe6;
   border-radius: 6px;
   padding: 0 12px;
@@ -621,7 +643,7 @@ onMounted(() => fetchAttendanceData());
 .modal-content h3 {
   margin-top: 0;
   font-size: 18px;
-  color: #303133;
+  color: var(--text-dark);
 }
 
 .modal-content p {
@@ -651,7 +673,7 @@ onMounted(() => fetchAttendanceData());
 }
 
 .btn-primary {
-  background: #409eff;
+  background: var(--primary-color);
   color: white;
 }
 
@@ -666,7 +688,7 @@ onMounted(() => fetchAttendanceData());
 }
 
 .btn-outline:hover {
-  color: #409eff;
+  color: var(--primary-color);
   border-color: #c6e2ff;
   background-color: #ecf5ff;
 }
@@ -694,8 +716,8 @@ onMounted(() => fetchAttendanceData());
   text-align: left;
   font-size: 13px;
   font-weight: 600;
-  color: #909399;
-  border-bottom: 1px solid #ebeef5;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-light);
   background-color: #fafafa;
 }
 
@@ -703,12 +725,12 @@ onMounted(() => fetchAttendanceData());
   padding: 16px;
   font-size: 14px;
   color: #606266;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-light);
   vertical-align: middle;
 }
 
 .vantix-table tbody tr:hover {
-  background-color: #f5f7fa;
+  background-color: var(--bg);
 }
 
 .time-text {
@@ -766,7 +788,7 @@ onMounted(() => fetchAttendanceData());
 
 .badge-default {
   background: #f4f4f5;
-  color: #909399;
+  color: var(--text-muted);
 }
 
 .text-danger {
@@ -783,7 +805,7 @@ onMounted(() => fetchAttendanceData());
   gap: 20px;
   margin-bottom: 20px;
   padding: 12px 16px;
-  background: #f8f9fa;
+  background: var(--surface-muted);
   border-radius: 6px;
 }
 
@@ -815,7 +837,7 @@ onMounted(() => fetchAttendanceData());
 }
 
 .calendar-wrapper {
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -823,8 +845,8 @@ onMounted(() => fetchAttendanceData());
 .calendar-header {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  background-color: #f5f7fa;
-  border-bottom: 1px solid #ebeef5;
+  background-color: var(--bg);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .weekday {
@@ -832,7 +854,7 @@ onMounted(() => fetchAttendanceData());
   text-align: center;
   font-weight: 600;
   font-size: 13px;
-  color: #909399;
+  color: var(--text-muted);
 }
 
 .sunday-col {
@@ -846,8 +868,8 @@ onMounted(() => fetchAttendanceData());
 }
 
 .calendar-cell {
-  border-right: 1px solid #ebeef5;
-  border-bottom: 1px solid #ebeef5;
+  border-right: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
   padding: 8px 12px;
   display: flex;
   flex-direction: column;
@@ -865,7 +887,7 @@ onMounted(() => fetchAttendanceData());
 .date-num {
   font-size: 14px;
   font-weight: 500;
-  color: #303133;
+  color: var(--text-dark);
   margin-bottom: 8px;
 }
 
@@ -911,7 +933,7 @@ onMounted(() => fetchAttendanceData());
 }
 
 .calendar-cell.is-clickable:hover {
-  box-shadow: inset 0 0 0 2px #409eff;
+  box-shadow: inset 0 0 0 2px var(--primary-color);
   opacity: 0.9;
 }
 
@@ -923,7 +945,7 @@ onMounted(() => fetchAttendanceData());
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-light);
   padding-bottom: 16px;
   margin-bottom: 16px;
 }
@@ -931,7 +953,7 @@ onMounted(() => fetchAttendanceData());
 .modal-header-custom h3 {
   margin: 0;
   font-size: 18px;
-  color: #303133;
+  color: var(--text-dark);
 }
 
 .close-btn {
@@ -939,7 +961,7 @@ onMounted(() => fetchAttendanceData());
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #909399;
+  color: var(--text-muted);
   line-height: 1;
 }
 
@@ -950,7 +972,7 @@ onMounted(() => fetchAttendanceData());
 .empty-state {
   text-align: center;
   padding: 40px 20px;
-  color: #909399;
+  color: var(--text-muted);
 }
 
 .empty-icon {

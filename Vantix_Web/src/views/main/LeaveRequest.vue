@@ -1,103 +1,140 @@
 <template>
-  <div class="leave-management-wrapper">
-    <div class="leave-card form-card">
-      <div class="card-header">
-        <h2>✈️ Nộp đơn xin nghỉ phép</h2>
-        <p class="subtitle">Vui lòng điền đầy đủ thông tin để HR duyệt đơn nhanh nhất nhé!</p>
+  <div class="leave-request-page mgmt-page">
+    <div class="page-header">
+      <div class="header-left">
+        <h1 class="page-title">Đơn nghỉ phép</h1>
+        <p class="page-desc">Gửi đơn nghỉ phép và theo dõi tiến trình duyệt của từng yêu cầu tại một nơi.</p>
       </div>
+      <div class="header-actions">
+        <span class="status-badge pending">Chờ duyệt {{ pendingCount }}</span>
+        <span class="status-badge approved">Đã duyệt {{ approvedCount }}</span>
+        <span class="status-badge rejected">Từ chối {{ rejectedCount }}</span>
+      </div>
+    </div>
 
-      <form @submit.prevent="submitLeaveRequest" class="leave-form">
-        <div class="form-row">
-          <div class="form-group">
-            <label>Loại nghỉ phép <span class="required">*</span></label>
-            <div class="input-wrapper">
-              <select v-model="formData.leaveTypeId" required class="form-control">
-                <option value="" disabled>-- Chọn loại nghỉ --</option>
-                <option v-for="type in leaveTypeOptions" :key="type.leaveTypeId" :value="type.leaveTypeId">
-                  {{ type.typeName }} ({{ type.isPaid ? 'Có lương' : 'Không lương' }})
-                </option>
-              </select>
+    <transition name="fade">
+      <div v-if="message" :class="['alert-toast', messageType]">
+        {{ message }}
+      </div>
+    </transition>
+
+    <div class="leave-layout">
+      <div class="content-card form-panel">
+        <div class="panel-heading">
+          <i class="bi bi-send"></i>
+          <span>Tạo đơn mới</span>
+        </div>
+        <p class="panel-copy">Điền đầy đủ thông tin để HR duyệt nhanh hơn và hạn chế phải chỉnh sửa lại yêu cầu.</p>
+
+        <form @submit.prevent="submitLeaveRequest" class="leave-form">
+          <div class="form-row">
+            <div class="field">
+              <label>Loại nghỉ phép <span class="req">*</span></label>
+              <div class="select-wrap">
+                <select v-model="formData.leaveTypeId" required>
+                  <option value="" disabled>-- Chọn loại nghỉ --</option>
+                  <option v-for="type in leaveTypeOptions" :key="type.leaveTypeId" :value="type.leaveTypeId">
+                    {{ type.typeName }} ({{ type.isPaid ? 'Có lương' : 'Không lương' }})
+                  </option>
+                </select>
+                <i class="bi bi-chevron-down"></i>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Tổng số ca nghỉ <span class="req">*</span></label>
+              <input v-model="formData.totalShift" type="number" min="1" required class="field-input" />
             </div>
           </div>
 
-          <div class="form-group">
-            <label>Tổng số ca nghỉ <span class="required">*</span></label>
-            <input type="number" v-model="formData.totalShift" min="1" required class="form-control" />
+          <div class="form-row">
+            <div class="field">
+              <label>Từ ngày <span class="req">*</span></label>
+              <input v-model="formData.startDate" type="date" required class="field-input" />
+            </div>
+
+            <div class="field">
+              <label>Đến ngày <span class="req">*</span></label>
+              <input v-model="formData.endDate" type="date" required class="field-input" />
+            </div>
           </div>
-        </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label>Từ ngày <span class="required">*</span></label>
-            <input type="date" v-model="formData.startDate" required class="form-control" />
+          <div class="field">
+            <label>Lý do nghỉ <span class="req">*</span></label>
+            <textarea
+              v-model="formData.reason"
+              rows="4"
+              required
+              class="textarea-field"
+              placeholder="Mô tả ngắn gọn lý do nghỉ để người duyệt nắm được bối cảnh."
+            ></textarea>
           </div>
 
-          <div class="form-group">
-            <label>Đến ngày <span class="required">*</span></label>
-            <input type="date" v-model="formData.endDate" required class="form-control" />
+          <div class="form-actions">
+            <button type="submit" :disabled="isSubmitting" class="btn-primary">
+              <span v-if="isSubmitting" class="spin-sm"></span>
+              <template v-else>
+                <i class="bi bi-send-check"></i>
+                Gửi đơn xin nghỉ
+              </template>
+            </button>
           </div>
-        </div>
-
-        <div class="form-group">
-          <label>Lý do nghỉ <span class="required">*</span></label>
-          <textarea v-model="formData.reason" rows="3" placeholder="Sếp cho em nghỉ để đi..." required class="form-control"></textarea>
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" :disabled="isSubmitting" class="btn-submit">
-            <span v-if="isSubmitting" class="spinner"></span>
-            {{ isSubmitting ? 'Đang gửi...' : 'Gửi đơn xin nghỉ' }}
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <div class="leave-card history-card">
-      <div class="card-header">
-        <h2>🕒 Lịch sử nghỉ phép của tôi</h2>
+        </form>
       </div>
 
-      <div class="table-container">
-        <table v-if="requests.length > 0" class="modern-table">
-          <thead>
-          <tr>
-            <th>Loại nghỉ</th>
-            <th>Thời gian</th>
-            <th>Số ca</th>
-            <th>Lý do</th>
-            <th>Trạng thái</th>
-            <th>Người duyệt</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr v-for="req in requests" :key="req.leaveId" class="table-row">
-            <td class="font-medium">{{ req.leaveTypeName }}</td>
-            <td>
-              <div class="date-range">
-                <span class="date">{{ req.startDate }}</span>
-                <span class="arrow">→</span>
-                <span class="date">{{ req.endDate }}</span>
-              </div>
-            </td>
-            <td class="text-center"><strong>{{ req.totalShift }}</strong></td>
-            <td class="reason-cell">{{ req.reason }}</td>
-            <td>
-                <span :class="['status-badge', req.status.toLowerCase()]">
-                  {{ req.status === 'PENDING' ? 'Chờ duyệt' : req.status === 'APPROVED' ? 'Đã duyệt' : 'Từ chối' }}
-                </span>
-            </td>
-            <td>
-              <span class="approver" v-if="req.approvedByName">{{ req.approvedByName }}</span>
-              <span class="no-approver" v-else>---</span>
-            </td>
-          </tr>
-          </tbody>
-        </table>
+      <div class="table-card history-panel">
+        <div class="card-header">
+          <div class="header-title">
+            <span class="header-icon"><i class="bi bi-clock-history"></i></span>
+            <div>
+              <h2>Lịch sử nghỉ phép</h2>
+              <p>Xem lại các đơn đã gửi, trạng thái duyệt và người phê duyệt tương ứng.</p>
+            </div>
+          </div>
+        </div>
 
-        <div v-else class="empty-state">
-          <div class="empty-icon">📁</div>
+        <div v-if="requests.length > 0" class="history-table">
+          <table class="vantix-table">
+            <thead>
+              <tr>
+                <th>Loại nghỉ</th>
+                <th>Thời gian</th>
+                <th>Số ca</th>
+                <th>Lý do</th>
+                <th>Trạng thái</th>
+                <th>Người duyệt</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="req in requests" :key="req.leaveId">
+                <td class="fw-700">{{ req.leaveTypeName }}</td>
+                <td>
+                  <div class="date-range">
+                    <span>{{ formatDate(req.startDate) }}</span>
+                    <i class="bi bi-arrow-right"></i>
+                    <span>{{ formatDate(req.endDate) }}</span>
+                  </div>
+                </td>
+                <td>{{ req.totalShift }}</td>
+                <td class="reason-cell">{{ req.reason }}</td>
+                <td>
+                  <span :class="['status-badge', (req.status || '').toLowerCase()]">
+                    {{ formatStatus(req.status) }}
+                  </span>
+                </td>
+                <td>
+                  <span v-if="req.approvedByName" class="approver">{{ req.approvedByName }}</span>
+                  <span v-else class="no-approver">---</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-else class="empty-state history-empty">
+          <i class="bi bi-folder2-open empty-icon"></i>
           <p>Bạn chưa có đơn xin nghỉ nào.</p>
-          <span class="empty-sub">Cứ làm việc chăm chỉ nhé, sếp đang nhìn đấy! 😉</span>
+          <span class="empty-sub">Tất cả yêu cầu mới sẽ xuất hiện tại đây ngay sau khi gửi.</span>
         </div>
       </div>
     </div>
@@ -105,14 +142,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed, onBeforeUnmount } from 'vue'
 import LeaveService from '@/services/leaveservice.service.js'
 import { useAuthStore } from '@/stores/auth.store' // Mở comment này khi có store auth
 
 // Lấy thông tin người đang đăng nhập
 const leaveTypeOptions = ref([])
 const auth = useAuthStore()
-const currentUser = auth.user // Lấy thông tin user hiện tại
+const currentUser = computed(() => auth.user)
 
 const formData = reactive({
   leaveTypeId: '',
@@ -124,6 +161,48 @@ const formData = reactive({
 
 const isSubmitting = ref(false)
 const requests = ref([])
+const message = ref('')
+const messageType = ref('success')
+let messageTimeout = null
+
+const pendingCount = computed(() => requests.value.filter(req => req.status === 'PENDING').length)
+const approvedCount = computed(() => requests.value.filter(req => req.status === 'APPROVED').length)
+const rejectedCount = computed(() => requests.value.filter(req => req.status === 'REJECTED').length)
+
+const showMessage = (text, type = 'success') => {
+  message.value = text
+  messageType.value = type
+  if (messageTimeout) clearTimeout(messageTimeout)
+  messageTimeout = setTimeout(() => {
+    message.value = ''
+  }, 4000)
+}
+
+const resetForm = () => {
+  formData.startDate = ''
+  formData.endDate = ''
+  formData.reason = ''
+  formData.leaveTypeId = ''
+  formData.totalShift = 1
+}
+
+const formatDate = (value) => {
+  if (!value) return '--'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+}
+
+const formatStatus = (status) => {
+  if (status === 'PENDING') return 'Chờ duyệt'
+  if (status === 'APPROVED') return 'Đã duyệt'
+  if (status === 'REJECTED') return 'Từ chối'
+  return status || 'Không rõ'
+}
 
 // 1. Hàm lấy danh sách lịch sử nghỉ phép
 const fetchMyRequests = async () => {
@@ -150,40 +229,39 @@ const submitLeaveRequest = async () => {
   // Validate ngày ở frontend trước khi gọi API
   const today = new Date().toISOString().split('T')[0]
   if (formData.startDate < today) {
-    alert('Ngày bắt đầu không được trong quá khứ!')
+    showMessage('Ngày bắt đầu không được trong quá khứ.', 'warning')
     return
   }
   if (formData.endDate < formData.startDate) {
-    alert('Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu!')
+    showMessage('Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.', 'warning')
     return
   }
 
   try {
     isSubmitting.value = true
 
+    if (!currentUser.value) {
+      showMessage('Không tìm thấy thông tin nhân viên hiện tại.', 'error')
+      return
+    }
+
     const payload = {
       ...formData,
-      employeeId: currentUser?.employeeId || currentUser?.id
+      employeeId: currentUser.value.employeeId || currentUser.value.id
     }
 
     // Gửi payload có chứa employeeId đi thay vì formData trống không
     await LeaveService.createLeaveRequest(payload)
 
-    alert('Nộp đơn xin nghỉ thành công!')
-
-    // Reset form
-    formData.startDate = ''
-    formData.endDate = ''
-    formData.reason = ''
-    formData.leaveTypeId = ''
-    formData.totalShift = 1
+    showMessage('Nộp đơn xin nghỉ thành công.', 'success')
+    resetForm()
 
     // Gọi lại hàm fetch để cập nhật danh sách lịch sử ngay lập tức
     await fetchMyRequests()
 
   } catch (error) {
     console.error('Lỗi khi nộp đơn:', error)
-    alert('Có lỗi xảy ra, vui lòng kiểm tra lại thông tin!')
+    showMessage('Có lỗi xảy ra, vui lòng kiểm tra lại thông tin.', 'error')
   } finally {
     isSubmitting.value = false
   }
@@ -194,272 +272,122 @@ onMounted(() => {
   fetchMyRequests()
   fetchLeaveTypes()
 })
+
+onBeforeUnmount(() => {
+  if (messageTimeout) clearTimeout(messageTimeout)
+})
 </script>
 
 <style scoped>
-/* Reset & Base Variables */
-.leave-management-wrapper {
-  --primary-color: #4f46e5;
-  --primary-hover: #4338ca;
-  --bg-color: #f3f4f6;
-  --card-bg: #ffffff;
-  --text-main: #111827;
-  --text-muted: #6b7280;
-  --border-color: #e5e7eb;
-
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 30px 15px;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  color: var(--text-main);
+.leave-request-page {
+  gap: 22px;
 }
 
-/* Cards */
-.leave-card {
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 24px 32px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  margin-bottom: 30px;
-  border: 1px solid var(--border-color);
-}
-
-.card-header {
-  margin-bottom: 24px;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 16px;
-}
-
-.card-header h2 {
-  margin: 0 0 8px 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-main);
-}
-
-.subtitle {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-/* Forms */
-.form-row {
-  display: flex;
+.leave-layout {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
   gap: 20px;
-  margin-bottom: 20px;
+  align-items: start;
 }
 
-.form-group {
-  flex: 1;
+.form-panel,
+.history-panel {
+  padding: 24px;
+}
+
+.form-panel {
+  position: sticky;
+  top: 32px;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  color: #222;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.panel-heading i {
+  color: var(--primary-color);
+}
+
+.panel-copy {
+  margin: 0 0 18px;
+  color: #888;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.leave-form {
   display: flex;
   flex-direction: column;
+  gap: 16px;
 }
 
-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #374151;
-}
-
-.required {
-  color: #ef4444;
-}
-
-.form-control {
-  padding: 10px 14px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  transition: all 0.2s;
-  background-color: #f9fafb;
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
-  background-color: #fff;
-}
-
-textarea.form-control {
-  resize: vertical;
-  min-height: 80px;
-}
-
-/* Buttons */
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 24px;
 }
 
-.btn-submit {
-  background-color: var(--primary-color);
-  color: white;
-  font-weight: 600;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.95rem;
-  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
-}
-
-.btn-submit:hover:not(:disabled) {
-  background-color: var(--primary-hover);
-  transform: translateY(-1px);
-}
-
-.btn-submit:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.btn-submit:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-/* Spinner for button */
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 50%;
-  border-top-color: #fff;
-  animation: spin 1s ease-in-out infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Table */
-.table-container {
+.history-table {
   overflow-x: auto;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-}
-
-.modern-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.modern-table th {
-  background-color: #f9fafb;
-  padding: 12px 16px;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  font-weight: 600;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.modern-table td {
-  padding: 16px;
-  font-size: 0.9rem;
-  border-bottom: 1px solid var(--border-color);
-  vertical-align: middle;
-}
-
-.table-row:last-child td {
-  border-bottom: none;
-}
-
-.table-row:hover {
-  background-color: #f9fafb;
-}
-
-.font-medium {
-  font-weight: 500;
-  color: var(--text-main);
-}
-
-.text-center {
-  text-align: center;
 }
 
 .date-range {
   display: flex;
   align-items: center;
   gap: 8px;
+  color: var(--text-muted-dark);
+  font-size: 13px;
 }
 
-.arrow {
-  color: var(--text-muted);
-  font-size: 1.1rem;
+.date-range i {
+  color: var(--text-dim);
+  font-size: 11px;
 }
 
 .reason-cell {
-  max-width: 200px;
+  max-width: 260px;
   white-space: normal;
-  color: #4b5563;
-  line-height: 1.4;
+  line-height: 1.6;
+  color: var(--text-muted-dark);
 }
-
-/* Badges */
-.status-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  display: inline-block;
-  text-align: center;
-}
-
-.status-badge.approved { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-.status-badge.rejected { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-.status-badge.pending { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
 
 .approver {
-  font-weight: 500;
-  color: #374151;
+  color: var(--text-darker);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .no-approver {
-  color: #9ca3af;
+  color: var(--text-dim);
   font-style: italic;
 }
 
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: 40px 20px;
+.history-empty {
+  padding: 56px 24px;
 }
 
-.empty-icon {
-  font-size: 3rem;
-  margin-bottom: 16px;
-  opacity: 0.5;
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
 }
 
-.empty-state p {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-main);
-  margin: 0 0 8px 0;
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
-.empty-sub {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
+@media (max-width: 992px) {
+  .leave-layout {
+    grid-template-columns: 1fr;
+  }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .form-row { flex-direction: column; gap: 0; }
-  .form-group { margin-bottom: 20px; }
-  .leave-card { padding: 20px 16px; }
+  .form-panel {
+    position: static;
+  }
 }
 </style>

@@ -1,15 +1,15 @@
 <template>
-  <div class="user-management">
+  <div class="user-management mgmt-page">
     <!-- Header -->
     <div class="page-header">
       <div class="header-left">
-        <h1 class="page-title">Users</h1>
-        <p class="page-desc">{{ pagination.totalElements }} total · {{ activeCount }} active · {{ lockedCount }} locked</p>
+        <h1 class="page-title">Người dùng</h1>
+        <p class="page-desc">{{ pagination.totalElements }} tổng · {{ activeCount }} đang hoạt động · {{ lockedCount }} bị khóa</p>
       </div>
       <div class="header-actions">
         <div class="dropdown-wrapper" ref="exportDropdown">
           <button class="btn-ghost" @click.stop="toggleExportDropdown">
-            <i class="bi bi-download"></i> Export
+            <i class="bi bi-download"></i> Xuất
             <i class="bi bi-chevron-down chevron-icon" :class="{ rotate: showExportDropdown }"></i>
           </button>
           <transition name="dropdown-fade">
@@ -21,7 +21,7 @@
           </transition>
         </div>
         <button v-if="canCreate" class="btn-primary" data-bs-toggle="modal" data-bs-target="#userModal" @click="openCreate">
-          <i class="bi bi-plus-lg"></i> New User
+          <i class="bi bi-plus-lg"></i> Thêm người dùng
         </button>
       </div>
     </div>
@@ -30,23 +30,23 @@
     <div class="filter-bar">
       <div class="search-wrapper">
         <i class="bi bi-search"></i>
-        <input v-model="filters.keyword" type="text" placeholder="Search username or email..." @input="onSearch" />
+        <input v-model="filters.keyword" type="text" placeholder="Tìm tên đăng nhập hoặc email..." @input="onSearch" />
         <button v-if="filters.keyword" class="clear-btn" @click="clearSearch"><i class="bi bi-x"></i></button>
       </div>
       <div class="select-wrapper">
         <select v-model="filters.status" @change="fetchUsers">
-          <option value="">All Status</option>
-          <option value="ACTIVE">Active</option>
-          <option value="LOCKED">Locked</option>
+          <option value="">Tất cả trạng thái</option>
+          <option value="ACTIVE">Đang hoạt động</option>
+          <option value="LOCKED">Bị khóa</option>
         </select>
         <i class="bi bi-chevron-down"></i>
       </div>
       <div class="select-wrapper">
         <select v-model.number="pagination.size" @change="onSizeChange">
-          <option :value="10">10 / page</option>
-          <option :value="20">20 / page</option>
-          <option :value="50">50 / page</option>
-          <option :value="100">100 / page</option>
+          <option :value="10">10 / trang</option>
+          <option :value="20">20 / trang</option>
+          <option :value="50">50 / trang</option>
+          <option :value="100">100 / trang</option>
         </select>
         <i class="bi bi-chevron-down"></i>
       </div>
@@ -56,15 +56,15 @@
     <div class="table-card">
       <div v-if="loading" class="state-center">
         <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
-        <span>Loading...</span>
+        <span>Đang tải...</span>
       </div>
 
       <div v-else-if="users.length === 0" class="state-center">
         <i class="bi bi-people empty-icon"></i>
-        <p class="empty-title">No users found</p>
-        <p class="empty-sub">Create the first user to get started.</p>
+        <p class="empty-title">Không tìm thấy người dùng</p>
+        <p class="empty-sub">Tạo người dùng đầu tiên để bắt đầu.</p>
         <button class="btn-primary" data-bs-toggle="modal" data-bs-target="#userModal" @click="openCreate">
-          <i class="bi bi-plus-lg"></i> Create user
+          <i class="bi bi-plus-lg"></i> Tạo người dùng
         </button>
       </div>
 
@@ -74,12 +74,12 @@
             <thead>
             <tr>
               <th class="th-num">#</th>
-              <th class="sortable" @click="toggleSort('username')">User <i :class="'bi ' + getSortIcon('username')"></i></th>
-              <th class="sortable" @click="toggleSort('roleName')">Role <i :class="'bi ' + getSortIcon('roleName')"></i></th>
-              <th class="sortable" @click="toggleSort('status')">Status <i :class="'bi ' + getSortIcon('status')"></i></th>
-              <th class="sortable" @click="toggleSort('lastActive')">Last Active <i :class="'bi ' + getSortIcon('lastActive')"></i></th>
-              <th class="sortable" @click="toggleSort('createdAt')">Created <i :class="'bi ' + getSortIcon('createdAt')"></i></th>
-              <th class="th-actions">Actions</th>
+              <th class="sortable" @click="toggleSort('username')">Người dùng <i :class="'bi ' + getSortIcon('username')"></i></th>
+              <th class="sortable" @click="toggleSort('roleName')">Vai trò <i :class="'bi ' + getSortIcon('roleName')"></i></th>
+              <th class="sortable" @click="toggleSort('status')">Trạng thái <i :class="'bi ' + getSortIcon('status')"></i></th>
+              <th class="sortable" @click="toggleSort('lastActive')">Hoạt động cuối <i :class="'bi ' + getSortIcon('lastActive')"></i></th>
+              <th class="sortable" @click="toggleSort('createdAt')">Ngày tạo <i :class="'bi ' + getSortIcon('createdAt')"></i></th>
+              <th class="th-actions">Thao tác</th>
             </tr>
             </thead>
             <tbody>
@@ -101,20 +101,20 @@
               <td>
                   <span :class="['status-badge', user.status === 'ACTIVE' ? 'active' : 'locked']">
                     <span class="dot"></span>
-                    {{ user.status === 'ACTIVE' ? 'Active' : 'Locked' }}
+                    {{ user.status === 'ACTIVE' ? 'Đang hoạt động' : 'Bị khóa' }}
                   </span>
               </td>
               <td class="td-meta">{{ formatTime(user.lastActive) }}</td>
               <td class="td-meta">{{ formatDate(user.createdAt) }}</td>
               <td>
                 <div class="row-actions">
-                  <button v-if="canChangeStatus" class="icon-btn" @click="toggleStatus(user)" :title="user.status === 'ACTIVE' ? 'Lock' : 'Unlock'">
+                  <button v-if="canChangeStatus" class="icon-btn" @click="toggleStatus(user)" :title="user.status === 'ACTIVE' ? 'Khóa' : 'Mở khóa'">
                     <i :class="user.status === 'ACTIVE' ? 'bi bi-lock' : 'bi bi-unlock'"></i>
                   </button>
-                  <button v-if="canEdit" class="icon-btn" data-bs-toggle="modal" data-bs-target="#userModal" @click="openEdit(user)" title="Edit">
+                  <button v-if="canEdit" class="icon-btn" data-bs-toggle="modal" data-bs-target="#userModal" @click="openEdit(user)" title="Sửa">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button v-if="canDelete" class="icon-btn danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal" @click="confirmDelete(user)" title="Delete">
+                  <button v-if="canDelete" class="icon-btn danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal" @click="confirmDelete(user)" title="Xóa">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
@@ -126,7 +126,7 @@
 
         <!-- Pagination -->
         <div v-if="pagination.totalPages > 0" class="pagination-bar">
-          <span class="pagination-info"> Show {{ startEntry }}–{{ endEntry }} of {{ pagination.totalElements }} entries</span>
+          <span class="pagination-info">Hiển thị {{ startEntry }}–{{ endEntry }} / {{ pagination.totalElements }} dòng</span>
           <div class="page-controls">
             <button :disabled="pagination.page === 0" @click="goPage(0)"><i class="bi bi-chevron-double-left"></i></button>
             <button :disabled="pagination.page === 0" @click="goPage(pagination.page - 1)"><i class="bi bi-chevron-left"></i></button>
@@ -144,8 +144,8 @@
         <div class="modal-content modal-custom">
           <div class="modal-header-custom">
             <div>
-              <h5 class="modal-title" id="userModalLabel">{{ modal.isEdit ? 'Edit User' : 'New User' }}</h5>
-              <p class="modal-subtitle">{{ modal.isEdit ? 'Update user information' : 'Create a new account' }}</p>
+              <h5 class="modal-title" id="userModalLabel">{{ modal.isEdit ? 'Sửa người dùng' : 'Thêm người dùng' }}</h5>
+              <p class="modal-subtitle">{{ modal.isEdit ? 'Cập nhật thông tin người dùng' : 'Tạo tài khoản mới' }}</p>
             </div>
             <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
           </div>
@@ -156,10 +156,10 @@
             </div>
 
             <div class="field" :class="{ 'field-error': errors.username }">
-              <label>Username <span class="req">*</span></label>
+              <label>Tên đăng nhập <span class="req">*</span></label>
               <div class="input-wrap">
                 <i class="bi bi-person"></i>
-                <input v-model="form.username" type="text" placeholder="Enter username" @input="clearError('username')" />
+                <input v-model="form.username" type="text" placeholder="Nhập tên đăng nhập" @input="clearError('username')" />
               </div>
               <span v-if="errors.username" class="err-msg">{{ errors.username }}</span>
             </div>
@@ -168,16 +168,16 @@
               <label>Email <span class="req">*</span></label>
               <div class="input-wrap">
                 <i class="bi bi-envelope"></i>
-                <input v-model="form.email" type="email" placeholder="Enter email" @input="clearError('email')" />
+                <input v-model="form.email" type="email" placeholder="Nhập email" @input="clearError('email')" />
               </div>
               <span v-if="errors.email" class="err-msg">{{ errors.email }}</span>
             </div>
 
             <div v-if="!modal.isEdit" class="field" :class="{ 'field-error': errors.password }">
-              <label>Password <span class="req">*</span></label>
+              <label>Mật khẩu <span class="req">*</span></label>
               <div class="input-wrap">
                 <i class="bi bi-lock"></i>
-                <input class="field-input" v-model="form.password" :type="showPassword ? 'text' : 'password'" placeholder="Enter password" @input="clearError('password')" />
+                <input class="field-input" v-model="form.password" :type="showPassword ? 'text' : 'password'" placeholder="Nhập mật khẩu" @input="clearError('password')" />
                 <button type="button" class="toggle-pw" @click="showPassword = !showPassword">
                   <i :class="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
                 </button>
@@ -187,10 +187,10 @@
 
             <div class="form-row">
               <div class="field" :class="{ 'field-error': errors.roleId }">
-                <label>Role</label>
+                <label>Vai trò</label>
                 <div class="select-wrap">
                   <select v-model="form.roleId">
-                    <option :value="null">— Select role —</option>
+                    <option :value="null">— Chọn vai trò —</option>
                     <option v-for="role in roles" :key="role.id" :value="role.id">{{ role.name }}</option>
                   </select>
                   <i class="bi bi-chevron-down"></i>
@@ -199,11 +199,11 @@
               </div>
 
               <div v-if="modal.isEdit" class="field">
-                <label>Status</label>
+                <label>Trạng thái</label>
                 <div class="select-wrap">
                   <select v-model="form.status">
-                    <option value="ACTIVE">Active</option>
-                    <option value="LOCKED">Locked</option>
+                    <option value="ACTIVE">Đang hoạt động</option>
+                    <option value="LOCKED">Bị khóa</option>
                   </select>
                   <i class="bi bi-chevron-down"></i>
                 </div>
@@ -212,12 +212,12 @@
           </div>
 
           <div class="modal-footer-custom">
-            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Hủy</button>
             <button type="button" class="btn-primary" :disabled="submitting" @click="submitForm">
               <span v-if="submitting" class="spin-sm"></span>
               <template v-else>
                 <i :class="modal.isEdit ? 'bi bi-check-lg' : 'bi bi-plus-lg'"></i>
-                {{ modal.isEdit ? 'Save Changes' : 'Create User' }}
+                {{ modal.isEdit ? 'Lưu thay đổi' : 'Tạo người dùng' }}
               </template>
             </button>
           </div>
@@ -231,8 +231,8 @@
         <div class="modal-content modal-custom">
           <div class="modal-header-custom">
             <div>
-              <h5 class="modal-title">Delete User</h5>
-              <p class="modal-subtitle">This action cannot be undone</p>
+              <h5 class="modal-title">Xóa người dùng</h5>
+              <p class="modal-subtitle">Hành động này không thể hoàn tác</p>
             </div>
             <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
           </div>
@@ -242,13 +242,13 @@
             </div>
             <p class="del-name">{{ deleteModal.user?.username }}</p>
             <p class="del-email">{{ deleteModal.user?.email }}</p>
-            <p class="del-warn">Permanently delete this user?</p>
+            <p class="del-warn">Xóa vĩnh viễn người dùng này?</p>
           </div>
           <div class="modal-footer-custom">
-            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Hủy</button>
             <button type="button" class="btn-danger" :disabled="submitting" @click="doDelete">
               <span v-if="submitting" class="spin-sm"></span>
-              <template v-else><i class="bi bi-trash"></i> Delete</template>
+              <template v-else><i class="bi bi-trash"></i> Xóa</template>
             </button>
           </div>
         </div>
@@ -264,7 +264,7 @@ import { Modal } from 'bootstrap'
 import { useAuthStore } from "@/stores/auth.store.js";
 import userService from '@/services/user.service.js'
 import roleService from '@/services/role.service.js'
-import { useToast } from 'vue-toastification'
+import { useToast } from '@/utils/toast'
 
 // Import XLSX and jsPDF dynamically to avoid build issues
 import * as XLSX from 'xlsx'
@@ -331,7 +331,7 @@ function toggleExportDropdown() { showExportDropdown.value = !showExportDropdown
 
 async function exportUsers(format) {
   // Show loading toast
-  const loadingToast = toast.info(`Exporting ${format.toUpperCase()}...`, { timeout: false })
+  const loadingToast = toast.info(`Đang xuất ${format.toUpperCase()}...`, { timeout: false })
 
   try {
     // Fetch all users for export
@@ -346,7 +346,7 @@ async function exportUsers(format) {
     const allUsers = res.data.content || []
 
     if (allUsers.length === 0) {
-      toast.warning('No users to export')
+      toast.warning('Không có người dùng để xuất')
       toast.dismiss(loadingToast)
       return
     }
@@ -354,12 +354,12 @@ async function exportUsers(format) {
     // Process data for export
     const exportData = allUsers.map(u => ({
       ID: u.id,
-      Username: u.username,
+      'Tên đăng nhập': u.username,
       Email: u.email,
-      Role: u.roleName || 'No Role',
-      Status: u.status === 'ACTIVE' ? 'Active' : 'Locked',
-      'Last Active': u.lastActive ? formatDateTime(u.lastActive) : 'Never',
-      'Created At': u.createdAt ? formatDateTime(u.createdAt) : 'Unknown'
+      'Vai trò': u.roleName || 'Chưa có vai trò',
+      'Trạng thái': u.status === 'ACTIVE' ? 'Đang hoạt động' : 'Bị khóa',
+      'Hoạt động cuối': u.lastActive ? formatDateTime(u.lastActive) : 'Chưa hoạt động',
+      'Ngày tạo': u.createdAt ? formatDateTime(u.createdAt) : 'Không rõ'
     }))
 
     // Export based on format
@@ -374,24 +374,24 @@ async function exportUsers(format) {
         await exportToPDF(exportData)
         break
       default:
-        throw new Error('Unsupported format')
+        throw new Error('Định dạng không được hỗ trợ')
     }
 
     toast.dismiss(loadingToast)
-    toast.success(`Successfully exported ${allUsers.length} users as ${format.toUpperCase()}`)
+    toast.success(`Đã xuất ${allUsers.length} người dùng dạng ${format.toUpperCase()}`)
     showExportDropdown.value = false
 
   } catch (error) {
     toast.dismiss(loadingToast)
     console.error('Export error:', error)
-    toast.error(`Failed to export as ${format.toUpperCase()}: ${error.message || 'Unknown error'}`)
+    toast.error(`Không thể xuất dạng ${format.toUpperCase()}: ${error.message || 'Lỗi không xác định'}`)
   }
 }
 
 function exportToCSV(data) {
   try {
     if (!data || data.length === 0) {
-      throw new Error('No data to export')
+      throw new Error('Không có dữ liệu để xuất')
     }
 
     // Get headers from first object
@@ -422,14 +422,14 @@ function exportToCSV(data) {
 
   } catch (error) {
     console.error('CSV export error:', error)
-    throw new Error('Failed to generate CSV file')
+    throw new Error('Không thể tạo file CSV')
   }
 }
 
 function exportToExcel(data) {
   try {
     if (!data || data.length === 0) {
-      throw new Error('No data to export')
+      throw new Error('Không có dữ liệu để xuất')
     }
 
     // Create worksheet
@@ -448,21 +448,21 @@ function exportToExcel(data) {
 
     // Create workbook
     const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Users')
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Nguoi_dung')
 
     // Export file
     XLSX.writeFile(workbook, `users_${getTimestamp()}.xlsx`)
 
   } catch (error) {
     console.error('Excel export error:', error)
-    throw new Error('Failed to generate Excel file')
+    throw new Error('Không thể tạo file Excel')
   }
 }
 
 function exportToPDF(data) {
   try {
     if (!data || data.length === 0) {
-      throw new Error('No data to export')
+      throw new Error('Không có dữ liệu để xuất')
     }
 
     // Create PDF document (landscape for better fit)
@@ -475,20 +475,20 @@ function exportToPDF(data) {
     // Add title
     doc.setFontSize(16)
     doc.setFont('helvetica', 'bold')
-    doc.text('User List Report', 14, 15)
+    doc.text('Bao cao danh sach nguoi dung', 14, 15)
 
     // Add metadata
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 22)
-    doc.text(`Total Users: ${data.length}`, 14, 28)
+    doc.text(`Ngay tao: ${new Date().toLocaleString('vi-VN')}`, 14, 22)
+    doc.text(`Tong nguoi dung: ${data.length}`, 14, 28)
 
     // Add filters info if any
     let filterText = ''
-    if (filters.keyword) filterText += `Search: "${filters.keyword}" `
-    if (filters.status) filterText += `Status: ${filters.status} `
+    if (filters.keyword) filterText += `Tim kiem: "${filters.keyword}" `
+    if (filters.status) filterText += `Trang thai: ${filters.status} `
     if (filterText) {
-      doc.text(`Filters: ${filterText}`, 14, 34)
+      doc.text(`Bo loc: ${filterText}`, 14, 34)
       autoTable(doc, { startY: 40 })
     } else {
       autoTable(doc, { startY: 34 })
@@ -497,17 +497,17 @@ function exportToPDF(data) {
     // Prepare table data
     const tableData = data.map(user => [
       user.ID,
-      user.Username,
+      user['Tên đăng nhập'],
       user.Email,
-      user.Role,
-      user.Status,
-      user['Last Active'],
-      user['Created At']
+      user['Vai trò'],
+      user['Trạng thái'],
+      user['Hoạt động cuối'],
+      user['Ngày tạo']
     ])
 
     // Generate table
     autoTable(doc, {
-      head: [['ID', 'Username', 'Email', 'Role', 'Status', 'Last Active', 'Created At']],
+      head: [['ID', 'Ten dang nhap', 'Email', 'Vai tro', 'Trang thai', 'Hoat dong cuoi', 'Ngay tao']],
       body: tableData,
       startY: filterText ? 40 : 34,
       theme: 'striped',
@@ -543,7 +543,7 @@ function exportToPDF(data) {
       doc.setPage(i)
       doc.setFontSize(8)
       doc.setTextColor(128, 128, 128)
-      doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 20, doc.internal.pageSize.height - 10)
+      doc.text(`Trang ${i}/${pageCount}`, doc.internal.pageSize.width - 20, doc.internal.pageSize.height - 10)
     }
 
     // Save PDF
@@ -551,7 +551,7 @@ function exportToPDF(data) {
 
   } catch (error) {
     console.error('PDF export error:', error)
-    throw new Error('Failed to generate PDF file')
+    throw new Error('Không thể tạo file PDF')
   }
 }
 
@@ -559,7 +559,7 @@ function formatDateTime(isoString) {
   if (!isoString) return ''
   try {
     const date = new Date(isoString)
-    return date.toLocaleString('en-US', {
+    return date.toLocaleString('vi-VN', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -596,7 +596,7 @@ async function fetchRoles() {
     const response = await roleService.getAll({ page: 0, size: 100 })
     roles.value = response.data.content || []
   } catch (error) {
-    console.error('Failed to fetch roles:', error)
+    console.error('Không thể tải vai trò:', error)
   }
 }
 
@@ -616,7 +616,7 @@ async function fetchUsers() {
     pagination.totalPages = data.totalPages || 0
     pagination.last = data.last || false
   } catch (error) {
-    toast.error('Failed to load users')
+    toast.error('Không thể tải danh sách người dùng')
     console.error('Fetch users error:', error)
   } finally {
     loading.value = false
@@ -669,9 +669,9 @@ async function toggleStatus(user) {
     const { data } = await userService.changeStatus(user.id, nextStatus)
     const index = users.value.findIndex(u => u.id === user.id)
     if (index !== -1) users.value[index] = data
-    toast.success(`User ${nextStatus === 'ACTIVE' ? 'unlocked' : 'locked'} successfully`)
+    toast.success(`Đã ${nextStatus === 'ACTIVE' ? 'mở khóa' : 'khóa'} người dùng`)
   } catch (error) {
-    toast.error('Failed to change user status')
+    toast.error('Không thể đổi trạng thái người dùng')
     console.error('Status change error:', error)
   }
 }
@@ -723,7 +723,7 @@ async function submitForm() {
       })
       const index = users.value.findIndex(u => u.id === modal.userId)
       if (index !== -1) users.value[index] = data
-      toast.success('User updated successfully')
+      toast.success('Đã cập nhật người dùng')
     } else {
       const { data: newUser } = await userService.create({
         ...form,
@@ -739,14 +739,14 @@ async function submitForm() {
         setTimeout(() => row.classList.remove('highlight-row'), 3000)
         row.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
-      toast.success(`User "${newUser.username}" created successfully`)
+      toast.success(`Đã tạo người dùng "${newUser.username}"`)
     }
     bsUserModal.hide()
   } catch (err) {
     if (err?.errors) {
       Object.assign(errors, err.errors)
     } else {
-      errors.general = err?.message || 'Something went wrong'
+      errors.general = err?.message || 'Đã xảy ra lỗi'
       toast.error(errors.general)
     }
     console.error('Submit error:', err)
@@ -772,10 +772,10 @@ async function doDelete() {
       await fetchUsers()
     }
 
-    toast.success(`User ${deleteModal.user.username} deleted successfully`)
+    toast.success(`Đã xóa người dùng ${deleteModal.user.username}`)
     bsDeleteModal.hide()
   } catch (error) {
-    toast.error('Failed to delete user')
+    toast.error('Không thể xóa người dùng')
     console.error('Delete error:', error)
   } finally {
     submitting.value = false
@@ -796,13 +796,13 @@ function formatDate(iso) {
 }
 
 function formatTime(iso) {
-  if (!iso) return 'Never'
+  if (!iso) return 'Chưa hoạt động'
   try {
     const diff = Math.floor((Date.now() - new Date(iso)) / 1000)
-    if (diff < 60) return 'Just now'
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`
+    if (diff < 60) return 'Vừa xong'
+    if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`
+    if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`
+    if (diff < 604800) return `${Math.floor(diff / 86400)} ngày trước`
     return formatDate(iso)
   } catch {
     return '—'

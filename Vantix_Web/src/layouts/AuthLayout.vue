@@ -11,8 +11,8 @@
       </div>
 
       <div class="panel-body">
-        <h2 class="panel-headline">Manage your<br/>team smarter.</h2>
-        <p class="panel-sub">One platform for HR, payroll,<br/>and workforce insights.</p>
+        <h2 class="panel-headline">Quản lý đội ngũ<br/>hiệu quả hơn.</h2>
+        <p class="panel-sub">Một nền tảng cho nhân sự, lương<br/>và dữ liệu vận hành.</p>
         <div class="feature-list">
           <div v-for="f in features" :key="f.label" class="feature-item">
             <div class="feature-icon"><i :class="f.icon"></i></div>
@@ -42,9 +42,9 @@
 import { RouterView } from 'vue-router'
 
 const features = [
-  { icon: 'bi bi-people',        label: 'Employee management'      },
-  { icon: 'bi bi-bar-chart',     label: 'Payroll & analytics'      },
-  { icon: 'bi bi-shield-check',  label: 'Role-based access control'},
+  { icon: 'bi bi-people',        label: 'Quản lý nhân viên'        },
+  { icon: 'bi bi-bar-chart',     label: 'Lương và phân tích'       },
+  { icon: 'bi bi-shield-check',  label: 'Phân quyền theo vai trò'  },
 ]
 </script>
 

@@ -175,8 +175,9 @@ const handleCancel = () => {
   showDetailModal.value = false;
 };
 
-onMounted(() => {
-  fetchData();
+onMounted(async () => {
+  if (!auth.user && auth.token) await auth.fetchMe();
+  await fetchData();
 });
 
 watch(managerId, (newVal) => {
@@ -185,7 +186,7 @@ watch(managerId, (newVal) => {
 </script>
 
 <template>
-  <div class="page-wrapper">
+  <div class="page-wrapper mgmt-page">
     <transition name="fade">
       <div v-if="message" :class="['alert-toast', messageType]">
         {{ message }}
@@ -193,7 +194,7 @@ watch(managerId, (newVal) => {
     </transition>
 
     <div class="header-title mb-4">
-      <span class="header-icon">🛡️</span>
+      <span class="header-icon"><i class="bi bi-shield-check"></i></span>
       <div>
         <h2>Phê Duyệt Chấm Công</h2>
         <p>Chọn nhân viên trong phòng ban để xem và duyệt các ca làm vi phạm</p>
@@ -228,7 +229,7 @@ watch(managerId, (newVal) => {
             <span v-if="emp.pendingCount > 0" class="badge-notification">
               {{ emp.pendingCount }}
             </span>
-            <span v-else class="status-ok">✔️</span>
+            <span v-else class="status-ok"><i class="bi bi-check-circle"></i></span>
           </div>
 
           <div v-if="employeesWithStats.length === 0" class="empty-state" style="padding: 20px;">
@@ -271,7 +272,7 @@ watch(managerId, (newVal) => {
               </tr>
               <tr v-if="currentEmployeeAttendances.length === 0">
                 <td colspan="3" class="empty-state">
-                  <span class="empty-icon">🎉</span>
+                  <i class="bi bi-calendar-check empty-icon"></i>
                   <p>Nhân viên này không có ca làm việc nào cần phê duyệt.</p>
                 </td>
               </tr>
@@ -281,7 +282,7 @@ watch(managerId, (newVal) => {
         </div>
 
         <div v-else class="empty-state select-prompt">
-          <span class="empty-icon">👈</span>
+          <i class="bi bi-arrow-left-circle empty-icon"></i>
           <p>Vui lòng chọn một nhân viên từ danh sách bên trái để xem chi tiết.</p>
         </div>
       </div>

@@ -1,14 +1,14 @@
 <template>
-  <div class="position-management">
+  <div class="position-management mgmt-page">
     <!-- Header -->
     <div class="page-header">
       <div class="header-left">
-        <h1 class="page-title">Positions</h1>
-        <p class="page-desc">{{ pagination.totalElements }} positions · {{ totalEmployees }} employees</p>
+        <h1 class="page-title">Chức vụ</h1>
+        <p class="page-desc">{{ pagination.totalElements }} chức vụ · {{ totalEmployees }} nhân viên</p>
       </div>
       <div class="header-actions">
         <button v-if="canCreate" class="btn-primary" data-bs-toggle="modal" data-bs-target="#positionModal" @click="openCreate">
-          <i class="bi bi-plus-lg"></i> New Position
+          <i class="bi bi-plus-lg"></i> Thêm chức vụ
         </button>
       </div>
     </div>
@@ -17,22 +17,22 @@
     <div class="filter-bar">
       <div class="search-wrapper">
         <i class="bi bi-search"></i>
-        <input v-model="filters.keyword" type="text" placeholder="Search position name..." @input="onSearch" />
+        <input v-model="filters.keyword" type="text" placeholder="Tìm tên chức vụ..." @input="onSearch" />
         <button v-if="filters.keyword" class="clear-btn" @click="clearSearch"><i class="bi bi-x"></i></button>
       </div>
       <div class="select-wrapper">
         <select v-model="filters.departmentId" @change="onDepartmentFilter">
-          <option :value="null">All Departments</option>
+          <option :value="null">Tất cả phòng ban</option>
           <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
         </select>
         <i class="bi bi-chevron-down"></i>
       </div>
       <div class="select-wrapper">
         <select v-model.number="pagination.size" @change="onSizeChange">
-          <option :value="10">10 / page</option>
-          <option :value="20">20 / page</option>
-          <option :value="50">50 / page</option>
-          <option :value="100">100 / page</option>
+          <option :value="10">10 / trang</option>
+          <option :value="20">20 / trang</option>
+          <option :value="50">50 / trang</option>
+          <option :value="100">100 / trang</option>
         </select>
         <i class="bi bi-chevron-down"></i>
       </div>
@@ -42,15 +42,15 @@
     <div class="table-card">
       <div v-if="loading" class="state-center">
         <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
-        <span>Loading...</span>
+        <span>Đang tải...</span>
       </div>
 
       <div v-else-if="positions.length === 0" class="state-center">
         <i class="bi bi-person-badge empty-icon"></i>
-        <p class="empty-title">No positions found</p>
-        <p class="empty-sub">Create a position to start assigning employees.</p>
+        <p class="empty-title">Không tìm thấy chức vụ</p>
+        <p class="empty-sub">Tạo chức vụ để bắt đầu phân công nhân viên.</p>
         <button class="btn-primary" data-bs-toggle="modal" data-bs-target="#positionModal" @click="openCreate">
-          <i class="bi bi-plus-lg"></i> Create position
+          <i class="bi bi-plus-lg"></i> Tạo chức vụ
         </button>
       </div>
 
@@ -60,12 +60,12 @@
             <thead>
             <tr>
               <th class="th-num">#</th>
-              <th class="sortable" @click="toggleSort('name')">Position <i :class="'bi ' + getSortIcon('name')"></i></th>
-              <th>Description</th>
-              <th class="sortable" @click="toggleSort('departmentName')">Department <i :class="'bi ' + getSortIcon('departmentName')"></i></th>
-              <th class="sortable" @click="toggleSort('employeeCount')">Employees <i :class="'bi ' + getSortIcon('employeeCount')"></i></th>
-              <th class="sortable" @click="toggleSort('createdAt')">Created <i :class="'bi ' + getSortIcon('createdAt')"></i></th>
-              <th class="th-actions">Actions</th>
+              <th class="sortable" @click="toggleSort('name')">Chức vụ <i :class="'bi ' + getSortIcon('name')"></i></th>
+              <th>Mô tả</th>
+              <th class="sortable" @click="toggleSort('departmentName')">Phòng ban <i :class="'bi ' + getSortIcon('departmentName')"></i></th>
+              <th class="sortable" @click="toggleSort('employeeCount')">Nhân viên <i :class="'bi ' + getSortIcon('employeeCount')"></i></th>
+              <th class="sortable" @click="toggleSort('createdAt')">Ngày tạo <i :class="'bi ' + getSortIcon('createdAt')"></i></th>
+              <th class="th-actions">Thao tác</th>
             </tr>
             </thead>
             <tbody>
@@ -90,10 +90,10 @@
               <td class="td-meta">{{ formatDate(position.createdAt) }}</td>
               <td>
                 <div class="row-actions">
-                  <button v-if="canEdit" class="icon-btn" data-bs-toggle="modal" data-bs-target="#positionModal" @click="openEdit(position)" title="Edit">
+                  <button v-if="canEdit" class="icon-btn" data-bs-toggle="modal" data-bs-target="#positionModal" @click="openEdit(position)" title="Sửa">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button v-if="canDelete" class="icon-btn danger" data-bs-toggle="modal" data-bs-target="#deletePositionModal" @click="confirmDelete(position)" title="Delete">
+                  <button v-if="canDelete" class="icon-btn danger" data-bs-toggle="modal" data-bs-target="#deletePositionModal" @click="confirmDelete(position)" title="Xóa">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
@@ -105,7 +105,7 @@
 
         <!-- Pagination -->
         <div v-if="pagination.totalPages > 0" class="pagination-bar">
-          <span class="pagination-info">{{ startEntry }}–{{ endEntry }} of {{ pagination.totalElements }}</span>
+          <span class="pagination-info">{{ startEntry }}–{{ endEntry }} / {{ pagination.totalElements }}</span>
           <div class="page-controls">
             <button :disabled="pagination.page === 0" @click="goPage(0)"><i class="bi bi-chevron-double-left"></i></button>
             <button :disabled="pagination.page === 0" @click="goPage(pagination.page - 1)"><i class="bi bi-chevron-left"></i></button>
@@ -123,8 +123,8 @@
         <div class="modal-content modal-custom">
           <div class="modal-header-custom">
             <div>
-              <h5 class="modal-title">{{ modal.isEdit ? 'Edit Position' : 'New Position' }}</h5>
-              <p class="modal-subtitle">{{ modal.isEdit ? 'Update position information' : 'Create a new position' }}</p>
+              <h5 class="modal-title">{{ modal.isEdit ? 'Sửa chức vụ' : 'Thêm chức vụ' }}</h5>
+              <p class="modal-subtitle">{{ modal.isEdit ? 'Cập nhật thông tin chức vụ' : 'Tạo chức vụ mới' }}</p>
             </div>
             <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
           </div>
@@ -135,24 +135,24 @@
             </div>
 
             <div class="field" :class="{ 'field-error': errors.name }">
-              <label>Position Name <span class="req">*</span></label>
+              <label>Tên chức vụ <span class="req">*</span></label>
               <div class="input-wrap">
                 <i class="bi bi-person-badge"></i>
-                <input v-model="form.name" type="text" placeholder="Enter position name" @input="clearError('name')" />
+                <input v-model="form.name" type="text" placeholder="Nhập tên chức vụ" @input="clearError('name')" />
               </div>
               <span v-if="errors.name" class="err-msg">{{ errors.name }}</span>
             </div>
 
             <div class="field">
-              <label>Description</label>
-              <textarea v-model="form.description" rows="3" class="textarea-field" placeholder="Describe the position..."></textarea>
+              <label>Mô tả</label>
+              <textarea v-model="form.description" rows="3" class="textarea-field" placeholder="Mô tả chức vụ..."></textarea>
             </div>
 
             <div class="field" :class="{ 'field-error': errors.departmentId }">
-              <label>Department <span class="req">*</span></label>
+              <label>Phòng ban <span class="req">*</span></label>
               <div class="select-wrap">
                 <select v-model="form.departmentId" @change="clearError('departmentId')">
-                  <option :value="null">— Select department —</option>
+                  <option :value="null">— Chọn phòng ban —</option>
                   <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
                 </select>
                 <i class="bi bi-chevron-down"></i>
@@ -162,12 +162,12 @@
           </div>
 
           <div class="modal-footer-custom">
-            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Hủy</button>
             <button type="button" class="btn-primary" :disabled="submitting" @click="submitForm">
               <span v-if="submitting" class="spin-sm"></span>
               <template v-else>
                 <i :class="modal.isEdit ? 'bi bi-check-lg' : 'bi bi-plus-lg'"></i>
-                {{ modal.isEdit ? 'Save Changes' : 'Create Position' }}
+                {{ modal.isEdit ? 'Lưu thay đổi' : 'Tạo chức vụ' }}
               </template>
             </button>
           </div>
@@ -181,8 +181,8 @@
         <div class="modal-content modal-custom">
           <div class="modal-header-custom">
             <div>
-              <h5 class="modal-title">Delete Position</h5>
-              <p class="modal-subtitle">This action cannot be undone</p>
+              <h5 class="modal-title">Xóa chức vụ</h5>
+              <p class="modal-subtitle">Hành động này không thể hoàn tác</p>
             </div>
             <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
           </div>
@@ -191,17 +191,17 @@
               {{ deleteModal.position ? getInitials(deleteModal.position.name) : '' }}
             </div>
             <p class="del-name">{{ deleteModal.position?.name }}</p>
-            <p class="del-sub">{{ deleteModal.position?.departmentName || 'No department' }}</p>
+            <p class="del-sub">{{ deleteModal.position?.departmentName || 'Chưa có phòng ban' }}</p>
             <p v-if="deleteModal.position?.employeeCount > 0" class="del-warn warning">
-              <i class="bi bi-exclamation-triangle"></i> This position has {{ deleteModal.position.employeeCount }} employees. Cannot delete!
+              <i class="bi bi-exclamation-triangle"></i> Chức vụ này có {{ deleteModal.position.employeeCount }} nhân viên. Không thể xóa!
             </p>
-            <p v-else class="del-warn">Permanently delete this position?</p>
+            <p v-else class="del-warn">Xóa vĩnh viễn chức vụ này?</p>
           </div>
           <div class="modal-footer-custom">
-            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Hủy</button>
             <button type="button" class="btn-danger" :disabled="submitting || deleteModal.position?.employeeCount > 0" @click="doDelete">
               <span v-if="submitting" class="spin-sm"></span>
-              <template v-else><i class="bi bi-trash"></i> Delete</template>
+              <template v-else><i class="bi bi-trash"></i> Xóa</template>
             </button>
           </div>
         </div>
@@ -215,7 +215,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { Modal } from 'bootstrap'
 import positionService from '@/services/position.service.js'
 import departmentService from '@/services/department.service.js'
-import { useToast } from 'vue-toastification'
+import { useToast } from '@/utils/toast'
 import { useAuthStore } from '@/stores/auth.store.js'
 
 const toast = useToast()
@@ -271,7 +271,7 @@ async function fetchDepartments() {
     const response = await departmentService.getAll({ size: 1000 })
     departments.value = response.data?.content || []
   } catch (error) {
-    console.error('Failed to fetch departments:', error)
+    console.error('Không thể tải phòng ban:', error)
   }
 }
 
@@ -293,7 +293,7 @@ async function fetchPositions() {
     pagination.totalPages = data.totalPages || 0
     pagination.last = data.last || false
   } catch (error) {
-    toast.error('Failed to load positions')
+    toast.error('Không thể tải danh sách chức vụ')
     console.error(error)
   } finally {
     loading.value = false
@@ -395,10 +395,10 @@ async function submitForm() {
   try {
     if (modal.isEdit) {
       await positionService.update(modal.positionId, form)
-      toast.success('Position updated successfully')
+      toast.success('Đã cập nhật chức vụ')
     } else {
       await positionService.create(form)
-      toast.success('Position created successfully')
+      toast.success('Đã tạo chức vụ')
     }
 
     pagination.page = 0
@@ -422,10 +422,10 @@ async function doDelete() {
   try {
     await positionService.delete(deleteModal.position.id)
     await fetchPositions()
-    toast.success(`Position ${deleteModal.position.name} deleted`)
+    toast.success(`Đã xóa chức vụ ${deleteModal.position.name}`)
     bsDeleteModal.hide()
   } catch (error) {
-    toast.error(error?.message || 'Failed to delete position')
+    toast.error(error?.message || 'Không thể xóa chức vụ')
     console.error('Delete error:', error)
   } finally {
     submitting.value = false
@@ -473,9 +473,7 @@ function avatarGradient(name) {
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-.position-management,
-.department-management,
-.employee-management {
+.position-management {
   padding: 32px;
   min-height: 100vh;
   background: #f8f8f6;
@@ -689,9 +687,7 @@ td { padding: 12px 16px; font-size: 13.5px; color: #333; vertical-align: middle;
 .del-email { font-size: 12.5px; color: #999; margin-top: 2px; }
 
 @media (max-width: 768px) {
-  .position-management,
-  .department-management,
-  .employee-management { padding: 16px; }
+  .position-management { padding: 16px; }
   .page-header { flex-direction: column; align-items: flex-start; }
   .filter-bar { flex-direction: column; }
   .search-wrapper { min-width: 100%; }

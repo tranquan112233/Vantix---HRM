@@ -1,49 +1,104 @@
+/* ─── Vantix HRM — Design Tokens ────────────────────────────────────────── */
+/* Single source of truth for colors, typography, spacing, and effects.
+   Referenced by: style.css, management.css, and all view-scoped styles.   */
+
 :root {
-  --primary-color: #6366f1;
-  --primary-color-dark: #4f46e5;
+  /* ── Brand palette ──────────────────────────────────────────────────── */
+  --primary-color:        #6366f1;
+  --primary-color-dark:   #4f46e5;
   --primary-color-darker: #3730a3;
-  --background-color: #f8fafc;
-  --text-color: #333;
-  --text-color-light: #fff;
-  --text-color-lighter: rgba(255, 255, 255, 0.9);
-  --text-color-lightest: rgba(255, 255, 255, 0.7);
-  --white-with-opacity-12: rgba(255, 255, 255, 0.12);
+  --primary-color-light:  #eef4ff;
+  --primary-color-soft:   rgba(99, 102, 241, 0.10);
+
+  /* Aliases (backward compat) */
+  --primary:              var(--primary-color);
+  --primary-hover:        var(--primary-color-dark);
+  --primary-light:        var(--primary-color-soft);
+
+  /* ── Semantic colors ────────────────────────────────────────────────── */
+  --success-color:        #12b76a;
+  --success-bg-light:     #ecfdf3;
+  --success-border-light: #abefc6;
+
+  --danger-color:         #ef4444;
+  --danger-color-dark:    #d92d20;
+  --danger-bg-light:      #fef3f2;
+  --danger-border-light:  #fecdca;
+
+  --warning-color:        #f59e0b;
+  --warning-bg-light:     #fffaeb;
+  --warning-border-light: #fedf89;
+
+  --info-color:           #3b82f6;
+  --info-bg-light:        #eff6ff;
+
+  /* ── Surface / background ───────────────────────────────────────────── */
+  --background-color:     #f8fafc;
+  --bg:                   var(--background-color);
+  --bg-white:             #ffffff;
+  --surface-muted:        #f9fafb;
+  --surface-muted-strong: #f2f4f7;
+  --page-bg:              #f8f8f6;
+
+  /* ── Text ───────────────────────────────────────────────────────────── */
+  --text-color:           #111827;
+  --text:                 var(--text-color);
+  --text-dark:            #0f172a;
+  --text-darker:          #374151;
+  --text-muted:           #6b7280;
+  --text-muted-dark:      #64748b;
+  --text-dim:             #94a3b8;
+  --input-icon-color:     #94a3b8;
+
+  --text-color-light:     #ffffff;
+  --text-color-lighter:   rgba(255, 255, 255, 0.9);
+  --text-color-lightest:  rgba(255, 255, 255, 0.7);
+
+  /* ── White overlays (used on dark surfaces) ─────────────────────────── */
   --white-with-opacity-15: rgba(255, 255, 255, 0.15);
-  --white-with-opacity-6: rgba(255, 255, 255, 0.06);
-  --white-with-opacity-4: rgba(255, 255, 255, 0.04);
+  --white-with-opacity-12: rgba(255, 255, 255, 0.12);
+  --white-with-opacity-6:  rgba(255, 255, 255, 0.06);
+  --white-with-opacity-4:  rgba(255, 255, 255, 0.04);
 
-  --bg: var(--background-color);
-  --bg-white: #fff;
-  --border: #e5e7eb;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --radius-sm: 0.25rem;
-  --radius: 0.5rem;
-  --text-muted: #6b7280;
-  --text: var(--text-color);
-  --text-dim: #9ca3af;
-  --primary: var(--primary-color);
-  --transition: 0.2s ease-in-out;
+  /* ── Borders ────────────────────────────────────────────────────────── */
+  --border:               #e5e7eb;
+  --border-light:         #e2e8f0;
+  --border-strong:        #d0d5dd;
 
-  --sidebar-bg: #0f1117;
-  --sidebar-border: rgba(255, 255, 255, 0.07);
-  --sidebar-hover: rgba(255, 255, 255, 0.05);
-  --sidebar-accent-bg: rgba(99, 102, 241, 0.15);
-  --sidebar-text: #cbd5e1;
-  --sidebar-text-dim: #475569;
-  --sidebar-text-hi: #f1f5f9;
+  /* ── Sidebar (dark theme) ───────────────────────────────────────────── */
+  --sidebar-bg:           #0f1117;
+  --sidebar-border:       rgba(255, 255, 255, 0.07);
+  --sidebar-hover:        rgba(255, 255, 255, 0.05);
+  --sidebar-accent-bg:    rgba(99, 102, 241, 0.15);
+  --sidebar-text:         #cbd5e1;
+  --sidebar-text-dim:     #475569;
+  --sidebar-text-hi:      #f1f5f9;
 
-  --radius-md: 10px;
-  --radius-lg: 18px;
-  --shadow-lg: 0 4px 32px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
-  --text-dark: #0f172a;
-  --text-darker: #374151;
-  --text-muted-dark: #64748b;
-  --input-icon-color: #94a3b8;
-  --border-light: #e2e8f0;
-  --primary-focus-shadow: 0 0 0 3px rgba(99,102,241,.12);
-  --danger-color: #ef4444;
-  --danger-bg-light: #fff5f5;
-  --danger-focus-shadow: 0 0 0 3px rgba(239,68,68,.12);
-  --primary-shadow: 0 3px 14px rgba(99,102,241,.35);
-  --primary-shadow-hover: 0 5px 18px rgba(99,102,241,.4);
+  /* ── Radii ──────────────────────────────────────────────────────────── */
+  --radius-sm:            8px;
+  --radius:               10px;
+  --radius-md:            12px;
+  --radius-lg:            16px;
+  --radius-xl:            20px;
+  --radius-pill:          999px;
+
+  /* ── Shadows ────────────────────────────────────────────────────────── */
+  --shadow-sm:            0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow:               0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg:            0 4px 32px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+
+  /* Focus rings */
+  --primary-focus-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14);
+  --danger-focus-shadow:  0 0 0 3px rgba(239, 68, 68, 0.14);
+
+  /* Brand-colored shadows (used on the main CTA) */
+  --primary-shadow:       0 3px 14px rgba(99, 102, 241, 0.35);
+  --primary-shadow-hover: 0 5px 18px rgba(99, 102, 241, 0.40);
+
+  /* ── Motion ─────────────────────────────────────────────────────────── */
+  --transition:           0.18s ease;
+
+  /* ── Typography ─────────────────────────────────────────────────────── */
+  --font-sans:            'DM Sans', 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono:            ui-monospace, SFMono-Regular, Consolas, monospace;
 }

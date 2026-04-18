@@ -1,14 +1,14 @@
 <template>
-  <div class="department-management">
+  <div class="department-management mgmt-page">
     <!-- Header -->
     <div class="page-header">
       <div class="header-left">
-        <h1 class="page-title">Departments</h1>
-        <p class="page-desc">{{ pagination.totalElements }} departments · {{ totalEmployees }} employees</p>
+        <h1 class="page-title">Phòng ban</h1>
+        <p class="page-desc">{{ pagination.totalElements }} phòng ban · {{ totalEmployees }} nhân viên</p>
       </div>
       <div class="header-actions">
         <button v-if="canCreate" class="btn-primary" data-bs-toggle="modal" data-bs-target="#departmentModal" @click="openCreate">
-          <i class="bi bi-plus-lg"></i> New Department
+          <i class="bi bi-plus-lg"></i> Thêm phòng ban
         </button>
       </div>
     </div>
@@ -17,15 +17,15 @@
     <div class="filter-bar">
       <div class="search-wrapper">
         <i class="bi bi-search"></i>
-        <input v-model="filters.keyword" type="text" placeholder="Search department name..." @input="onSearch" />
+        <input v-model="filters.keyword" type="text" placeholder="Tìm tên phòng ban..." @input="onSearch" />
         <button v-if="filters.keyword" class="clear-btn" @click="clearSearch"><i class="bi bi-x"></i></button>
       </div>
       <div class="select-wrapper">
         <select v-model.number="pagination.size" @change="onSizeChange">
-          <option :value="10">10 / page</option>
-          <option :value="20">20 / page</option>
-          <option :value="50">50 / page</option>
-          <option :value="100">100 / page</option>
+          <option :value="10">10 / trang</option>
+          <option :value="20">20 / trang</option>
+          <option :value="50">50 / trang</option>
+          <option :value="100">100 / trang</option>
         </select>
         <i class="bi bi-chevron-down"></i>
       </div>
@@ -35,15 +35,15 @@
     <div class="table-card">
       <div v-if="loading" class="state-center">
         <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
-        <span>Loading...</span>
+        <span>Đang tải...</span>
       </div>
 
       <div v-else-if="departments.length === 0" class="state-center">
         <i class="bi bi-diagram-3 empty-icon"></i>
-        <p class="empty-title">No departments found</p>
-        <p class="empty-sub">Create a department to get started.</p>
+        <p class="empty-title">Không tìm thấy phòng ban</p>
+        <p class="empty-sub">Tạo phòng ban mới để bắt đầu.</p>
         <button class="btn-primary" data-bs-toggle="modal" data-bs-target="#departmentModal" @click="openCreate">
-          <i class="bi bi-plus-lg"></i> Create department
+          <i class="bi bi-plus-lg"></i> Tạo phòng ban
         </button>
       </div>
 
@@ -53,12 +53,12 @@
             <thead>
             <tr>
               <th class="th-num">#</th>
-              <th class="sortable" @click="toggleSort('name')">Department <i :class="'bi ' + getSortIcon('name')"></i></th>
-              <th>Description</th>
-              <th class="sortable" @click="toggleSort('managerName')">Manager <i :class="'bi ' + getSortIcon('managerName')"></i></th>
-              <th class="sortable" @click="toggleSort('employeeCount')">Employees <i :class="'bi ' + getSortIcon('employeeCount')"></i></th>
-              <th class="sortable" @click="toggleSort('createdAt')">Created <i :class="'bi ' + getSortIcon('createdAt')"></i></th>
-              <th class="th-actions">Actions</th>
+              <th class="sortable" @click="toggleSort('name')">Phòng ban <i :class="'bi ' + getSortIcon('name')"></i></th>
+              <th>Mô tả</th>
+              <th class="sortable" @click="toggleSort('managerName')">Trưởng phòng <i :class="'bi ' + getSortIcon('managerName')"></i></th>
+              <th class="sortable" @click="toggleSort('employeeCount')">Nhân viên <i :class="'bi ' + getSortIcon('employeeCount')"></i></th>
+              <th class="sortable" @click="toggleSort('createdAt')">Ngày tạo <i :class="'bi ' + getSortIcon('createdAt')"></i></th>
+              <th class="th-actions">Thao tác</th>
             </tr>
             </thead>
             <tbody>
@@ -83,10 +83,10 @@
               <td class="td-meta">{{ formatDate(dept.createdAt) }}</td>
               <td>
                 <div class="row-actions">
-                  <button v-if="canEdit" class="icon-btn" data-bs-toggle="modal" data-bs-target="#departmentModal" @click="openEdit(dept)" title="Edit">
+                  <button v-if="canEdit" class="icon-btn" data-bs-toggle="modal" data-bs-target="#departmentModal" @click="openEdit(dept)" title="Sửa">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button v-if="canDelete" class="icon-btn danger" data-bs-toggle="modal" data-bs-target="#deleteDepartmentModal" @click="confirmDelete(dept)" title="Delete">
+                  <button v-if="canDelete" class="icon-btn danger" data-bs-toggle="modal" data-bs-target="#deleteDepartmentModal" @click="confirmDelete(dept)" title="Xóa">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
@@ -98,7 +98,7 @@
 
         <!-- Pagination -->
         <div v-if="pagination.totalPages > 0" class="pagination-bar">
-          <span class="pagination-info">{{ startEntry }}–{{ endEntry }} of {{ pagination.totalElements }}</span>
+          <span class="pagination-info">{{ startEntry }}–{{ endEntry }} / {{ pagination.totalElements }}</span>
           <div class="page-controls">
             <button :disabled="pagination.page === 0" @click="goPage(0)"><i class="bi bi-chevron-double-left"></i></button>
             <button :disabled="pagination.page === 0" @click="goPage(pagination.page - 1)"><i class="bi bi-chevron-left"></i></button>
@@ -116,8 +116,8 @@
         <div class="modal-content modal-custom">
           <div class="modal-header-custom">
             <div>
-              <h5 class="modal-title">{{ modal.isEdit ? 'Edit Department' : 'New Department' }}</h5>
-              <p class="modal-subtitle">{{ modal.isEdit ? 'Update department information' : 'Create a new department' }}</p>
+              <h5 class="modal-title">{{ modal.isEdit ? 'Sửa phòng ban' : 'Thêm phòng ban' }}</h5>
+              <p class="modal-subtitle">{{ modal.isEdit ? 'Cập nhật thông tin phòng ban' : 'Tạo phòng ban mới' }}</p>
             </div>
             <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
           </div>
@@ -128,24 +128,24 @@
             </div>
 
             <div class="field" :class="{ 'field-error': errors.name }">
-              <label>Department Name <span class="req">*</span></label>
+              <label>Tên phòng ban <span class="req">*</span></label>
               <div class="input-wrap">
                 <i class="bi bi-building"></i>
-                <input v-model="form.name" type="text" placeholder="Enter department name" @input="clearError('name')" />
+                <input v-model="form.name" type="text" placeholder="Nhập tên phòng ban" @input="clearError('name')" />
               </div>
               <span v-if="errors.name" class="err-msg">{{ errors.name }}</span>
             </div>
 
             <div class="field">
-              <label>Description</label>
-              <textarea v-model="form.description" rows="3" class="textarea-field" placeholder="Describe the department..."></textarea>
+              <label>Mô tả</label>
+              <textarea v-model="form.description" rows="3" class="textarea-field" placeholder="Mô tả phòng ban..."></textarea>
             </div>
 
             <div class="field">
-              <label>Department Manager</label>
+              <label>Trưởng phòng</label>
               <div class="select-wrap">
                 <select v-model="form.managerId">
-                  <option :value="null">— Select manager —</option>
+                  <option :value="null">— Chọn trưởng phòng —</option>
                   <option v-for="emp in employees" :key="emp.id" :value="emp.id">{{ emp.fullName }}</option>
                 </select>
                 <i class="bi bi-chevron-down"></i>
@@ -154,12 +154,12 @@
           </div>
 
           <div class="modal-footer-custom">
-            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Hủy</button>
             <button type="button" class="btn-primary" :disabled="submitting" @click="submitForm">
               <span v-if="submitting" class="spin-sm"></span>
               <template v-else>
                 <i :class="modal.isEdit ? 'bi bi-check-lg' : 'bi bi-plus-lg'"></i>
-                {{ modal.isEdit ? 'Save Changes' : 'Create Department' }}
+                {{ modal.isEdit ? 'Lưu thay đổi' : 'Tạo phòng ban' }}
               </template>
             </button>
           </div>
@@ -173,8 +173,8 @@
         <div class="modal-content modal-custom">
           <div class="modal-header-custom">
             <div>
-              <h5 class="modal-title">Delete Department</h5>
-              <p class="modal-subtitle">This action cannot be undone</p>
+              <h5 class="modal-title">Xóa phòng ban</h5>
+              <p class="modal-subtitle">Hành động này không thể hoàn tác</p>
             </div>
             <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
           </div>
@@ -183,17 +183,17 @@
               {{ deleteModal.department ? getInitials(deleteModal.department.name) : '' }}
             </div>
             <p class="del-name">{{ deleteModal.department?.name }}</p>
-            <p class="del-sub">{{ deleteModal.department?.description || 'No description' }}</p>
+            <p class="del-sub">{{ deleteModal.department?.description || 'Không có mô tả' }}</p>
             <p v-if="deleteModal.department?.employeeCount > 0" class="del-warn warning">
-              <i class="bi bi-exclamation-triangle"></i> This department has {{ deleteModal.department.employeeCount }} employees. Cannot delete!
+              <i class="bi bi-exclamation-triangle"></i> Phòng ban này có {{ deleteModal.department.employeeCount }} nhân viên. Không thể xóa!
             </p>
-            <p v-else class="del-warn">Permanently delete this department?</p>
+            <p v-else class="del-warn">Xóa vĩnh viễn phòng ban này?</p>
           </div>
           <div class="modal-footer-custom">
-            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn-ghost" data-bs-dismiss="modal">Hủy</button>
             <button type="button" class="btn-danger" :disabled="submitting || deleteModal.department?.employeeCount > 0" @click="doDelete">
               <span v-if="submitting" class="spin-sm"></span>
-              <template v-else><i class="bi bi-trash"></i> Delete</template>
+              <template v-else><i class="bi bi-trash"></i> Xóa</template>
             </button>
           </div>
         </div>
@@ -207,7 +207,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Modal } from 'bootstrap'
 import departmentService from '@/services/department.service.js'
 import employeeService from '@/services/employee.service.js'
-import { useToast } from 'vue-toastification'
+import { useToast } from '@/utils/toast'
 import { useAuthStore } from '@/stores/auth.store.js'
 
 const toast = useToast()
@@ -263,7 +263,7 @@ async function fetchEmployees() {
     const response = await employeeService.getAll({ size: 1000 })
     employees.value = response.data?.content || []
   } catch (error) {
-    console.error('Failed to fetch employees:', error)
+    console.error('Không thể tải nhân viên:', error)
   }
 }
 
@@ -282,7 +282,7 @@ async function fetchDepartments() {
     pagination.totalPages = data.totalPages || 0
     pagination.last = data.last || false
   } catch (error) {
-    toast.error('Failed to load departments')
+    toast.error('Không thể tải danh sách phòng ban')
     console.error(error)
   } finally {
     loading.value = false
@@ -374,10 +374,10 @@ async function submitForm() {
   try {
     if (modal.isEdit) {
       await departmentService.update(modal.departmentId, form)
-      toast.success('Department updated successfully')
+      toast.success('Đã cập nhật phòng ban')
     } else {
       await departmentService.create(form)
-      toast.success('Department created successfully')
+      toast.success('Đã tạo phòng ban')
     }
 
     pagination.page = 0
@@ -387,7 +387,7 @@ async function submitForm() {
     if (err?.errors) {
       Object.assign(errors, err.errors)
     } else {
-      errors.general = err?.message || 'Something went wrong'
+      errors.general = err?.message || 'Đã xảy ra lỗi'
       toast.error(errors.general)
     }
     console.error('Submit error:', err)
@@ -401,10 +401,10 @@ async function doDelete() {
   try {
     await departmentService.delete(deleteModal.department.id)
     await fetchDepartments()
-    toast.success(`Department ${deleteModal.department.name} deleted`)
+    toast.success(`Đã xóa phòng ban ${deleteModal.department.name}`)
     bsDeleteModal.hide()
   } catch (error) {
-    toast.error(error?.message || 'Failed to delete department')
+    toast.error(error?.message || 'Không thể xóa phòng ban')
     console.error('Delete error:', error)
   } finally {
     submitting.value = false
