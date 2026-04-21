@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx vite *)",
+      "Bash(./mvnw.cmd -DskipTests compile)",
+      "Bash(npm run *)",
+      "Bash(./mvnw compile *)",
+      "Bash(./mvnw clean *)",
+      "Bash(./mvnw -q compile)",
+      "Bash(./mvnw -q -DskipTests compile)",
+      "Bash(./mvnw -DskipTests compile)",
+      "Bash(./mvnw -DskipTests clean compile)",
+      "Bash(./mvnw.cmd compile *)",
+      "Bash(./mvnw.cmd -o -DskipTests compile)",
+      "Bash(./mvnw.cmd -o -DskipTests -q compile)"
+    ]
+  }
+}
