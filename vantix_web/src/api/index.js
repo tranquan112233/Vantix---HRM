@@ -111,6 +111,15 @@ export const attendanceApi = {
   checkOut: (data) => http.post('/attendance/check-out', data),
 }
 
+export const makeupCheckoutApi = {
+  list: (params) => http.get('/makeup-checkouts', { params }),
+  get: (id) => http.get(`/makeup-checkouts/${id}`),
+  create: (data) => http.post('/makeup-checkouts', data),
+  cancel: (id) => http.patch(`/makeup-checkouts/${id}/cancel`),
+  approve: (id, data = {}) => http.patch(`/makeup-checkouts/${id}/approve`, data),
+  reject: (id, data = {}) => http.patch(`/makeup-checkouts/${id}/reject`, data),
+}
+
 export const workScheduleApi = {
   list: (params) => http.get('/work-schedules', { params }),
   my: (params) => http.get('/work-schedules/me', { params }),

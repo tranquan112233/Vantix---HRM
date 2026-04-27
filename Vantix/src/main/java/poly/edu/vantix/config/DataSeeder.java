@@ -198,6 +198,10 @@ public class DataSeeder implements CommandLineRunner {
                         "SCHEDULE_UPDATE",
                         "SCHEDULE_DELETE",
                         "ATTENDANCE_VIEW_ALL",
+                        "MAKEUP_CHECKOUT_VIEW",
+                        "MAKEUP_CHECKOUT_CREATE",
+                        "MAKEUP_CHECKOUT_APPROVE",
+                        "MAKEUP_CHECKOUT_MANAGE",
                         "CONTRACT_VIEW",
                         "CONTRACT_CREATE",
                         "CONTRACT_UPDATE",
@@ -219,6 +223,8 @@ public class DataSeeder implements CommandLineRunner {
                         "LEAVE_REQUEST_CREATE",
                         "LEAVE_REQUEST_UPDATE",
                         "LEAVE_REQUEST_CANCEL",
+                        "MAKEUP_CHECKOUT_VIEW",
+                        "MAKEUP_CHECKOUT_CREATE",
                         "NOTIFICATION_VIEW",
                         "SHIFT_VIEW"
                 ))
@@ -245,6 +251,9 @@ public class DataSeeder implements CommandLineRunner {
                         "SCHEDULE_VIEW_ALL",
                         "SHIFT_VIEW",
                         "ATTENDANCE_VIEW_ALL",
+                        "MAKEUP_CHECKOUT_VIEW",
+                        "MAKEUP_CHECKOUT_CREATE",
+                        "MAKEUP_CHECKOUT_APPROVE",
                         "CONTRACT_VIEW",
                         "PAYROLL_VIEW",
                         "PAYROLL_APPROVE"
@@ -407,6 +416,11 @@ public class DataSeeder implements CommandLineRunner {
         permissions.put("SCHEDULE_DELETE", "Xóa lịch làm việc");
 
         permissions.put("ATTENDANCE_VIEW_ALL", "Xem toàn bộ chấm công");
+
+        permissions.put("MAKEUP_CHECKOUT_VIEW", "Xem đơn bù check-out của mình");
+        permissions.put("MAKEUP_CHECKOUT_CREATE", "Tạo đơn bù check-out");
+        permissions.put("MAKEUP_CHECKOUT_APPROVE", "Duyệt hoặc từ chối đơn bù check-out");
+        permissions.put("MAKEUP_CHECKOUT_MANAGE", "Quản lý toàn bộ đơn bù check-out");
 
         // === Hợp đồng lao động ===
         permissions.put("CONTRACT_VIEW", "Xem hợp đồng lao động");
@@ -1390,7 +1404,9 @@ public class DataSeeder implements CommandLineRunner {
         long workedDays = attendances.stream()
                 .filter(a -> a.getStatus() != AttendanceStatus.ABSENT
                         && a.getStatus() != AttendanceStatus.PENDING
-                        && a.getCheckInAt() != null)
+                        && a.getStatus() != AttendanceStatus.MISSING_CHECKOUT
+                        && a.getCheckInAt() != null
+                        && a.getCheckOutAt() != null)
                 .count();
 
         if (workedDays > 0) {

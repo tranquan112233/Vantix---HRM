@@ -163,7 +163,7 @@ public class AttendanceService {
         return checkInTime.isAfter(shiftStart) ? AttendanceStatus.LATE : AttendanceStatus.ON_TIME;
     }
 
-    private AttendanceStatus computeFinalStatus(Attendance attendance, WorkSchedule schedule) {
+    public AttendanceStatus computeFinalStatus(Attendance attendance, WorkSchedule schedule) {
         if (schedule == null || schedule.getShift() == null) {
             return attendance.getStatus();
         }
