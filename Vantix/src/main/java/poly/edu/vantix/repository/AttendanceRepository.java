@@ -39,4 +39,16 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
             @Param("employeeId") Long employeeId,
             @Param("date") LocalDate date
     );
+
+    @Query("SELECT a FROM Attendance a " +
+           "JOIN FETCH a.employee e " +
+           "LEFT JOIN FETCH e.user " +
+           "LEFT JOIN FETCH a.schedule s " +
+           "LEFT JOIN FETCH s.shift " +
+           "WHERE a.deleted = false " +
+           "AND a.workDate = :workDate " +
+           "AND a.checkInAt IS NOT NULL " +
+           "AND a.checkOutAt IS NULL " +
+           "AND a.status <> poly.edu.vantix.entity.enums.AttendanceStatus.MISSING_CHECKOUT")
+    List<Attendance> findOpenAttendancesOn(@Param("workDate") LocalDate workDate);
 }

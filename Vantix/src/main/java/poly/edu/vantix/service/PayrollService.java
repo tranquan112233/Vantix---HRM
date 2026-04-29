@@ -344,7 +344,9 @@ public class PayrollService {
         long workedDays = attendances.stream()
                 .filter(a -> a.getStatus() != AttendanceStatus.ABSENT
                         && a.getStatus() != AttendanceStatus.PENDING
-                        && a.getCheckInAt() != null)
+                        && a.getStatus() != AttendanceStatus.MISSING_CHECKOUT
+                        && a.getCheckInAt() != null
+                        && a.getCheckOutAt() != null)
                 .count();
         payroll.setActualWorkDays(new BigDecimal(workedDays));
 
