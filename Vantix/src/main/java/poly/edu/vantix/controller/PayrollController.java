@@ -46,7 +46,7 @@ public class PayrollController {
     @PreAuthorize("hasAnyAuthority('PAYROLL_CREATE','PAYROLL_MANAGE')")
     public ResponseEntity<PayrollPeriodResponse> createPeriod(@Valid @RequestBody PayrollPeriodRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(payrollService.createPeriod(request));
-    }
+     }
 
     @PutMapping("/periods/{id}")
     @PreAuthorize("hasAnyAuthority('PAYROLL_UPDATE','PAYROLL_MANAGE')")
@@ -54,7 +54,7 @@ public class PayrollController {
             @PathVariable Long id,
             @Valid @RequestBody PayrollPeriodRequest request
     ) {
-        return ResponseEntity.ok(payrollService.updatePeriod(id, request));
+        return ResponseEntity.ok(payrollService.updatePeriod(id, request)); 
     }
 
     @DeleteMapping("/periods/{id}")
