@@ -37,6 +37,15 @@ public class Notification extends BaseEntity {
     @Column(name = "message", nullable = false, columnDefinition = "TEXT")
     private String message;
 
+    @Column(name = "title_key", length = 150)
+    private String titleKey;
+
+    @Column(name = "message_key", length = 150)
+    private String messageKey;
+
+    @Column(name = "message_params", columnDefinition = "TEXT")
+    private String messageParams;
+
     // Link điều hướng khi user bấm vào thông báo
     @Column(name = "target_url", length = 255)
     private String targetUrl;

@@ -154,6 +154,15 @@ public class PayrollService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<PayrollResponse> getByEmployee(Long employeeId) {
+        employeeRepository.findActiveById(employeeId)
+                .orElseThrow(() -> new BusinessException("employeeId", "Employee does not exist"));
+        return payrollRepository.findByEmployee(employeeId).stream()
+                .map(PayrollResponse::fromEntity)
+                .toList();
+    }
+
     /**
      * Tạo dòng lương cho TẤT CẢ nhân viên đang làm việc trong kỳ. Không ghi đè nếu đã tồn tại.
      */

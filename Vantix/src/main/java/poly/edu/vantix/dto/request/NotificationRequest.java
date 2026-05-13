@@ -1,10 +1,10 @@
 package poly.edu.vantix.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class NotificationRequest {
@@ -20,12 +20,18 @@ public class NotificationRequest {
 
     private String type;
 
-    @NotBlank(message = "Title is required")
     @Size(max = 150)
     private String title;
 
-    @NotBlank(message = "Message is required")
     private String message;
+
+    @Size(max = 150)
+    private String titleKey;
+
+    @Size(max = 150)
+    private String messageKey;
+
+    private Map<String, String> messageParams;
 
     private String targetUrl;
 }

@@ -14,6 +14,7 @@ import poly.edu.vantix.repository.AttendanceRepository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class AttendanceAutoCloseJob {
@@ -31,8 +32,6 @@ public class AttendanceAutoCloseJob {
         this.notificationService = notificationService;
     }
 
-    // Chạy lúc 23:55 mỗi ngày (giờ VN). Đánh dấu các bản ghi check-in nhưng chưa check-out
-    // của ngày hôm nay là MISSING_CHECKOUT (trừ ca đêm vẫn được phép check-out sang hôm sau).
     @Scheduled(cron = "0 55 23 * * *", zone = "Asia/Ho_Chi_Minh")
     @Transactional
     public void closeMissingCheckouts() {
@@ -49,7 +48,7 @@ public class AttendanceAutoCloseJob {
             }
             attendance.setStatus(AttendanceStatus.MISSING_CHECKOUT);
             String existingNote = attendance.getNote();
-            String autoNote = "Tự động đánh dấu: nhân viên quên check-out / Auto-flagged: employee forgot to check out";
+            String autoNote = "Auto-flagged: employee forgot to check out";
             attendance.setNote(existingNote == null || existingNote.isBlank()
                     ? autoNote
                     : existingNote + " | " + autoNote);
@@ -78,15 +77,12 @@ public class AttendanceAutoCloseJob {
         if (attendance.getEmployee() == null || attendance.getEmployee().getUser() == null) {
             return;
         }
-        Long userId = attendance.getEmployee().getUser().getId();
-        notificationService.createForUser(
-                userId,
+        notificationService.createLocalizedForUser(
+                attendance.getEmployee().getUser().getId(),
                 NotificationType.ATTENDANCE,
-                "Quên check-out / Missing checkout",
-                "Bạn quên check-out cho ngày " + attendance.getWorkDate()
-                        + ". Hãy gửi đơn xin bù check-out để cấp quản lý duyệt."
-                        + "\nYou forgot to check out on " + attendance.getWorkDate()
-                        + ". Please submit a make-up checkout request for manager approval.",
+                "notification.attendance.missingCheckout.title",
+                "notification.attendance.missingCheckout.message",
+                Map.of("date", String.valueOf(attendance.getWorkDate())),
                 "/makeup-checkouts"
         );
     }

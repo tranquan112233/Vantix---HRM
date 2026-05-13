@@ -8,6 +8,8 @@ import poly.edu.vantix.entity.enums.EmploymentStatus;
 import poly.edu.vantix.entity.enums.Gender;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 /*
  * Employee
@@ -53,6 +55,18 @@ public class Employee extends BaseEntity {
     // Email cá nhân
     @Column(name = "personal_email", length = 100)
     private String personalEmail;
+
+    @Column(name = "photo_file_name", length = 255)
+    private String photoFileName;
+
+    @Column(name = "photo_original_file_name", length = 255)
+    private String photoOriginalFileName;
+
+    @Column(name = "photo_content_type", length = 120)
+    private String photoContentType;
+
+    @Column(name = "photo_file_size")
+    private Long photoFileSize;
 
     // Địa chỉ
     @Column(name = "address", columnDefinition = "TEXT")
@@ -100,4 +114,8 @@ public class Employee extends BaseEntity {
     // Số điện thoại liên hệ khẩn cấp
     @Column(name = "emergency_contact_phone", length = 20)
     private String emergencyContactPhone;
+
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt DESC")
+    private List<EmployeeDocument> documents = new ArrayList<>();
 }

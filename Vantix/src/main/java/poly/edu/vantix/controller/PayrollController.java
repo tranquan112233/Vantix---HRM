@@ -108,6 +108,12 @@ public class PayrollController {
         return ResponseEntity.ok(payrollService.myPayrolls(currentUserId(authentication)));
     }
 
+    @GetMapping("/employee/{employeeId}")
+    @PreAuthorize("hasAnyAuthority('PAYROLL_VIEW','PAYROLL_MANAGE')")
+    public ResponseEntity<List<PayrollResponse>> byEmployee(@PathVariable Long employeeId) {
+        return ResponseEntity.ok(payrollService.getByEmployee(employeeId));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('PAYROLL_VIEW','PAYROLL_MANAGE')")
     public ResponseEntity<PayrollResponse> getPayroll(@PathVariable Long id) {

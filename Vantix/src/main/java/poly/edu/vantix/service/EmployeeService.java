@@ -1,14 +1,20 @@
 package poly.edu.vantix.service;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import poly.edu.vantix.dto.response.EmployeeDocumentResponse;
 import poly.edu.vantix.dto.request.EmployeeRequest;
 import poly.edu.vantix.dto.response.EmployeeResponse;
 import poly.edu.vantix.dto.response.PageResponse;
 import poly.edu.vantix.entity.Department;
 import poly.edu.vantix.entity.Employee;
+import poly.edu.vantix.entity.EmployeeDocument;
 import poly.edu.vantix.entity.Position;
 import poly.edu.vantix.entity.Role;
 import poly.edu.vantix.entity.User;
@@ -17,14 +23,23 @@ import poly.edu.vantix.entity.enums.Gender;
 import poly.edu.vantix.entity.enums.UserStatus;
 import poly.edu.vantix.exception.BusinessException;
 import poly.edu.vantix.repository.DepartmentRepository;
+import poly.edu.vantix.repository.EmployeeDocumentRepository;
 import poly.edu.vantix.repository.EmployeeRepository;
 import poly.edu.vantix.repository.PositionRepository;
 import poly.edu.vantix.repository.RoleRepository;
 import poly.edu.vantix.repository.UserRepository;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 @Service
 public class EmployeeService {
@@ -34,7 +49,9 @@ public class EmployeeService {
     private final PositionRepository positionRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final EmployeeDocumentRepository employeeDocumentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final Path employeeUploadRoot;
 
     public EmployeeService(
             EmployeeRepository employeeRepository,
@@ -42,14 +59,18 @@ public class EmployeeService {
             PositionRepository positionRepository,
             UserRepository userRepository,
             RoleRepository roleRepository,
-            PasswordEncoder passwordEncoder
+            EmployeeDocumentRepository employeeDocumentRepository,
+            PasswordEncoder passwordEncoder,
+            @Value("${app.upload.employee-dir:uploads/employees}") String employeeUploadDir
     ) {
         this.employeeRepository = employeeRepository;
         this.departmentRepository = departmentRepository;
         this.positionRepository = positionRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.employeeDocumentRepository = employeeDocumentRepository;
         this.passwordEncoder = passwordEncoder;
+        this.employeeUploadRoot = Paths.get(employeeUploadDir).toAbsolutePath().normalize();
     }
 
     private static final String DEFAULT_ACCOUNT_PASSWORD = "User@123";
@@ -137,9 +158,114 @@ public class EmployeeService {
     @Transactional
     public void delete(Long id) {
         Employee employee = findActiveById(id);
+        if (employee.getPhotoFileName() != null) {
+            deleteStoredFile(employee.getPhotoFileName());
+        }
+        employee.getDocuments().stream()
+                .filter(document -> !Boolean.TRUE.equals(document.getDeleted()))
+                .forEach(document -> {
+                    document.setDeleted(true);
+                    document.setDeletedAt(LocalDateTime.now());
+                    deleteStoredFile(document.getStoredFileName());
+                });
         employee.setDeleted(true);
         employee.setDeletedAt(LocalDateTime.now());
         employeeRepository.save(employee);
+    }
+
+    @Transactional
+    public EmployeeResponse uploadPhoto(Long employeeId, MultipartFile file) {
+        Employee employee = findActiveById(employeeId);
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException("file", "Photo is required");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.toLowerCase(Locale.ROOT).startsWith("image/")) {
+            throw new BusinessException("file", "Photo must be an image");
+        }
+
+        String previousFileName = employee.getPhotoFileName();
+        StoredFile storedFile = storeFile(file);
+        employee.setPhotoFileName(storedFile.storedFileName());
+        employee.setPhotoOriginalFileName(storedFile.originalFileName());
+        employee.setPhotoContentType(file.getContentType());
+        employee.setPhotoFileSize(file.getSize());
+        Employee saved = employeeRepository.save(employee);
+        if (previousFileName != null) {
+            deleteStoredFile(previousFileName);
+        }
+        return EmployeeResponse.fromEntity(saved);
+    }
+
+    @Transactional
+    public void deletePhoto(Long employeeId) {
+        Employee employee = findActiveById(employeeId);
+        String storedFileName = employee.getPhotoFileName();
+        employee.setPhotoFileName(null);
+        employee.setPhotoOriginalFileName(null);
+        employee.setPhotoContentType(null);
+        employee.setPhotoFileSize(null);
+        employeeRepository.save(employee);
+        if (storedFileName != null) {
+            deleteStoredFile(storedFileName);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public EmployeeFileDownload loadPhoto(Long employeeId) {
+        Employee employee = findActiveById(employeeId);
+        if (employee.getPhotoFileName() == null) {
+            throw new BusinessException("Photo does not exist");
+        }
+        return loadFile(
+                employee.getPhotoFileName(),
+                employee.getPhotoOriginalFileName(),
+                employee.getPhotoContentType(),
+                employee.getPhotoFileSize()
+        );
+    }
+
+    @Transactional
+    public List<EmployeeDocumentResponse> addDocuments(Long employeeId, MultipartFile[] files) {
+        Employee employee = findActiveById(employeeId);
+        if (files == null || files.length == 0) {
+            throw new BusinessException("files", "At least one file is required");
+        }
+
+        List<MultipartFile> validFiles = Arrays.stream(files)
+                .filter(file -> file != null && !file.isEmpty())
+                .toList();
+
+        if (validFiles.isEmpty()) {
+            throw new BusinessException("files", "At least one file is required");
+        }
+
+        return validFiles.stream()
+                .map(file -> storeDocument(employee, file))
+                .map(EmployeeDocumentResponse::fromEntity)
+                .toList();
+    }
+
+    @Transactional
+    public void deleteDocument(Long employeeId, Long documentId) {
+        EmployeeDocument document = employeeDocumentRepository.findActiveByIdAndEmployeeId(documentId, employeeId)
+                .orElseThrow(() -> new BusinessException("Document does not exist"));
+        document.setDeleted(true);
+        document.setDeletedAt(LocalDateTime.now());
+        employeeDocumentRepository.save(document);
+        deleteStoredFile(document.getStoredFileName());
+    }
+
+    @Transactional(readOnly = true)
+    public EmployeeFileDownload loadDocument(Long documentId) {
+        EmployeeDocument document = employeeDocumentRepository.findActiveById(documentId)
+                .orElseThrow(() -> new BusinessException("Document does not exist"));
+        return loadFile(
+                document.getStoredFileName(),
+                document.getOriginalFileName(),
+                document.getContentType(),
+                document.getFileSize()
+        );
     }
 
     // --- Helper ---
@@ -304,4 +430,80 @@ public class EmployeeService {
         }
         return null;
     }
+
+    private EmployeeDocument storeDocument(Employee employee, MultipartFile file) {
+        StoredFile storedFile = storeFile(file);
+        EmployeeDocument document = new EmployeeDocument();
+        document.setEmployee(employee);
+        document.setOriginalFileName(storedFile.originalFileName());
+        document.setStoredFileName(storedFile.storedFileName());
+        document.setContentType(file.getContentType());
+        document.setFileSize(file.getSize());
+        return employeeDocumentRepository.save(document);
+    }
+
+    private StoredFile storeFile(MultipartFile file) {
+        try {
+            Files.createDirectories(employeeUploadRoot);
+            String originalFileName = sanitizeFileName(file.getOriginalFilename());
+            String storedFileName = UUID.randomUUID() + extensionOf(originalFileName);
+            Files.copy(file.getInputStream(), resolveStoredPath(storedFileName), StandardCopyOption.REPLACE_EXISTING);
+            return new StoredFile(originalFileName, storedFileName);
+        } catch (IOException ex) {
+            throw new BusinessException("files", "Unable to store uploaded file");
+        }
+    }
+
+    private EmployeeFileDownload loadFile(String storedFileName, String originalFileName, String contentType, Long fileSize) {
+        Path filePath = resolveStoredPath(storedFileName);
+        try {
+            Resource resource = new UrlResource(filePath.toUri());
+            if (!resource.exists() || !resource.isReadable()) {
+                throw new BusinessException("File is not available");
+            }
+            return new EmployeeFileDownload(resource, originalFileName, contentType, fileSize);
+        } catch (MalformedURLException ex) {
+            throw new BusinessException("File is not available");
+        }
+    }
+
+    private void deleteStoredFile(String storedFileName) {
+        try {
+            Files.deleteIfExists(resolveStoredPath(storedFileName));
+        } catch (IOException ignored) {
+        }
+    }
+
+    private Path resolveStoredPath(String storedFileName) {
+        Path target = employeeUploadRoot.resolve(storedFileName).normalize();
+        if (!target.startsWith(employeeUploadRoot)) {
+            throw new BusinessException("Invalid file path");
+        }
+        return target;
+    }
+
+    private String sanitizeFileName(String fileName) {
+        String value = fileName == null || fileName.isBlank()
+                ? "employee-file"
+                : Paths.get(fileName).getFileName().toString();
+        value = value.replaceAll("[^A-Za-z0-9._-]", "_");
+        return value.isBlank() ? "employee-file" : value;
+    }
+
+    private String extensionOf(String fileName) {
+        int index = fileName.lastIndexOf('.');
+        if (index < 0 || index == fileName.length() - 1) {
+            return "";
+        }
+        return fileName.substring(index);
+    }
+
+    private record StoredFile(String originalFileName, String storedFileName) {}
+
+    public record EmployeeFileDownload(
+            Resource resource,
+            String fileName,
+            String contentType,
+            Long fileSize
+    ) {}
 }

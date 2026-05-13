@@ -9,6 +9,7 @@ import poly.edu.vantix.entity.Attendance;
 import poly.edu.vantix.entity.Contract;
 import poly.edu.vantix.entity.Department;
 import poly.edu.vantix.entity.Employee;
+import poly.edu.vantix.entity.EmployeeDocument;
 import poly.edu.vantix.entity.LeaveRequest;
 import poly.edu.vantix.entity.Notification;
 import poly.edu.vantix.entity.Payroll;
@@ -18,6 +19,7 @@ import poly.edu.vantix.entity.Position;
 import poly.edu.vantix.entity.PublicHoliday;
 import poly.edu.vantix.entity.Role;
 import poly.edu.vantix.entity.Shift;
+import poly.edu.vantix.entity.TaskAttachment;
 import poly.edu.vantix.entity.User;
 import poly.edu.vantix.entity.WorkLocation;
 import poly.edu.vantix.entity.WorkSchedule;
@@ -38,6 +40,7 @@ import poly.edu.vantix.entity.enums.UserStatus;
 import poly.edu.vantix.repository.AttendanceRepository;
 import poly.edu.vantix.repository.ContractRepository;
 import poly.edu.vantix.repository.DepartmentRepository;
+import poly.edu.vantix.repository.EmployeeDocumentRepository;
 import poly.edu.vantix.repository.EmployeeRepository;
 import poly.edu.vantix.repository.LeaveRequestRepository;
 import poly.edu.vantix.repository.NotificationRepository;
@@ -49,6 +52,7 @@ import poly.edu.vantix.repository.PublicHolidayRepository;
 import poly.edu.vantix.repository.RoleRepository;
 import poly.edu.vantix.repository.ShiftRepository;
 import poly.edu.vantix.repository.TaskRepository;
+import poly.edu.vantix.repository.TaskAttachmentRepository;
 import poly.edu.vantix.repository.UserRepository;
 import poly.edu.vantix.repository.WorkLocationRepository;
 import poly.edu.vantix.repository.WorkScheduleRepository;
@@ -57,6 +61,10 @@ import poly.edu.vantix.util.PayrollInput;
 import poly.edu.vantix.util.VietnamPayrollCalculator;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -70,6 +78,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Base64;
 
 @Component
 public class DataSeeder implements CommandLineRunner {
@@ -80,7 +89,9 @@ public class DataSeeder implements CommandLineRunner {
     private final DepartmentRepository departmentRepository;
     private final PositionRepository positionRepository;
     private final EmployeeRepository employeeRepository;
+    private final EmployeeDocumentRepository employeeDocumentRepository;
     private final TaskRepository taskRepository;
+    private final TaskAttachmentRepository taskAttachmentRepository;
     private final ShiftRepository shiftRepository;
     private final WorkLocationRepository workLocationRepository;
     private final WorkScheduleRepository workScheduleRepository;
@@ -113,6 +124,12 @@ public class DataSeeder implements CommandLineRunner {
     @Value("${app.seed.schedule-employee-count:30}")
     private int scheduleEmployeeCount;
 
+    @Value("${app.upload.employee-dir:uploads/employees}")
+    private String employeeUploadDir;
+
+    @Value("${app.upload.task-dir:uploads/tasks}")
+    private String taskUploadDir;
+
     public DataSeeder(
             PermissionRepository permissionRepository,
             RoleRepository roleRepository,
@@ -120,7 +137,9 @@ public class DataSeeder implements CommandLineRunner {
             DepartmentRepository departmentRepository,
             PositionRepository positionRepository,
             EmployeeRepository employeeRepository,
+            EmployeeDocumentRepository employeeDocumentRepository,
             TaskRepository taskRepository,
+            TaskAttachmentRepository taskAttachmentRepository,
             ShiftRepository shiftRepository,
             WorkLocationRepository workLocationRepository,
             WorkScheduleRepository workScheduleRepository,
@@ -139,7 +158,9 @@ public class DataSeeder implements CommandLineRunner {
         this.departmentRepository = departmentRepository;
         this.positionRepository = positionRepository;
         this.employeeRepository = employeeRepository;
+        this.employeeDocumentRepository = employeeDocumentRepository;
         this.taskRepository = taskRepository;
+        this.taskAttachmentRepository = taskAttachmentRepository;
         this.shiftRepository = shiftRepository;
         this.workLocationRepository = workLocationRepository;
         this.workScheduleRepository = workScheduleRepository;
@@ -325,8 +346,10 @@ public class DataSeeder implements CommandLineRunner {
         seedAdminEmployee(adminUser, departments.get("ADMIN"), positions.get("SYS_ADMIN"));
         seedNamedTestAccounts(departments, positions, hrRole, managerRole, employeeRole, schedulerRole, notifierRole, auditorRole);
         seedSampleEmployees(sampleEmployeeCount, departments, positions, hrRole, employeeRole);
+        seedEmployeeFiles();
         seedDepartmentHeads(departments);
         seedSampleTasks();
+        seedTaskAttachments();
 
         Map<String, Shift> shifts = seedShifts();
         Map<String, WorkLocation> locations = seedWorkLocations();
@@ -818,6 +841,77 @@ public class DataSeeder implements CommandLineRunner {
         employeeRepository.save(employee);
     }
 
+    private void seedEmployeeFiles() {
+        List<Employee> employees = employeeRepository.findAll().stream()
+                .filter(employee -> !Boolean.TRUE.equals(employee.getDeleted()))
+                .sorted(Comparator.comparing(Employee::getEmployeeCode))
+                .limit(40)
+                .toList();
+
+        for (int i = 0; i < employees.size(); i++) {
+            Employee employee = employees.get(i);
+            seedEmployeePhoto(employee, i);
+            seedEmployeeDocuments(employee, i);
+            employeeRepository.save(employee);
+        }
+    }
+
+    private void seedEmployeePhoto(Employee employee, int index) {
+        if (employee.getPhotoFileName() != null && !employee.getPhotoFileName().isBlank()) {
+            return;
+        }
+
+        String storedFileName = "seed-photo-%s.png".formatted(employee.getEmployeeCode().toLowerCase());
+        Path target = uploadRoot(employeeUploadDir).resolve(storedFileName);
+        writeSeedFile(target, seedPngBytes(index));
+
+        employee.setPhotoFileName(storedFileName);
+        employee.setPhotoOriginalFileName(employee.getEmployeeCode() + "-avatar.png");
+        employee.setPhotoContentType("image/png");
+        employee.setPhotoFileSize(fileSize(target));
+    }
+
+    private void seedEmployeeDocuments(Employee employee, int index) {
+        if (employee.getDocuments() != null && employee.getDocuments().stream().anyMatch(d -> !Boolean.TRUE.equals(d.getDeleted()))) {
+            return;
+        }
+
+        seedEmployeeDocument(
+                employee,
+                "degree",
+                employee.getEmployeeCode() + "-bang-cap.txt",
+                "Bằng cấp mẫu\nNhân viên: %s\nMã NV: %s\nChuyên ngành: Quản trị nhân sự / Công nghệ thông tin\n"
+                        .formatted(employee.getFullName(), employee.getEmployeeCode()),
+                index
+        );
+        seedEmployeeDocument(
+                employee,
+                "paper",
+                employee.getEmployeeCode() + "-giay-to.txt",
+                "Giấy tờ mẫu\nCCCD: %s\nEmail: %s\nSố điện thoại: %s\n"
+                        .formatted(employee.getCitizenId(), employee.getPersonalEmail(), employee.getPhoneNumber()),
+                index
+        );
+    }
+
+    private void seedEmployeeDocument(Employee employee, String type, String originalFileName, String content, int index) {
+        String storedFileName = "seed-%s-%s-%02d.txt".formatted(
+                type,
+                employee.getEmployeeCode().toLowerCase(),
+                index
+        );
+        Path target = uploadRoot(employeeUploadDir).resolve(storedFileName);
+        writeSeedFile(target, content.getBytes(StandardCharsets.UTF_8));
+
+        EmployeeDocument document = new EmployeeDocument();
+        document.setEmployee(employee);
+        document.setOriginalFileName(originalFileName);
+        document.setStoredFileName(storedFileName);
+        document.setContentType("text/plain; charset=UTF-8");
+        document.setFileSize(fileSize(target));
+        employeeDocumentRepository.save(document);
+    }
+
     private void seedDepartmentHeads(Map<String, Department> departments) {
         for (Department department : departments.values()) {
             if (department.getHeadEmployeeId() != null) {
@@ -880,6 +974,34 @@ public class DataSeeder implements CommandLineRunner {
             task.setAssignee(employees.get(i % employees.size()));
             task.setDueDate(LocalDate.now().plusDays(i - 4L));
             taskRepository.save(task);
+        }
+    }
+
+    private void seedTaskAttachments() {
+        List<WorkTask> tasks = taskRepository.findAll().stream()
+                .filter(task -> !Boolean.TRUE.equals(task.getDeleted()))
+                .sorted(Comparator.comparing(WorkTask::getId))
+                .limit(12)
+                .toList();
+
+        for (int i = 0; i < tasks.size(); i++) {
+            WorkTask task = tasks.get(i);
+            if (task.getAttachments() != null && task.getAttachments().stream().anyMatch(a -> !Boolean.TRUE.equals(a.getDeleted()))) {
+                continue;
+            }
+
+            String originalFileName = "task-%03d-brief.txt".formatted(i + 1);
+            String storedFileName = "seed-task-%03d.txt".formatted(i + 1);
+            Path target = uploadRoot(taskUploadDir).resolve(storedFileName);
+            writeSeedFile(target, ("Tệp đính kèm mẫu cho công việc: " + task.getTitle() + "\n").getBytes(StandardCharsets.UTF_8));
+
+            TaskAttachment attachment = new TaskAttachment();
+            attachment.setTask(task);
+            attachment.setOriginalFileName(originalFileName);
+            attachment.setStoredFileName(storedFileName);
+            attachment.setContentType("text/plain; charset=UTF-8");
+            attachment.setFileSize(fileSize(target));
+            taskAttachmentRepository.save(attachment);
         }
     }
 
@@ -1349,7 +1471,6 @@ public class DataSeeder implements CommandLineRunner {
                 .filter(e -> e.getStatus() == EmploymentStatus.ACTIVE
                         || e.getStatus() == EmploymentStatus.PROBATION)
                 .sorted(Comparator.comparing(Employee::getEmployeeCode))
-                .limit(30)
                 .toList();
 
         for (int i = 0; i < employees.size(); i++) {
@@ -1458,6 +1579,44 @@ public class DataSeeder implements CommandLineRunner {
 
     private BigDecimal nz(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private Path uploadRoot(String uploadDir) {
+        Path root = Paths.get(uploadDir).toAbsolutePath().normalize();
+        try {
+            Files.createDirectories(root);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Cannot create upload directory: " + root, ex);
+        }
+        return root;
+    }
+
+    private void writeSeedFile(Path target, byte[] content) {
+        try {
+            Files.createDirectories(target.getParent());
+            if (!Files.exists(target)) {
+                Files.write(target, content);
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException("Cannot write seed file: " + target, ex);
+        }
+    }
+
+    private long fileSize(Path path) {
+        try {
+            return Files.size(path);
+        } catch (Exception ex) {
+            return 0L;
+        }
+    }
+
+    private byte[] seedPngBytes(int index) {
+        String[] pixels = {
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4XmP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4XmNgYPgPAAEDAQCpF0sJAAAAAElFTkSuQmCC",
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4XmNg+M8AAAICAQB7mQYbAAAAAElFTkSuQmCC"
+        };
+        return Base64.getDecoder().decode(pixels[index % pixels.length]);
     }
 
     // ===================== NOTIFICATION =====================

@@ -11,6 +11,7 @@ import poly.edu.vantix.entity.enums.UserStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -26,6 +27,10 @@ public class EmployeeResponse {
     private String citizenId;
     private String phoneNumber;
     private String personalEmail;
+    private String photoOriginalFileName;
+    private String photoContentType;
+    private Long photoFileSize;
+    private String photoUrl;
     private String address;
 
     private Long departmentId;
@@ -52,6 +57,7 @@ public class EmployeeResponse {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<EmployeeDocumentResponse> documents;
 
     public static EmployeeResponse fromEntity(Employee e) {
         return EmployeeResponse.builder()
@@ -63,6 +69,10 @@ public class EmployeeResponse {
                 .citizenId(e.getCitizenId())
                 .phoneNumber(e.getPhoneNumber())
                 .personalEmail(e.getPersonalEmail())
+                .photoOriginalFileName(e.getPhotoOriginalFileName())
+                .photoContentType(e.getPhotoContentType())
+                .photoFileSize(e.getPhotoFileSize())
+                .photoUrl(e.getPhotoFileName() != null ? "/api/employees/" + e.getId() + "/photo" : null)
                 .address(e.getAddress())
                 .departmentId(e.getDepartment() != null ? e.getDepartment().getId() : null)
                 .departmentName(e.getDepartment() != null ? e.getDepartment().getName() : null)
@@ -83,6 +93,10 @@ public class EmployeeResponse {
                 .emergencyContactPhone(e.getEmergencyContactPhone())
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
+                .documents(e.getDocuments() == null ? List.of() : e.getDocuments().stream()
+                        .filter(document -> !Boolean.TRUE.equals(document.getDeleted()))
+                        .map(EmployeeDocumentResponse::fromEntity)
+                        .toList())
                 .build();
     }
 }
