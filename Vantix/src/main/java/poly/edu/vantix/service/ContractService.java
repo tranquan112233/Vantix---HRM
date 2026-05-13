@@ -1,8 +1,12 @@
 package poly.edu.vantix.service;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import poly.edu.vantix.dto.request.ContractRequest;
 import poly.edu.vantix.dto.response.ContractResponse;
 import poly.edu.vantix.dto.response.PageResponse;
@@ -18,11 +22,19 @@ import poly.edu.vantix.repository.EmployeeRepository;
 import poly.edu.vantix.repository.PayrollRepository;
 import poly.edu.vantix.repository.PositionRepository;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 
 @Service
 public class ContractService {
@@ -31,6 +43,7 @@ public class ContractService {
     private final EmployeeRepository employeeRepository;
     private final PositionRepository positionRepository;
     private final PayrollRepository payrollRepository;
+    private final Path contractUploadRoot;
 
     // Điều 25 BLLĐ 2019 - thử việc tối đa 180 ngày cho quản lý
     private static final int MAX_PROBATION_MONTHS = 6;
@@ -42,12 +55,14 @@ public class ContractService {
             ContractRepository contractRepository,
             EmployeeRepository employeeRepository,
             PositionRepository positionRepository,
-            PayrollRepository payrollRepository
+            PayrollRepository payrollRepository,
+            @Value("${app.upload.contract-dir:uploads/contracts}") String contractUploadDir
     ) {
         this.contractRepository = contractRepository;
         this.employeeRepository = employeeRepository;
         this.positionRepository = positionRepository;
         this.payrollRepository = payrollRepository;
+        this.contractUploadRoot = Paths.get(contractUploadDir).toAbsolutePath().normalize();
     }
 
     @Transactional(readOnly = true)
@@ -189,6 +204,71 @@ public class ContractService {
     }
 
     @Transactional
+    public ContractResponse uploadSignedFile(Long id, MultipartFile file) {
+        Contract contract = findActiveById(id);
+        ensureNoPayrollRows(contract);
+
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException("file", "Signed contract file is required");
+        }
+
+        String contentType = file.getContentType();
+        String uploadedFileName = sanitizeFileName(file.getOriginalFilename());
+        boolean isPdf = (contentType != null && MediaTypes.APPLICATION_PDF.equalsIgnoreCase(contentType))
+                || uploadedFileName.toLowerCase(Locale.ROOT).endsWith(".pdf");
+        if (!isPdf) {
+            throw new BusinessException("file", "Signed contract file must be a PDF");
+        }
+
+        String previousStoredFileName = contract.getAttachmentPath();
+        String originalFileName = contractFileName(contract.getContractCode());
+        String storedFileName = storeFile(file);
+        contract.setAttachmentPath(storedFileName);
+        contract.setAttachmentOriginalFileName(originalFileName);
+        contract.setAttachmentContentType(contentType == null || contentType.isBlank()
+                ? MediaTypes.APPLICATION_PDF
+                : contentType);
+        contract.setAttachmentFileSize(file.getSize());
+
+        Contract saved = contractRepository.save(contract);
+        if (previousStoredFileName != null && !previousStoredFileName.isBlank()) {
+            deleteStoredFile(previousStoredFileName);
+        }
+        return ContractResponse.fromEntity(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public ContractFileDownload loadSignedFile(Long id) {
+        Contract contract = findActiveById(id);
+        if (contract.getAttachmentPath() == null || contract.getAttachmentPath().isBlank()) {
+            throw new BusinessException("Signed contract file does not exist");
+        }
+        return loadFile(
+                contract.getAttachmentPath(),
+                contract.getAttachmentOriginalFileName(),
+                contract.getAttachmentContentType(),
+                contract.getAttachmentFileSize()
+        );
+    }
+
+    @Transactional
+    public void deleteSignedFile(Long id) {
+        Contract contract = findActiveById(id);
+        ensureNoPayrollRows(contract);
+
+        String storedFileName = contract.getAttachmentPath();
+        contract.setAttachmentPath(null);
+        contract.setAttachmentOriginalFileName(null);
+        contract.setAttachmentContentType(null);
+        contract.setAttachmentFileSize(null);
+        contractRepository.save(contract);
+
+        if (storedFileName != null && !storedFileName.isBlank()) {
+            deleteStoredFile(storedFileName);
+        }
+    }
+
+    @Transactional
     public void delete(Long id) {
         Contract contract = findActiveById(id);
         ensureNoPayrollRows(contract);
@@ -260,7 +340,6 @@ public class ContractService {
         contract.setNoticePeriodDays(request.getNoticePeriodDays());
         contract.setTerminatedDate(request.getTerminatedDate());
         contract.setTerminationReason(request.getTerminationReason());
-        contract.setAttachmentPath(request.getAttachmentPath());
         contract.setNote(request.getNote());
     }
 
@@ -328,4 +407,84 @@ public class ContractService {
     private BigDecimal nz(BigDecimal v) {
         return v == null ? BigDecimal.ZERO : v;
     }
+
+    private String storeFile(MultipartFile file) {
+        try {
+            Files.createDirectories(contractUploadRoot);
+            String storedFileName = UUID.randomUUID() + ".pdf";
+            Files.copy(file.getInputStream(), resolveStoredPath(storedFileName), StandardCopyOption.REPLACE_EXISTING);
+            return storedFileName;
+        } catch (IOException ex) {
+            throw new BusinessException("file", "Unable to store uploaded file");
+        }
+    }
+
+    private ContractFileDownload loadFile(String storedFileName, String originalFileName, String contentType, Long fileSize) {
+        Path filePath = resolveStoredPath(storedFileName);
+        try {
+            Resource resource = new UrlResource(filePath.toUri());
+            if (!resource.exists() || !resource.isReadable()) {
+                throw new BusinessException("File is not available");
+            }
+            return new ContractFileDownload(resource, originalFileName, contentType, fileSize);
+        } catch (MalformedURLException ex) {
+            throw new BusinessException("File is not available");
+        }
+    }
+
+    private void deleteStoredFile(String storedFileName) {
+        try {
+            Files.deleteIfExists(resolveStoredPath(storedFileName));
+        } catch (IOException ignored) {
+        }
+    }
+
+    private Path resolveStoredPath(String storedFileName) {
+        Path target = contractUploadRoot.resolve(storedFileName).normalize();
+        if (!target.startsWith(contractUploadRoot)) {
+            throw new BusinessException("Invalid file path");
+        }
+        return target;
+    }
+
+    private String sanitizeFileName(String fileName) {
+        String value = fileName == null || fileName.isBlank()
+                ? "contract-file.pdf"
+                : Paths.get(fileName).getFileName().toString();
+        value = value.replaceAll("[^A-Za-z0-9._-]", "_");
+        return value.isBlank() ? "contract-file.pdf" : value;
+    }
+
+    private String extensionOf(String fileName) {
+        int index = fileName.lastIndexOf('.');
+        if (index < 0 || index == fileName.length() - 1) {
+            return "";
+        }
+        return fileName.substring(index);
+    }
+
+    private String contractFileName(String contractCode) {
+        String value = contractCode == null || contractCode.isBlank()
+                ? "contract"
+                : contractCode.trim();
+        value = value.replaceAll("[^A-Za-z0-9._-]", "_");
+        if (value.isBlank()) {
+            value = "contract";
+        }
+        return value + ".pdf";
+    }
+
+    private static final class MediaTypes {
+        private static final String APPLICATION_PDF = "application/pdf";
+
+        private MediaTypes() {
+        }
+    }
+
+    public record ContractFileDownload(
+            Resource resource,
+            String fileName,
+            String contentType,
+            Long fileSize
+    ) {}
 }

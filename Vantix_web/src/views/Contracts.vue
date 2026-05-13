@@ -29,6 +29,8 @@ const dialogTitleKey = ref('contract.add')
 const formRef = ref(null)
 const selectedContract = ref(null)
 const editingId = ref(null)
+const signedFileList = ref([])
+const currentSignedFileName = ref('')
 const pagination = reactive({ page: 1, size: DEFAULT_PAGE_SIZE, total: 0 })
 
 const terminateForm = reactive({
@@ -184,12 +186,16 @@ function handleSizeChange(s) { pagination.size = s; pagination.page = 1; fetchDa
 function openCreate() {
   Object.assign(form, defaultForm)
   editingId.value = null
+  signedFileList.value = []
+  currentSignedFileName.value = ''
   dialogTitleKey.value = 'contract.add'
   dialogVisible.value = true
 }
 
 function openEdit(row) {
   editingId.value = row.id
+  signedFileList.value = []
+  currentSignedFileName.value = row.signedFileName || row.signedDocumentName || row.contractFileName || ''
   Object.assign(form, {
     contractCode: row.contractCode,
     employeeId: row.employeeId,
@@ -225,7 +231,14 @@ async function handleSave() {
   if (!valid) return
   try {
     if (editingId.value) {
-      await contractApi.update(editingId.value, form)
+      const { data } = await contractApi.update(editingId.value, form)
+      const file = selectedSignedFile()
+      if (file) {
+        const uploadResponse = await contractApi.uploadSignedFile(editingId.value, file)
+        currentSignedFileName.value = uploadResponse.data?.signedFileName || `${form.contractCode}.pdf`
+      } else {
+        currentSignedFileName.value = data?.signedFileName || currentSignedFileName.value
+      }
       ElMessage.success(settings.t('common.updated'))
     } else {
       await contractApi.create(form)
@@ -317,6 +330,44 @@ function toNumber(v) {
 }
 
 function displayValue(v) { return v || '-' }
+
+function selectedSignedFile() {
+  return signedFileList.value.map(item => item.raw).filter(Boolean)[0] || null
+}
+
+function beforeSignedFileUpload(file) {
+  const isPdf = file.type === 'application/pdf' || file.name?.toLowerCase().endsWith('.pdf')
+  if (!isPdf) {
+    ElMessage.warning(settings.t('contract.onlyPdfFile'))
+    return false
+  }
+  return false
+}
+
+function handleSignedFileChange(_file, files) {
+  signedFileList.value = files.slice(-1)
+}
+
+function handleSignedFileRemove(_file, files) {
+  signedFileList.value = files
+}
+
+function existingSignedFileName() {
+  return currentSignedFileName.value
+}
+
+async function handleDeleteSignedFile() {
+  if (!editingId.value || !currentSignedFileName.value) return
+
+  try {
+    await ElMessageBox.confirm(settings.t('contract.deleteSignedFileConfirm'), settings.t('common.confirm'), { type: 'warning' })
+    await contractApi.deleteSignedFile(editingId.value)
+    currentSignedFileName.value = ''
+    signedFileList.value = []
+    ElMessage.success(settings.t('common.deleted'))
+    await fetchData()
+  } catch {}
+}
 
 function daysUntil(dateValue) {
   if (!dateValue) return null
@@ -638,6 +689,41 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
             </el-col>
           </el-row>
         </section>
+
+        <section v-if="editingId" class="form-section">
+          <div class="form-section-header">
+            <el-icon class="form-section-icon"><UploadFilled /></el-icon>
+            <div>
+              <h4 class="form-section-title">{{ settings.t('contract.signedFile') }}</h4>
+              <p class="form-section-subtitle">{{ settings.t('contract.editUploadSignedFileHint') }}</p>
+            </div>
+          </div>
+          <div v-if="existingSignedFileName()" class="current-signed-file">
+            <span>{{ existingSignedFileName() }}</span>
+            <el-button text type="danger" @click="handleDeleteSignedFile">
+              <el-icon><Delete /></el-icon>
+              {{ settings.t('common.delete') }}
+            </el-button>
+          </div>
+          <el-form-item :label="settings.t('contract.signedFile')">
+            <el-upload
+              v-model:file-list="signedFileList"
+              drag
+              action="#"
+              accept=".pdf,application/pdf"
+              :auto-upload="false"
+              :before-upload="beforeSignedFileUpload"
+              :on-change="handleSignedFileChange"
+              :on-remove="handleSignedFileRemove"
+              :limit="1"
+              class="signed-file-upload"
+            >
+              <el-icon class="upload-icon"><Upload /></el-icon>
+              <div class="el-upload__text">{{ settings.t('contract.uploadSignedFile') }}</div>
+              <div class="el-upload__tip">{{ settings.t('contract.onlyPdfFile') }}</div>
+            </el-upload>
+          </el-form-item>
+        </section>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">{{ settings.t('common.cancel') }}</el-button>
@@ -908,6 +994,35 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
   color: var(--vx-text-secondary);
   font-size: var(--vx-font-size-2xs);
   margin: 2px 0 0;
+}
+
+.current-signed-file {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--vx-border);
+  border-radius: 8px;
+  color: var(--vx-text);
+  background: color-mix(in srgb, var(--vx-primary) 5%, #fff);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.current-signed-file span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signed-file-upload {
+  width: 100%;
+}
+
+.upload-icon {
+  font-size: 28px;
+  color: var(--vx-primary);
 }
 
 :deep(.contract-dialog .el-dialog__body) {

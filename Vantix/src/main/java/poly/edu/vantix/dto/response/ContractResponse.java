@@ -53,6 +53,9 @@ public class ContractResponse {
     private LocalDate terminatedDate;
     private String terminationReason;
     private String attachmentPath;
+    private String signedFileName;
+    private String signedFileContentType;
+    private Long signedFileSize;
     private String note;
 
     private LocalDateTime createdAt;
@@ -96,6 +99,9 @@ public class ContractResponse {
                 .terminatedDate(c.getTerminatedDate())
                 .terminationReason(c.getTerminationReason())
                 .attachmentPath(c.getAttachmentPath())
+                .signedFileName(c.getAttachmentOriginalFileName())
+                .signedFileContentType(c.getAttachmentContentType())
+                .signedFileSize(c.getAttachmentFileSize())
                 .note(c.getNote())
                 .createdAt(c.getCreatedAt())
                 .updatedAt(c.getUpdatedAt())

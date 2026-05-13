@@ -1,10 +1,14 @@
 package poly.edu.vantix.controller;
 
 import jakarta.validation.Valid;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import poly.edu.vantix.dto.request.ContractRequest;
 import poly.edu.vantix.dto.response.ContractResponse;
 import poly.edu.vantix.entity.enums.ContractStatus;
@@ -80,6 +84,37 @@ public class ContractController {
         return ResponseEntity.ok(contractService.update(id, request));
     }
 
+    @PostMapping(value = "/{id}/signed-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('CONTRACT_UPDATE')")
+    public ResponseEntity<ContractResponse> uploadSignedFile(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file
+    ) {
+        return ResponseEntity.ok(contractService.uploadSignedFile(id, file));
+    }
+
+    @GetMapping("/{id}/signed-file")
+    @PreAuthorize("hasAuthority('CONTRACT_VIEW')")
+    public ResponseEntity<Resource> downloadSignedFile(@PathVariable Long id) {
+        ContractService.ContractFileDownload file = contractService.loadSignedFile(id);
+        String contentType = file.contentType() == null || file.contentType().isBlank()
+                ? MediaType.APPLICATION_OCTET_STREAM_VALUE
+                : file.contentType();
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .contentLength(file.fileSize() == null ? -1 : file.fileSize())
+                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition(file.fileName()))
+                .body(file.resource());
+    }
+
+    @DeleteMapping("/{id}/signed-file")
+    @PreAuthorize("hasAuthority('CONTRACT_UPDATE')")
+    public ResponseEntity<Void> deleteSignedFile(@PathVariable Long id) {
+        contractService.deleteSignedFile(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/{id}/activate")
     @PreAuthorize("hasAuthority('CONTRACT_UPDATE')")
     public ResponseEntity<ContractResponse> activate(@PathVariable Long id) {
@@ -112,5 +147,10 @@ public class ContractController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         contractService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private String contentDisposition(String fileName) {
+        String safeFileName = fileName == null ? "contract-file" : fileName.replace("\"", "");
+        return "attachment; filename=\"" + safeFileName + "\"";
     }
 }

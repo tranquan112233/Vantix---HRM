@@ -18,11 +18,9 @@ const auth = useAuthStore()
 const settings = useSettingsStore()
 
 const loading = ref(false)
-const savingFile = ref(false)
 const contract = ref(null)
 const employees = ref([])
 const positions = ref([])
-const signedFileList = ref([])
 
 const terminateVisible = ref(false)
 const terminateForm = reactive({
@@ -160,38 +158,6 @@ function contractHelpers() {
   }
 }
 
-function beforeUpload() {
-  return false
-}
-
-function handleSignedFileChange(_file, files) {
-  signedFileList.value = files.slice(-1)
-}
-
-function handleSignedFileRemove(_file, files) {
-  signedFileList.value = files
-}
-
-async function uploadSignedFile() {
-  const file = signedFileList.value.map(item => item.raw).filter(Boolean)[0]
-  if (!file) {
-    ElMessage.warning(settings.t('contract.selectSignedFile'))
-    return
-  }
-
-  savingFile.value = true
-  try {
-    await contractApi.uploadSignedFile(contractId.value, file)
-    signedFileList.value = []
-    await loadContract()
-    ElMessage.success(settings.t('contract.signedFileSaved'))
-  } catch (e) {
-    ElMessage.error(e.response?.data?.message || settings.t('common.somethingWrong'))
-  } finally {
-    savingFile.value = false
-  }
-}
-
 async function downloadSignedFile() {
   try {
     const response = await contractApi.downloadSignedFile(contractId.value)
@@ -199,15 +165,6 @@ async function downloadSignedFile() {
   } catch {
     ElMessage.error(settings.t('task.downloadFailed'))
   }
-}
-
-async function deleteSignedFile() {
-  try {
-    await ElMessageBox.confirm(settings.t('contract.deleteSignedFileConfirm'), settings.t('common.confirm'), { type: 'warning' })
-    await contractApi.deleteSignedFile(contractId.value)
-    await loadContract()
-    ElMessage.success(settings.t('common.deleted'))
-  } catch {}
 }
 
 async function handleActivate() {
@@ -364,32 +321,9 @@ async function handleDelete() {
             <el-button text type="primary" @click="downloadSignedFile">
               <el-icon><Download /></el-icon>
             </el-button>
-            <el-button v-if="canUpdate" text type="danger" @click="deleteSignedFile">
-              <el-icon><Delete /></el-icon>
-            </el-button>
           </div>
-
-          <el-upload
-            v-if="canUpdate"
-            v-model:file-list="signedFileList"
-            drag
-            action="#"
-            :auto-upload="false"
-            :before-upload="beforeUpload"
-            :on-change="handleSignedFileChange"
-            :on-remove="handleSignedFileRemove"
-            :limit="1"
-            class="signed-upload"
-          >
-            <el-icon class="upload-icon"><Upload /></el-icon>
-            <div class="el-upload__text">{{ settings.t('contract.uploadSignedFile') }}</div>
-          </el-upload>
-
-          <div v-if="canUpdate" class="upload-actions">
-            <el-button type="primary" :loading="savingFile" @click="uploadSignedFile">
-              <el-icon><UploadFilled /></el-icon>
-              {{ settings.t('common.save') }}
-            </el-button>
+          <div v-else class="signed-file-empty">
+            {{ settings.t('common.noData') }}
           </div>
         </section>
       </div>
@@ -531,19 +465,12 @@ async function handleDelete() {
   font-size: 12px;
 }
 
-.signed-upload {
-  width: 100%;
-}
-
-.upload-icon {
-  font-size: 28px;
-  color: var(--vx-primary);
-}
-
-.upload-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 12px;
+.signed-file-empty {
+  padding: 16px;
+  border: 1px dashed var(--vx-border);
+  border-radius: 8px;
+  color: var(--vx-text-secondary);
+  text-align: center;
 }
 
 @media (max-width: 860px) {

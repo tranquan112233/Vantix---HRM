@@ -119,6 +119,15 @@ public class Contract extends BaseEntity {
     @Column(name = "attachment_path", length = 500)
     private String attachmentPath;
 
+    @Column(name = "attachment_original_file_name", length = 255)
+    private String attachmentOriginalFileName;
+
+    @Column(name = "attachment_content_type", length = 100)
+    private String attachmentContentType;
+
+    @Column(name = "attachment_file_size")
+    private Long attachmentFileSize;
+
     // Ghi chú thêm
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
