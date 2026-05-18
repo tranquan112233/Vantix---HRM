@@ -45,6 +45,7 @@ public class DashboardService {
     private final LeaveRequestRepository leaveRequestRepository;
     private final AttendanceRepository attendanceRepository;
     private final ContractRepository contractRepository;
+    private final ContractService contractService;
     private final PayrollPeriodRepository payrollPeriodRepository;
     private final PayrollRepository payrollRepository;
 
@@ -57,6 +58,7 @@ public class DashboardService {
             LeaveRequestRepository leaveRequestRepository,
             AttendanceRepository attendanceRepository,
             ContractRepository contractRepository,
+            ContractService contractService,
             PayrollPeriodRepository payrollPeriodRepository,
             PayrollRepository payrollRepository
     ) {
@@ -68,11 +70,13 @@ public class DashboardService {
         this.leaveRequestRepository = leaveRequestRepository;
         this.attendanceRepository = attendanceRepository;
         this.contractRepository = contractRepository;
+        this.contractService = contractService;
         this.payrollPeriodRepository = payrollPeriodRepository;
         this.payrollRepository = payrollRepository;
     }
 
     public DashboardResponse getStats() {
+        contractService.expireElapsedActiveContracts();
         LocalDate today = LocalDate.now();
         LocalDate sevenDaysAgo = today.minusDays(6);
         List<Employee> employees = employeeRepository.search(null, null, null, null);

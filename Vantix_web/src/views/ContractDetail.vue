@@ -44,6 +44,7 @@ const signedFileName = computed(() => (
   ''
 ))
 const hasSignedFile = computed(() => Boolean(signedFileName.value || signedFile.value?.id || contract.value?.signedFileUrl))
+const canActivate = computed(() => contract.value?.status === 'DRAFT' && hasSignedFile.value)
 
 const contractTypeOptions = [
   { value: 'INDEFINITE', labelKey: 'contract.type.INDEFINITE' },
@@ -226,6 +227,7 @@ async function handleDelete() {
         <el-button
           v-if="canUpdate && contract.status === 'DRAFT'"
           type="success"
+          :disabled="!canActivate"
           @click="handleActivate"
         >
           <el-icon><CircleCheck /></el-icon>

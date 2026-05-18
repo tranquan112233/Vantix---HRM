@@ -72,20 +72,15 @@ const rules = computed(() => ({
 
 const contractTypeOptions = [
   { value: 'INDEFINITE', labelKey: 'contract.type.INDEFINITE' },
-  { value: 'FIXED_TERM', labelKey: 'contract.type.FIXED_TERM' },
-  { value: 'PROBATION', labelKey: 'contract.type.PROBATION' },
-  { value: 'SEASONAL', labelKey: 'contract.type.SEASONAL' },
-  { value: 'APPRENTICESHIP', labelKey: 'contract.type.APPRENTICESHIP' },
-  { value: 'PART_TIME', labelKey: 'contract.type.PART_TIME' },
-  { value: 'SERVICE', labelKey: 'contract.type.SERVICE' },
+  { value: 'FIXED_TERM', labelKey: 'contract.type.FIXED_TERM' }
 ]
 
 const statusOptions = [
-  { value: 'DRAFT', labelKey: 'contract.status.DRAFT', type: 'info' },
-  { value: 'ACTIVE', labelKey: 'contract.status.ACTIVE', type: 'success' },
-  { value: 'EXPIRED', labelKey: 'contract.status.EXPIRED', type: 'warning' },
-  { value: 'TERMINATED', labelKey: 'contract.status.TERMINATED', type: 'danger' },
-  { value: 'LIQUIDATED', labelKey: 'contract.status.LIQUIDATED', type: 'info' },
+  { value: 'DRAFT', labelKey: 'contract.status.DRAFT', type: 'info' }
+  // { value: 'ACTIVE', labelKey: 'contract.status.ACTIVE', type: 'success' },
+  // { value: 'EXPIRED', labelKey: 'contract.status.EXPIRED', type: 'warning' },
+  // { value: 'TERMINATED', labelKey: 'contract.status.TERMINATED', type: 'danger' },
+  // { value: 'LIQUIDATED', labelKey: 'contract.status.LIQUIDATED', type: 'info' },
 ]
 
 const summary = computed(() => {
@@ -310,6 +305,19 @@ function statusLabel(v) {
   return o.labelKey ? settings.t(o.labelKey) : v || '-'
 }
 
+function hasSignedFile(row) {
+  return Boolean(
+    row?.signedFileName ||
+    row?.signedDocumentName ||
+    row?.contractFileName ||
+    row?.attachmentPath
+  )
+}
+
+function canActivate(row) {
+  return row?.status === 'DRAFT' && hasSignedFile(row)
+}
+
 function empName(id) {
   const e = employees.value.find(x => x.id === id)
   return e ? `${e.employeeCode} - ${e.fullName}` : '-'
@@ -501,6 +509,7 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
             text
             type="success"
             size="small"
+            :disabled="!canActivate(row)"
             @click="handleActivate(row)"
           >
             <el-icon><CircleCheck /></el-icon>
@@ -583,9 +592,7 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
             </el-col>
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.status')">
-                <el-select v-model="form.status" style="width:100%">
-                  <el-option v-for="s in statusOptions" :key="s.value" :label="settings.t(s.labelKey)" :value="s.value" />
-                </el-select>
+                <el-input :model-value="editingId ? statusLabel(form.status) : settings.t('contract.status.DRAFT')" disabled />
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">

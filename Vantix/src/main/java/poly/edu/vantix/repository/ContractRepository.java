@@ -98,6 +98,14 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
            "ORDER BY c.endDate ASC")
     List<Contract> findExpiringContracts(@Param("from") LocalDate from, @Param("to") LocalDate to);
 
+    @Query("SELECT c FROM Contract c " +
+           "LEFT JOIN FETCH c.employee e " +
+           "LEFT JOIN FETCH e.department " +
+           "LEFT JOIN FETCH c.position " +
+           "WHERE c.deleted = false AND c.status = 'ACTIVE' " +
+           "AND c.endDate IS NOT NULL AND c.endDate < :today")
+    List<Contract> findElapsedActiveContracts(@Param("today") LocalDate today);
+
     // HĐ đang hiệu lực tại một ngày nhất định (dùng cho payroll)
     @Query("SELECT c FROM Contract c " +
            "WHERE c.deleted = false AND c.status = 'ACTIVE' " +

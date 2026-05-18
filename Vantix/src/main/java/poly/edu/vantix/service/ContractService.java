@@ -65,20 +65,21 @@ public class ContractService {
         this.contractUploadRoot = Paths.get(contractUploadDir).toAbsolutePath().normalize();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<ContractResponse> search(
             String keyword,
             Long employeeId,
             ContractType contractType,
             ContractStatus status
     ) {
+        expireElapsedActiveContracts();
         return contractRepository.search(keyword, employeeId, contractType, status)
                 .stream()
                 .map(ContractResponse::fromEntity)
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PageResponse<ContractResponse> searchPage(
             String keyword,
             Long employeeId,
@@ -86,27 +87,31 @@ public class ContractService {
             ContractStatus status,
             Pageable pageable
     ) {
+        expireElapsedActiveContracts();
         return PageResponse.from(
                 contractRepository.search(keyword, employeeId, contractType, status, pageable),
                 ContractResponse::fromEntity
         );
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ContractResponse getById(Long id) {
+        expireElapsedActiveContracts();
         return ContractResponse.fromEntity(findActiveById(id));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<ContractResponse> getByEmployee(Long employeeId) {
+        expireElapsedActiveContracts();
         return contractRepository.findByEmployee(employeeId)
                 .stream()
                 .map(ContractResponse::fromEntity)
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<ContractResponse> getExpiringContracts(int daysAhead) {
+        expireElapsedActiveContracts();
         LocalDate today = LocalDate.now();
         return contractRepository.findExpiringContracts(today, today.plusDays(daysAhead))
                 .stream()
@@ -116,6 +121,7 @@ public class ContractService {
 
     @Transactional
     public ContractResponse create(ContractRequest request) {
+        expireElapsedActiveContracts();
         if (contractRepository.existsByContractCodeAndDeletedFalse(request.getContractCode())) {
             throw new BusinessException("contractCode", "Contract code already exists");
         }
@@ -124,15 +130,7 @@ public class ContractService {
 
         Contract contract = new Contract();
         mapRequestToEntity(request, contract);
-
-        if (request.getStatus() == null) {
-            contract.setStatus(ContractStatus.DRAFT);
-        }
-
-        // Nếu trạng thái ACTIVE thì các HĐ ACTIVE khác của nhân viên này phải chuyển EXPIRED
-        if (contract.getStatus() == ContractStatus.ACTIVE) {
-            supersedePreviousActiveContracts(contract.getEmployee().getId(), null, contract.getStartDate());
-        }
+        contract.setStatus(ContractStatus.DRAFT);
 
         contract = contractRepository.save(contract);
         return ContractResponse.fromEntity(contract);
@@ -140,6 +138,7 @@ public class ContractService {
 
     @Transactional
     public ContractResponse update(Long id, ContractRequest request) {
+        expireElapsedActiveContracts();
         Contract contract = findActiveById(id);
         ensureNoPayrollRows(contract);
 
@@ -162,10 +161,20 @@ public class ContractService {
 
     @Transactional
     public ContractResponse activate(Long id) {
+        expireElapsedActiveContracts();
         Contract contract = findActiveById(id);
         if (contract.getStatus() == ContractStatus.TERMINATED
                 || contract.getStatus() == ContractStatus.LIQUIDATED) {
             throw new BusinessException("Cannot activate a terminated/liquidated contract");
+        }
+        if (contract.getStatus() != ContractStatus.DRAFT) {
+            throw new BusinessException("Only draft contracts can be activated");
+        }
+        if (!hasSignedFile(contract)) {
+            throw new BusinessException("file", "Signed contract file is required before activation");
+        }
+        if (contract.getEndDate() != null && contract.getEndDate().isBefore(LocalDate.now())) {
+            throw new BusinessException("endDate", "Cannot activate a contract that has already expired");
         }
 
         contract.setStatus(ContractStatus.ACTIVE);
@@ -176,6 +185,7 @@ public class ContractService {
 
     @Transactional
     public ContractResponse terminate(Long id, LocalDate terminatedDate, String reason) {
+        expireElapsedActiveContracts();
         Contract contract = findActiveById(id);
         if (contract.getStatus() == ContractStatus.TERMINATED
                 || contract.getStatus() == ContractStatus.LIQUIDATED) {
@@ -205,6 +215,7 @@ public class ContractService {
 
     @Transactional
     public ContractResponse uploadSignedFile(Long id, MultipartFile file) {
+        expireElapsedActiveContracts();
         Contract contract = findActiveById(id);
         ensureNoPayrollRows(contract);
 
@@ -237,8 +248,9 @@ public class ContractService {
         return ContractResponse.fromEntity(saved);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ContractFileDownload loadSignedFile(Long id) {
+        expireElapsedActiveContracts();
         Contract contract = findActiveById(id);
         if (contract.getAttachmentPath() == null || contract.getAttachmentPath().isBlank()) {
             throw new BusinessException("Signed contract file does not exist");
@@ -253,8 +265,12 @@ public class ContractService {
 
     @Transactional
     public void deleteSignedFile(Long id) {
+        expireElapsedActiveContracts();
         Contract contract = findActiveById(id);
         ensureNoPayrollRows(contract);
+        if (contract.getStatus() == ContractStatus.ACTIVE) {
+            throw new BusinessException("Cannot delete the signed file of an active contract");
+        }
 
         String storedFileName = contract.getAttachmentPath();
         contract.setAttachmentPath(null);
@@ -270,6 +286,7 @@ public class ContractService {
 
     @Transactional
     public void delete(Long id) {
+        expireElapsedActiveContracts();
         Contract contract = findActiveById(id);
         ensureNoPayrollRows(contract);
         if (contract.getStatus() == ContractStatus.ACTIVE) {
@@ -293,6 +310,19 @@ public class ContractService {
         }
     }
 
+    @Transactional
+    public int expireElapsedActiveContracts() {
+        LocalDate today = LocalDate.now();
+        List<Contract> contracts = contractRepository.findElapsedActiveContracts(today);
+        if (contracts.isEmpty()) {
+            return 0;
+        }
+
+        contracts.forEach(contract -> contract.setStatus(ContractStatus.EXPIRED));
+        contractRepository.saveAll(contracts);
+        return contracts.size();
+    }
+
     private void mapRequestToEntity(ContractRequest request, Contract contract) {
         Employee employee = employeeRepository.findById(request.getEmployeeId())
                 .orElseThrow(() -> new BusinessException("employeeId", "Employee does not exist"));
@@ -312,10 +342,6 @@ public class ContractService {
         }
 
         contract.setContractType(request.getContractType());
-        if (request.getStatus() != null) {
-            contract.setStatus(request.getStatus());
-        }
-
         contract.setSignedDate(request.getSignedDate());
         contract.setStartDate(request.getStartDate());
         contract.setEndDate(request.getEndDate());
@@ -406,6 +432,10 @@ public class ContractService {
 
     private BigDecimal nz(BigDecimal v) {
         return v == null ? BigDecimal.ZERO : v;
+    }
+
+    private boolean hasSignedFile(Contract contract) {
+        return contract.getAttachmentPath() != null && !contract.getAttachmentPath().isBlank();
     }
 
     private String storeFile(MultipartFile file) {
