@@ -214,6 +214,22 @@ public class ContractService {
     }
 
     @Transactional
+    public ContractResponse liquidate(Long id) {
+        expireElapsedActiveContracts();
+        Contract contract = findActiveById(id);
+        if (contract.getStatus() == ContractStatus.LIQUIDATED) {
+            return ContractResponse.fromEntity(contract);
+        }
+        if (contract.getStatus() != ContractStatus.EXPIRED
+                && contract.getStatus() != ContractStatus.TERMINATED) {
+            throw new BusinessException("Only expired or terminated contracts can be liquidated");
+        }
+
+        contract.setStatus(ContractStatus.LIQUIDATED);
+        return ContractResponse.fromEntity(contractRepository.save(contract));
+    }
+
+    @Transactional
     public ContractResponse uploadSignedFile(Long id, MultipartFile file) {
         expireElapsedActiveContracts();
         Contract contract = findActiveById(id);
@@ -289,8 +305,9 @@ public class ContractService {
         expireElapsedActiveContracts();
         Contract contract = findActiveById(id);
         ensureNoPayrollRows(contract);
-        if (contract.getStatus() == ContractStatus.ACTIVE) {
-            throw new BusinessException("Cannot delete an active contract. Terminate it first.");
+        if (contract.getStatus() != ContractStatus.DRAFT
+                && contract.getStatus() != ContractStatus.LIQUIDATED) {
+            throw new BusinessException("Only draft or liquidated contracts can be deleted");
         }
         contract.setDeleted(true);
         contract.setDeletedAt(LocalDateTime.now());

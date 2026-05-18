@@ -177,6 +177,7 @@ export const contractApi = {
   expiring: (params) => http.get('/contracts/expiring', { params }),
   activate: (id) => http.patch(`/contracts/${id}/activate`),
   terminate: (id, data) => http.patch(`/contracts/${id}/terminate`, data),
+  liquidate: (id) => http.patch(`/contracts/${id}/liquidate`),
   uploadSignedFile: (id, file) => {
     const formData = new FormData()
     formData.append('file', file)

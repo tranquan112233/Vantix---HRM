@@ -142,6 +142,12 @@ public class ContractController {
         return ResponseEntity.ok(contractService.terminate(id, terminatedDate, reason));
     }
 
+    @PatchMapping("/{id}/liquidate")
+    @PreAuthorize("hasAuthority('CONTRACT_UPDATE')")
+    public ResponseEntity<ContractResponse> liquidate(@PathVariable Long id) {
+        return ResponseEntity.ok(contractService.liquidate(id));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CONTRACT_DELETE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {

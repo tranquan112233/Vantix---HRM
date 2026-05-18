@@ -76,11 +76,11 @@ const contractTypeOptions = [
 ]
 
 const statusOptions = [
-  { value: 'DRAFT', labelKey: 'contract.status.DRAFT', type: 'info' }
-  // { value: 'ACTIVE', labelKey: 'contract.status.ACTIVE', type: 'success' },
-  // { value: 'EXPIRED', labelKey: 'contract.status.EXPIRED', type: 'warning' },
-  // { value: 'TERMINATED', labelKey: 'contract.status.TERMINATED', type: 'danger' },
-  // { value: 'LIQUIDATED', labelKey: 'contract.status.LIQUIDATED', type: 'info' },
+  { value: 'DRAFT', labelKey: 'contract.status.DRAFT', type: 'info' },
+  { value: 'ACTIVE', labelKey: 'contract.status.ACTIVE', type: 'success' },
+  { value: 'EXPIRED', labelKey: 'contract.status.EXPIRED', type: 'warning' },
+  { value: 'TERMINATED', labelKey: 'contract.status.TERMINATED', type: 'danger' },
+  { value: 'LIQUIDATED', labelKey: 'contract.status.LIQUIDATED', type: 'info' },
 ]
 
 const summary = computed(() => {
@@ -131,12 +131,11 @@ onMounted(() => {
 async function loadLookups() {
   try {
     const [empRes, posRes] = await Promise.allSettled([
-      employeeApi.list({ page: 1, size: 1000 }),
+      loadAllEmployees(),
       positionApi.list(),
     ])
     if (empRes.status === 'fulfilled') {
-      const data = empRes.value.data
-      employees.value = Array.isArray(data) ? data : data.content || []
+      employees.value = empRes.value
     }
     if (posRes.status === 'fulfilled') {
       const data = posRes.value.data
@@ -145,6 +144,28 @@ async function loadLookups() {
   } catch {
     // ignore lookup failures
   }
+}
+
+async function loadAllEmployees() {
+  const size = 200
+  let page = 0
+  let totalPages = 1
+  const all = []
+
+  while (page < totalPages) {
+    const { data } = await employeeApi.list({ page, size })
+    const rows = Array.isArray(data) ? data : data?.content || []
+    all.push(...rows)
+
+    if (Array.isArray(data)) {
+      break
+    }
+
+    totalPages = Math.max(data?.totalPages || 0, 1)
+    page += 1
+  }
+
+  return all
 }
 
 async function fetchData() {
@@ -258,6 +279,21 @@ async function handleDelete(row) {
   }
 }
 
+async function handleLiquidate(row) {
+  try {
+    await ElMessageBox.confirm(
+      settings.t('contract.liquidateConfirm'),
+      settings.t('common.confirm'),
+      { type: 'warning' }
+    )
+    await contractApi.liquidate(row.id)
+    ElMessage.success(settings.t('common.updated'))
+    fetchData()
+  } catch {
+    // cancelled
+  }
+}
+
 async function handleActivate(row) {
   try {
     await ElMessageBox.confirm(settings.t('contract.activateConfirm'),
@@ -316,6 +352,14 @@ function hasSignedFile(row) {
 
 function canActivate(row) {
   return row?.status === 'DRAFT' && hasSignedFile(row)
+}
+
+function canLiquidate(row) {
+  return row?.status === 'EXPIRED' || row?.status === 'TERMINATED'
+}
+
+function canDelete(row) {
+  return row?.status === 'DRAFT' || row?.status === 'LIQUIDATED'
 }
 
 function empName(id) {
@@ -526,7 +570,22 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
           >
             <el-icon><CloseBold /></el-icon>
           </el-button>
-          <el-button v-if="auth.hasPermission('CONTRACT_DELETE')" text type="danger" size="small" @click="handleDelete(row)">
+          <el-button
+            v-if="auth.hasPermission('CONTRACT_UPDATE') && canLiquidate(row)"
+            text
+            type="warning"
+            size="small"
+            @click="handleLiquidate(row)"
+          >
+            <el-icon><Finished /></el-icon>
+          </el-button>
+          <el-button
+            v-if="auth.hasPermission('CONTRACT_DELETE') && canDelete(row)"
+            text
+            type="danger"
+            size="small"
+            @click="handleDelete(row)"
+          >
             <el-icon><Delete /></el-icon>
           </el-button>
         </template>

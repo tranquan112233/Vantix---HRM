@@ -45,6 +45,8 @@ const signedFileName = computed(() => (
 ))
 const hasSignedFile = computed(() => Boolean(signedFileName.value || signedFile.value?.id || contract.value?.signedFileUrl))
 const canActivate = computed(() => contract.value?.status === 'DRAFT' && hasSignedFile.value)
+const canLiquidate = computed(() => contract.value?.status === 'EXPIRED' || contract.value?.status === 'TERMINATED')
+const canSoftDelete = computed(() => contract.value?.status === 'DRAFT' || contract.value?.status === 'LIQUIDATED')
 
 const contractTypeOptions = [
   { value: 'INDEFINITE', labelKey: 'contract.type.INDEFINITE' },
@@ -83,17 +85,38 @@ async function loadContract() {
 
 async function loadLookups() {
   const [empRes, posRes] = await Promise.allSettled([
-    employeeApi.list({ page: 1, size: 1000 }),
+    loadAllEmployees(),
     positionApi.list({ page: 1, size: 1000 }),
   ])
   if (empRes.status === 'fulfilled') {
-    const data = empRes.value.data
-    employees.value = Array.isArray(data) ? data : data.content || []
+    employees.value = empRes.value
   }
   if (posRes.status === 'fulfilled') {
     const data = posRes.value.data
     positions.value = Array.isArray(data) ? data : data.content || []
   }
+}
+
+async function loadAllEmployees() {
+  const size = 200
+  let page = 0
+  let totalPages = 1
+  const all = []
+
+  while (page < totalPages) {
+    const { data } = await employeeApi.list({ page, size })
+    const rows = Array.isArray(data) ? data : data?.content || []
+    all.push(...rows)
+
+    if (Array.isArray(data)) {
+      break
+    }
+
+    totalPages = Math.max(data?.totalPages || 0, 1)
+    page += 1
+  }
+
+  return all
 }
 
 function typeLabel(value) {
@@ -197,6 +220,15 @@ async function submitTerminate() {
   }
 }
 
+async function handleLiquidate() {
+  try {
+    await ElMessageBox.confirm(settings.t('contract.liquidateConfirm'), settings.t('common.confirm'), { type: 'warning' })
+    await contractApi.liquidate(contractId.value)
+    await loadContract()
+    ElMessage.success(settings.t('common.updated'))
+  } catch {}
+}
+
 async function handleDelete() {
   try {
     await ElMessageBox.confirm(`${settings.t('contract.deleteConfirm')} "${contract.value.contractCode}"?`, settings.t('common.confirm'), { type: 'warning' })
@@ -241,7 +273,15 @@ async function handleDelete() {
           <el-icon><CloseBold /></el-icon>
           {{ settings.t('contract.terminate') }}
         </el-button>
-        <el-button v-if="canDelete" type="danger" @click="handleDelete">
+        <el-button
+          v-if="canUpdate && canLiquidate"
+          type="warning"
+          @click="handleLiquidate"
+        >
+          <el-icon><Finished /></el-icon>
+          {{ settings.t('contract.liquidate') }}
+        </el-button>
+        <el-button v-if="canDelete && canSoftDelete" type="danger" @click="handleDelete">
           <el-icon><Delete /></el-icon>
           {{ settings.t('common.delete') }}
         </el-button>
