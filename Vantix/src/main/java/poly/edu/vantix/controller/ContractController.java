@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import poly.edu.vantix.dto.request.ContractRenewRequest;
 import poly.edu.vantix.dto.request.ContractRequest;
 import poly.edu.vantix.dto.response.ContractResponse;
 import poly.edu.vantix.entity.enums.ContractStatus;
@@ -119,6 +120,15 @@ public class ContractController {
     @PreAuthorize("hasAuthority('CONTRACT_UPDATE')")
     public ResponseEntity<ContractResponse> activate(@PathVariable Long id) {
         return ResponseEntity.ok(contractService.activate(id));
+    }
+
+    @PatchMapping("/{id}/renew")
+    @PreAuthorize("hasAuthority('CONTRACT_UPDATE')")
+    public ResponseEntity<ContractResponse> renew(
+            @PathVariable Long id,
+            @Valid @RequestBody ContractRenewRequest request
+    ) {
+        return ResponseEntity.ok(contractService.renew(id, request.getNewEndDate()));
     }
 
     @PatchMapping("/{id}/terminate")

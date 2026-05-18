@@ -184,6 +184,35 @@ public class ContractService {
     }
 
     @Transactional
+    public ContractResponse renew(Long id, LocalDate newEndDate) {
+        expireElapsedActiveContracts();
+        Contract contract = findActiveById(id);
+
+        if (contract.getStatus() != ContractStatus.ACTIVE
+                && contract.getStatus() != ContractStatus.EXPIRED) {
+            throw new BusinessException("Only active or expired contracts can be renewed");
+        }
+        if (contract.getEndDate() == null) {
+            throw new BusinessException("endDate", "Only contracts with an end date can be renewed");
+        }
+
+        LocalDate today = LocalDate.now();
+        if (!newEndDate.isAfter(contract.getEndDate())) {
+            throw new BusinessException("newEndDate", "New end date must be after current end date");
+        }
+        if (!newEndDate.isAfter(today)) {
+            throw new BusinessException("newEndDate", "New end date must be after today");
+        }
+
+        contract.setEndDate(newEndDate);
+        contract.setStatus(ContractStatus.DRAFT);
+        contract.setTerminatedDate(null);
+        contract.setTerminationReason(null);
+
+        return ContractResponse.fromEntity(contractRepository.save(contract));
+    }
+
+    @Transactional
     public ContractResponse terminate(Long id, LocalDate terminatedDate, String reason) {
         expireElapsedActiveContracts();
         Contract contract = findActiveById(id);

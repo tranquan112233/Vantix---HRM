@@ -176,6 +176,7 @@ export const contractApi = {
   delete: (id) => http.delete(`/contracts/${id}`),
   expiring: (params) => http.get('/contracts/expiring', { params }),
   activate: (id) => http.patch(`/contracts/${id}/activate`),
+  renew: (id, data) => http.patch(`/contracts/${id}/renew`, data),
   terminate: (id, data) => http.patch(`/contracts/${id}/terminate`, data),
   liquidate: (id) => http.patch(`/contracts/${id}/liquidate`),
   uploadSignedFile: (id, file) => {

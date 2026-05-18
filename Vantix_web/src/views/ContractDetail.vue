@@ -23,9 +23,13 @@ const employees = ref([])
 const positions = ref([])
 
 const terminateVisible = ref(false)
+const renewVisible = ref(false)
 const terminateForm = reactive({
   terminatedDate: '',
   terminationReason: '',
+})
+const renewForm = reactive({
+  newEndDate: '',
 })
 
 const canUpdate = computed(() => auth.hasPermission('CONTRACT_UPDATE'))
@@ -45,6 +49,10 @@ const signedFileName = computed(() => (
 ))
 const hasSignedFile = computed(() => Boolean(signedFileName.value || signedFile.value?.id || contract.value?.signedFileUrl))
 const canActivate = computed(() => contract.value?.status === 'DRAFT' && hasSignedFile.value)
+const canRenew = computed(() => Boolean(
+  contract.value?.endDate &&
+  (contract.value?.status === 'ACTIVE' || contract.value?.status === 'EXPIRED')
+))
 const canLiquidate = computed(() => contract.value?.status === 'EXPIRED' || contract.value?.status === 'TERMINATED')
 const canSoftDelete = computed(() => contract.value?.status === 'DRAFT' || contract.value?.status === 'LIQUIDATED')
 
@@ -200,6 +208,26 @@ async function handleActivate() {
   } catch {}
 }
 
+function openRenew() {
+  renewForm.newEndDate = contract.value?.endDate || ''
+  renewVisible.value = true
+}
+
+async function submitRenew() {
+  try {
+    await ElMessageBox.confirm(settings.t('contract.renewConfirm'), settings.t('common.confirm'), { type: 'warning' })
+    await contractApi.renew(contractId.value, {
+      newEndDate: renewForm.newEndDate,
+    })
+    renewVisible.value = false
+    await loadContract()
+    ElMessage.success(settings.t('common.updated'))
+  } catch (e) {
+    if (e === 'cancel' || e === 'close') return
+    ElMessage.error(e.response?.data?.message || settings.t('common.somethingWrong'))
+  }
+}
+
 function openTerminate() {
   terminateForm.terminatedDate = new Date().toISOString().slice(0, 10)
   terminateForm.terminationReason = ''
@@ -237,6 +265,18 @@ async function handleDelete() {
     router.push('/contracts')
   } catch {}
 }
+
+function renewDateDisabled(date) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const oldEndDate = contract.value?.endDate ? new Date(contract.value.endDate) : null
+  if (oldEndDate) {
+    oldEndDate.setHours(0, 0, 0, 0)
+  }
+
+  return date.getTime() <= today.getTime() || (oldEndDate && date.getTime() <= oldEndDate.getTime())
+}
 </script>
 
 <template>
@@ -264,6 +304,14 @@ async function handleDelete() {
         >
           <el-icon><CircleCheck /></el-icon>
           {{ settings.t('contract.activate') }}
+        </el-button>
+        <el-button
+          v-if="canUpdate && canRenew"
+          type="primary"
+          @click="openRenew"
+        >
+          <el-icon><RefreshRight /></el-icon>
+          {{ settings.t('contract.renew') }}
         </el-button>
         <el-button
           v-if="canUpdate && contract.status === 'ACTIVE'"
@@ -383,6 +431,24 @@ async function handleDelete() {
       <template #footer>
         <el-button @click="terminateVisible = false">{{ settings.t('common.cancel') }}</el-button>
         <el-button type="danger" @click="submitTerminate">{{ settings.t('contract.terminate') }}</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="renewVisible" :title="settings.t('contract.renewTitle')" width="480px" destroy-on-close class="vx-dialog" align-center>
+      <el-form label-position="top">
+        <el-form-item :label="settings.t('contract.newEndDate')">
+          <el-date-picker
+            v-model="renewForm.newEndDate"
+            type="date"
+            value-format="YYYY-MM-DD"
+            :disabled-date="renewDateDisabled"
+            style="width:100%"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="renewVisible = false">{{ settings.t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="submitRenew">{{ settings.t('contract.renew') }}</el-button>
       </template>
     </el-dialog>
   </div>

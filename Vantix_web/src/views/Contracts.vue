@@ -1,11 +1,11 @@
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { contractApi, employeeApi, positionApi } from '@/api'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { DEFAULT_PAGE_SIZE, applyPage, pageParams } from '@/utils/pagination'
-import { useSettingsStore } from '@/stores/settings'
-import { useAuthStore } from '@/stores/auth'
+import {ref, reactive, onMounted, computed} from 'vue'
+import {useRouter} from 'vue-router'
+import {contractApi, employeeApi, positionApi} from '@/api'
+import {ElMessage, ElMessageBox} from 'element-plus'
+import {DEFAULT_PAGE_SIZE, applyPage, pageParams} from '@/utils/pagination'
+import {useSettingsStore} from '@/stores/settings'
+import {useAuthStore} from '@/stores/auth'
 
 const settings = useSettingsStore()
 const auth = useAuthStore()
@@ -25,17 +25,22 @@ const filters = reactive({
 const dialogVisible = ref(false)
 const detailVisible = ref(false)
 const terminateVisible = ref(false)
+const renewVisible = ref(false)
 const dialogTitleKey = ref('contract.add')
 const formRef = ref(null)
 const selectedContract = ref(null)
 const editingId = ref(null)
 const signedFileList = ref([])
 const currentSignedFileName = ref('')
-const pagination = reactive({ page: 1, size: DEFAULT_PAGE_SIZE, total: 0 })
+const pagination = reactive({page: 1, size: DEFAULT_PAGE_SIZE, total: 0})
 
 const terminateForm = reactive({
   terminatedDate: '',
   terminationReason: '',
+})
+
+const renewForm = reactive({
+  newEndDate: '',
 })
 
 const defaultForm = {
@@ -60,27 +65,27 @@ const defaultForm = {
   noticePeriodDays: 30,
   note: '',
 }
-const form = reactive({ ...defaultForm })
+const form = reactive({...defaultForm})
 
 const rules = computed(() => ({
-  contractCode: [{ required: true, message: settings.t('common.required'), trigger: 'blur' }],
-  employeeId: [{ required: true, message: settings.t('common.required'), trigger: 'change' }],
-  contractType: [{ required: true, message: settings.t('common.required'), trigger: 'change' }],
-  startDate: [{ required: true, message: settings.t('common.required'), trigger: 'change' }],
-  baseSalary: [{ required: true, message: settings.t('common.required'), trigger: 'blur' }],
+  contractCode: [{required: true, message: settings.t('common.required'), trigger: 'blur'}],
+  employeeId: [{required: true, message: settings.t('common.required'), trigger: 'change'}],
+  contractType: [{required: true, message: settings.t('common.required'), trigger: 'change'}],
+  startDate: [{required: true, message: settings.t('common.required'), trigger: 'change'}],
+  baseSalary: [{required: true, message: settings.t('common.required'), trigger: 'blur'}],
 }))
 
 const contractTypeOptions = [
-  { value: 'INDEFINITE', labelKey: 'contract.type.INDEFINITE' },
-  { value: 'FIXED_TERM', labelKey: 'contract.type.FIXED_TERM' }
+  {value: 'INDEFINITE', labelKey: 'contract.type.INDEFINITE'},
+  {value: 'FIXED_TERM', labelKey: 'contract.type.FIXED_TERM'}
 ]
 
 const statusOptions = [
-  { value: 'DRAFT', labelKey: 'contract.status.DRAFT', type: 'info' },
-  { value: 'ACTIVE', labelKey: 'contract.status.ACTIVE', type: 'success' },
-  { value: 'EXPIRED', labelKey: 'contract.status.EXPIRED', type: 'warning' },
-  { value: 'TERMINATED', labelKey: 'contract.status.TERMINATED', type: 'danger' },
-  { value: 'LIQUIDATED', labelKey: 'contract.status.LIQUIDATED', type: 'info' },
+  {value: 'DRAFT', labelKey: 'contract.status.DRAFT', type: 'info'},
+  {value: 'ACTIVE', labelKey: 'contract.status.ACTIVE', type: 'success'},
+  {value: 'EXPIRED', labelKey: 'contract.status.EXPIRED', type: 'warning'},
+  {value: 'TERMINATED', labelKey: 'contract.status.TERMINATED', type: 'danger'},
+  {value: 'LIQUIDATED', labelKey: 'contract.status.LIQUIDATED', type: 'info'},
 ]
 
 const summary = computed(() => {
@@ -153,7 +158,7 @@ async function loadAllEmployees() {
   const all = []
 
   while (page < totalPages) {
-    const { data } = await employeeApi.list({ page, size })
+    const {data} = await employeeApi.list({page, size})
     const rows = Array.isArray(data) ? data : data?.content || []
     all.push(...rows)
 
@@ -171,7 +176,7 @@ async function loadAllEmployees() {
 async function fetchData() {
   loading.value = true
   try {
-    const params = { keyword: keyword.value, ...pageParams(pagination) }
+    const params = {keyword: keyword.value, ...pageParams(pagination)}
     if (filters.contractType) params.contractType = filters.contractType
     if (filters.status) params.status = filters.status
     const res = await contractApi.list(params)
@@ -196,8 +201,16 @@ function handleResetFilters() {
   fetchData()
 }
 
-function handlePageChange(p) { pagination.page = p; fetchData() }
-function handleSizeChange(s) { pagination.size = s; pagination.page = 1; fetchData() }
+function handlePageChange(p) {
+  pagination.page = p;
+  fetchData()
+}
+
+function handleSizeChange(s) {
+  pagination.size = s;
+  pagination.page = 1;
+  fetchData()
+}
 
 function openCreate() {
   Object.assign(form, defaultForm)
@@ -247,7 +260,7 @@ async function handleSave() {
   if (!valid) return
   try {
     if (editingId.value) {
-      const { data } = await contractApi.update(editingId.value, form)
+      const {data} = await contractApi.update(editingId.value, form)
       const file = selectedSignedFile()
       if (file) {
         const uploadResponse = await contractApi.uploadSignedFile(editingId.value, file)
@@ -270,7 +283,7 @@ async function handleSave() {
 async function handleDelete(row) {
   try {
     await ElMessageBox.confirm(`${settings.t('contract.deleteConfirm')} "${row.contractCode}"?`,
-      settings.t('common.confirm'), { type: 'warning' })
+        settings.t('common.confirm'), {type: 'warning'})
     await contractApi.delete(row.id)
     ElMessage.success(settings.t('common.deleted'))
     fetchData()
@@ -282,9 +295,9 @@ async function handleDelete(row) {
 async function handleLiquidate(row) {
   try {
     await ElMessageBox.confirm(
-      settings.t('contract.liquidateConfirm'),
-      settings.t('common.confirm'),
-      { type: 'warning' }
+        settings.t('contract.liquidateConfirm'),
+        settings.t('common.confirm'),
+        {type: 'warning'}
     )
     await contractApi.liquidate(row.id)
     ElMessage.success(settings.t('common.updated'))
@@ -297,12 +310,44 @@ async function handleLiquidate(row) {
 async function handleActivate(row) {
   try {
     await ElMessageBox.confirm(settings.t('contract.activateConfirm'),
-      settings.t('common.confirm'), { type: 'warning' })
+        settings.t('common.confirm'), {type: 'warning'})
     await contractApi.activate(row.id)
     ElMessage.success(settings.t('common.updated'))
     fetchData()
   } catch {
     // cancelled
+  }
+}
+
+function canRenew(row) {
+  return Boolean(
+      row?.endDate &&
+      (row?.status === 'ACTIVE' || row?.status === 'EXPIRED')
+  )
+}
+
+function openRenew(row) {
+  selectedContract.value = row
+  renewForm.newEndDate = row?.endDate || ''
+  renewVisible.value = true
+}
+
+async function submitRenew() {
+  try {
+    await ElMessageBox.confirm(
+        settings.t('contract.renewConfirm'),
+        settings.t('common.confirm'),
+        {type: 'warning'}
+    )
+    await contractApi.renew(selectedContract.value.id, {
+      newEndDate: renewForm.newEndDate,
+    })
+    ElMessage.success(settings.t('common.updated'))
+    renewVisible.value = false
+    fetchData()
+  } catch (e) {
+    if (e === 'cancel' || e === 'close') return
+    ElMessage.error(e.response?.data?.message || settings.t('common.somethingWrong'))
   }
 }
 
@@ -333,7 +378,7 @@ function typeLabel(v) {
 }
 
 function statusTag(v) {
-  return statusOptions.find(s => s.value === v) || { labelKey: '', type: 'info' }
+  return statusOptions.find(s => s.value === v) || {labelKey: '', type: 'info'}
 }
 
 function statusLabel(v) {
@@ -343,10 +388,10 @@ function statusLabel(v) {
 
 function hasSignedFile(row) {
   return Boolean(
-    row?.signedFileName ||
-    row?.signedDocumentName ||
-    row?.contractFileName ||
-    row?.attachmentPath
+      row?.signedFileName ||
+      row?.signedDocumentName ||
+      row?.contractFileName ||
+      row?.attachmentPath
   )
 }
 
@@ -381,7 +426,9 @@ function toNumber(v) {
   return Number(v)
 }
 
-function displayValue(v) { return v || '-' }
+function displayValue(v) {
+  return v || '-'
+}
 
 function selectedSignedFile() {
   return signedFileList.value.map(item => item.raw).filter(Boolean)[0] || null
@@ -412,13 +459,14 @@ async function handleDeleteSignedFile() {
   if (!editingId.value || !currentSignedFileName.value) return
 
   try {
-    await ElMessageBox.confirm(settings.t('contract.deleteSignedFileConfirm'), settings.t('common.confirm'), { type: 'warning' })
+    await ElMessageBox.confirm(settings.t('contract.deleteSignedFileConfirm'), settings.t('common.confirm'), {type: 'warning'})
     await contractApi.deleteSignedFile(editingId.value)
     currentSignedFileName.value = ''
     signedFileList.value = []
     ElMessage.success(settings.t('common.deleted'))
     await fetchData()
-  } catch {}
+  } catch {
+  }
 }
 
 function daysUntil(dateValue) {
@@ -436,6 +484,17 @@ function isExpiringSoon(row) {
 }
 
 const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
+const renewDateDisabled = (date) => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const oldEndDate = selectedContract.value?.endDate ? new Date(selectedContract.value.endDate) : null
+  if (oldEndDate) {
+    oldEndDate.setHours(0, 0, 0, 0)
+  }
+
+  return date.getTime() <= today.getTime() || (oldEndDate && date.getTime() <= oldEndDate.getTime())
+}
 </script>
 
 <template>
@@ -444,7 +503,7 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
       <div v-for="item in summary" :key="item.label" class="summary-item" :class="`summary-${item.tone}`">
         <div class="summary-icon">
           <el-icon>
-            <component :is="item.icon" />
+            <component :is="item.icon"/>
           </el-icon>
         </div>
         <div class="summary-content">
@@ -457,47 +516,56 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
     <div class="table-toolbar">
       <div class="contract-filters">
         <el-input
-          v-model="keyword"
-          :placeholder="settings.t('contract.search')"
-          clearable
-          class="contract-search"
-          @keyup.enter="handleSearch"
-          @clear="handleSearch"
+            v-model="keyword"
+            :placeholder="settings.t('contract.search')"
+            clearable
+            class="contract-search"
+            @keyup.enter="handleSearch"
+            @clear="handleSearch"
         >
-          <template #prefix><el-icon><Search /></el-icon></template>
+          <template #prefix>
+            <el-icon>
+              <Search/>
+            </el-icon>
+          </template>
         </el-input>
 
         <el-select
-          v-model="filters.contractType"
-          clearable
-          class="contract-filter"
-          :placeholder="settings.t('contract.contractType')"
-          @change="handleSearch"
-          @clear="handleSearch"
+            v-model="filters.contractType"
+            clearable
+            class="contract-filter"
+            :placeholder="settings.t('contract.contractType')"
+            @change="handleSearch"
+            @clear="handleSearch"
         >
-          <el-option v-for="t in contractTypeOptions" :key="t.value" :label="settings.t(t.labelKey)" :value="t.value" />
+          <el-option v-for="t in contractTypeOptions" :key="t.value" :label="settings.t(t.labelKey)" :value="t.value"/>
         </el-select>
 
         <el-select
-          v-model="filters.status"
-          clearable
-          class="contract-filter"
-          :placeholder="settings.t('contract.status')"
-          @change="handleSearch"
-          @clear="handleSearch"
+            v-model="filters.status"
+            clearable
+            class="contract-filter"
+            :placeholder="settings.t('contract.status')"
+            @change="handleSearch"
+            @clear="handleSearch"
         >
-          <el-option v-for="s in statusOptions" :key="s.value" :label="settings.t(s.labelKey)" :value="s.value" />
+          <el-option v-for="s in statusOptions" :key="s.value" :label="settings.t(s.labelKey)" :value="s.value"/>
         </el-select>
 
         <el-button @click="handleResetFilters">
-          <el-icon><RefreshLeft /></el-icon>
+          <el-icon>
+            <RefreshLeft/>
+          </el-icon>
           {{ settings.t('common.reset') }}
         </el-button>
       </div>
 
       <div style="display:flex;gap:8px">
         <el-button v-if="auth.hasPermission('CONTRACT_CREATE')" type="primary" @click="openCreate">
-          <el-icon><Plus /></el-icon> {{ settings.t('contract.add') }}
+          <el-icon>
+            <Plus/>
+          </el-icon>
+          {{ settings.t('contract.add') }}
         </el-button>
       </div>
     </div>
@@ -522,7 +590,7 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
       <el-table-column :label="settings.t('contract.contractType')" width="160">
         <template #default="{ row }">{{ typeLabel(row.contractType) }}</template>
       </el-table-column>
-      <el-table-column :label="settings.t('contract.startDate')" width="115" prop="startDate" />
+      <el-table-column :label="settings.t('contract.startDate')" width="115" prop="startDate"/>
       <el-table-column :label="settings.t('contract.endDate')" width="115">
         <template #default="{ row }">
           <div class="contract-end-date">
@@ -543,50 +611,74 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column :label="settings.t('common.actions')" width="210" fixed="right">
+      <el-table-column :label="settings.t('common.actions')" width="250" fixed="right">
         <template #default="{ row }">
           <el-button text type="info" size="small" @click="openDetail(row)">
-            <el-icon><View /></el-icon>
+            <el-icon>
+              <View/>
+            </el-icon>
           </el-button>
           <el-button
-            v-if="auth.hasPermission('CONTRACT_UPDATE') && row.status === 'DRAFT'"
-            text
-            type="success"
-            size="small"
-            :disabled="!canActivate(row)"
-            @click="handleActivate(row)"
+              v-if="auth.hasPermission('CONTRACT_UPDATE') && row.status === 'DRAFT'"
+              text
+              type="success"
+              size="small"
+              :disabled="!canActivate(row)"
+              @click="handleActivate(row)"
           >
-            <el-icon><CircleCheck /></el-icon>
+            <el-icon>
+              <CircleCheck/>
+            </el-icon>
           </el-button>
-          <el-button v-if="auth.hasPermission('CONTRACT_UPDATE')" text type="primary" size="small" @click="openEdit(row)">
-            <el-icon><Edit /></el-icon>
-          </el-button>
-          <el-button
-            v-if="auth.hasPermission('CONTRACT_UPDATE') && row.status === 'ACTIVE'"
-            text
-            type="warning"
-            size="small"
-            @click="openTerminate(row)"
-          >
-            <el-icon><CloseBold /></el-icon>
+          <el-button v-if="auth.hasPermission('CONTRACT_UPDATE')" text type="primary" size="small"
+                     @click="openEdit(row)">
+            <el-icon>
+              <Edit/>
+            </el-icon>
           </el-button>
           <el-button
-            v-if="auth.hasPermission('CONTRACT_UPDATE') && canLiquidate(row)"
-            text
-            type="warning"
-            size="small"
-            @click="handleLiquidate(row)"
+              v-if="auth.hasPermission('CONTRACT_UPDATE') && canRenew(row)"
+              text
+              type="primary"
+              size="small"
+              @click="openRenew(row)"
           >
-            <el-icon><Finished /></el-icon>
+            <el-icon>
+              <RefreshRight/>
+            </el-icon>
           </el-button>
           <el-button
-            v-if="auth.hasPermission('CONTRACT_DELETE') && canDelete(row)"
-            text
-            type="danger"
-            size="small"
-            @click="handleDelete(row)"
+              v-if="auth.hasPermission('CONTRACT_UPDATE') && row.status === 'ACTIVE'"
+              text
+              type="warning"
+              size="small"
+              @click="openTerminate(row)"
           >
-            <el-icon><Delete /></el-icon>
+            <el-icon>
+              <CloseBold/>
+            </el-icon>
+          </el-button>
+          <el-button
+              v-if="auth.hasPermission('CONTRACT_UPDATE') && canLiquidate(row)"
+              text
+              type="warning"
+              size="small"
+              @click="handleLiquidate(row)"
+          >
+            <el-icon>
+              <Finished/>
+            </el-icon>
+          </el-button>
+          <el-button
+              v-if="auth.hasPermission('CONTRACT_DELETE') && canDelete(row)"
+              text
+              type="danger"
+              size="small"
+              @click="handleDelete(row)"
+          >
+            <el-icon>
+              <Delete/>
+            </el-icon>
           </el-button>
         </template>
       </el-table-column>
@@ -594,84 +686,94 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
 
     <div class="pagination-bar">
       <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.size"
-        :total="pagination.total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @current-change="handlePageChange"
-        @size-change="handleSizeChange"
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.size"
+          :total="pagination.total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @current-change="handlePageChange"
+          @size-change="handleSizeChange"
       />
     </div>
 
     <!-- Create / edit dialog -->
     <el-dialog
-      v-model="dialogVisible"
-      :title="settings.t(dialogTitleKey)"
-      width="860px"
-      destroy-on-close
-      class="vx-dialog contract-dialog"
-      align-center
+        v-model="dialogVisible"
+        :title="settings.t(dialogTitleKey)"
+        width="860px"
+        destroy-on-close
+        class="vx-dialog contract-dialog"
+        align-center
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="160px" label-position="top">
         <section class="form-section">
           <div class="form-section-header">
-            <el-icon class="form-section-icon"><Document /></el-icon>
+            <el-icon class="form-section-icon">
+              <Document/>
+            </el-icon>
             <div>
               <h4 class="form-section-title">{{ settings.t('contract.basicInfo') }}</h4>
-              <p class="form-section-subtitle">{{ settings.t('contract.contractCode') }} · {{ settings.t('contract.employee') }}</p>
+              <p class="form-section-subtitle">{{ settings.t('contract.contractCode') }} ·
+                {{ settings.t('contract.employee') }}</p>
             </div>
           </div>
           <el-row :gutter="18">
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.contractCode')" prop="contractCode">
-                <el-input v-model="form.contractCode" :disabled="!!editingId" />
+                <el-input v-model="form.contractCode" :disabled="!!editingId"/>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.employee')" prop="employeeId">
-                <el-select v-model="form.employeeId" filterable style="width:100%" :placeholder="settings.t('contract.selectEmployee')">
-                  <el-option v-for="e in employees" :key="e.id" :label="`${e.employeeCode} - ${e.fullName}`" :value="e.id" />
+                <el-select v-model="form.employeeId" filterable style="width:100%"
+                           :placeholder="settings.t('contract.selectEmployee')">
+                  <el-option v-for="e in employees" :key="e.id" :label="`${e.employeeCode} - ${e.fullName}`"
+                             :value="e.id"/>
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.position')">
-                <el-select v-model="form.positionId" clearable style="width:100%" :placeholder="settings.t('contract.selectPosition')">
-                  <el-option v-for="p in positions" :key="p.id" :label="p.name" :value="p.id" />
+                <el-select v-model="form.positionId" clearable style="width:100%"
+                           :placeholder="settings.t('contract.selectPosition')">
+                  <el-option v-for="p in positions" :key="p.id" :label="p.name" :value="p.id"/>
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.contractType')" prop="contractType">
                 <el-select v-model="form.contractType" style="width:100%">
-                  <el-option v-for="t in contractTypeOptions" :key="t.value" :label="settings.t(t.labelKey)" :value="t.value" />
+                  <el-option v-for="t in contractTypeOptions" :key="t.value" :label="settings.t(t.labelKey)"
+                             :value="t.value"/>
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.status')">
-                <el-input :model-value="editingId ? statusLabel(form.status) : settings.t('contract.status.DRAFT')" disabled />
+                <el-input :model-value="editingId ? statusLabel(form.status) : settings.t('contract.status.DRAFT')"
+                          disabled/>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.signedDate')">
-                <el-date-picker v-model="form.signedDate" type="date" value-format="YYYY-MM-DD" style="width:100%" />
+                <el-date-picker v-model="form.signedDate" type="date" value-format="YYYY-MM-DD" style="width:100%"/>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.startDate')" prop="startDate">
-                <el-date-picker v-model="form.startDate" type="date" value-format="YYYY-MM-DD" style="width:100%" />
+                <el-date-picker v-model="form.startDate" type="date" value-format="YYYY-MM-DD" style="width:100%"/>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.endDate')">
-                <el-date-picker v-model="form.endDate" :disabled="endDateDisabled" type="date" value-format="YYYY-MM-DD" style="width:100%" />
+                <el-date-picker v-model="form.endDate" :disabled="endDateDisabled" type="date" value-format="YYYY-MM-DD"
+                                style="width:100%"/>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.probationMonths')">
-                <el-input-number v-model="form.probationMonths" :min="0" :max="6" style="width:100%" controls-position="right" />
+                <el-input-number v-model="form.probationMonths" :min="0" :max="6" style="width:100%"
+                                 controls-position="right"/>
               </el-form-item>
             </el-col>
           </el-row>
@@ -679,46 +781,56 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
 
         <section class="form-section">
           <div class="form-section-header">
-            <el-icon class="form-section-icon"><Money /></el-icon>
+            <el-icon class="form-section-icon">
+              <Money/>
+            </el-icon>
             <div>
               <h4 class="form-section-title">{{ settings.t('contract.salaryInfo') }}</h4>
-              <p class="form-section-subtitle">{{ settings.t('contract.baseSalary') }} · {{ settings.t('contract.insuranceSalary') }}</p>
+              <p class="form-section-subtitle">{{ settings.t('contract.baseSalary') }} ·
+                {{ settings.t('contract.insuranceSalary') }}</p>
             </div>
           </div>
           <el-row :gutter="18">
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.baseSalary')" prop="baseSalary">
-                <el-input-number v-model="form.baseSalary" :min="0" :step="100000" style="width:100%" controls-position="right" />
+                <el-input-number v-model="form.baseSalary" :min="0" :step="100000" style="width:100%"
+                                 controls-position="right"/>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.insuranceSalary')">
-                <el-input-number v-model="form.insuranceSalary" :min="0" :step="100000" style="width:100%" controls-position="right" />
+                <el-input-number v-model="form.insuranceSalary" :min="0" :step="100000" style="width:100%"
+                                 controls-position="right"/>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.responsibilityAllowance')">
-                <el-input-number v-model="form.responsibilityAllowance" :min="0" :step="50000" style="width:100%" controls-position="right" />
+                <el-input-number v-model="form.responsibilityAllowance" :min="0" :step="50000" style="width:100%"
+                                 controls-position="right"/>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.mealAllowance')">
-                <el-input-number v-model="form.mealAllowance" :min="0" :step="50000" style="width:100%" controls-position="right" />
+                <el-input-number v-model="form.mealAllowance" :min="0" :step="50000" style="width:100%"
+                                 controls-position="right"/>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.transportAllowance')">
-                <el-input-number v-model="form.transportAllowance" :min="0" :step="50000" style="width:100%" controls-position="right" />
+                <el-input-number v-model="form.transportAllowance" :min="0" :step="50000" style="width:100%"
+                                 controls-position="right"/>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.phoneAllowance')">
-                <el-input-number v-model="form.phoneAllowance" :min="0" :step="50000" style="width:100%" controls-position="right" />
+                <el-input-number v-model="form.phoneAllowance" :min="0" :step="50000" style="width:100%"
+                                 controls-position="right"/>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12">
               <el-form-item :label="settings.t('contract.otherAllowance')">
-                <el-input-number v-model="form.otherAllowance" :min="0" :step="50000" style="width:100%" controls-position="right" />
+                <el-input-number v-model="form.otherAllowance" :min="0" :step="50000" style="width:100%"
+                                 controls-position="right"/>
               </el-form-item>
             </el-col>
           </el-row>
@@ -726,31 +838,36 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
 
         <section class="form-section">
           <div class="form-section-header">
-            <el-icon class="form-section-icon"><Clock /></el-icon>
+            <el-icon class="form-section-icon">
+              <Clock/>
+            </el-icon>
             <div>
               <h4 class="form-section-title">{{ settings.t('contract.workTerms') }}</h4>
-              <p class="form-section-subtitle">{{ settings.t('contract.standardWorkDays') }} · {{ settings.t('contract.hoursPerDay') }}</p>
+              <p class="form-section-subtitle">{{ settings.t('contract.standardWorkDays') }} ·
+                {{ settings.t('contract.hoursPerDay') }}</p>
             </div>
           </div>
           <el-row :gutter="18">
             <el-col :xs="24" :sm="8">
               <el-form-item :label="settings.t('contract.standardWorkDays')">
-                <el-input-number v-model="form.standardWorkDays" :min="1" :max="31" style="width:100%" controls-position="right" />
+                <el-input-number v-model="form.standardWorkDays" :min="1" :max="31" style="width:100%"
+                                 controls-position="right"/>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="8">
               <el-form-item :label="settings.t('contract.hoursPerDay')">
-                <el-input-number v-model="form.hoursPerDay" :min="1" :max="24" :step="0.5" style="width:100%" controls-position="right" />
+                <el-input-number v-model="form.hoursPerDay" :min="1" :max="24" :step="0.5" style="width:100%"
+                                 controls-position="right"/>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="8">
               <el-form-item :label="settings.t('contract.noticePeriodDays')">
-                <el-input-number v-model="form.noticePeriodDays" :min="0" style="width:100%" controls-position="right" />
+                <el-input-number v-model="form.noticePeriodDays" :min="0" style="width:100%" controls-position="right"/>
               </el-form-item>
             </el-col>
             <el-col :span="24">
               <el-form-item :label="settings.t('contract.note')">
-                <el-input v-model="form.note" type="textarea" :rows="3" />
+                <el-input v-model="form.note" type="textarea" :rows="3"/>
               </el-form-item>
             </el-col>
           </el-row>
@@ -758,7 +875,9 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
 
         <section v-if="editingId" class="form-section">
           <div class="form-section-header">
-            <el-icon class="form-section-icon"><UploadFilled /></el-icon>
+            <el-icon class="form-section-icon">
+              <UploadFilled/>
+            </el-icon>
             <div>
               <h4 class="form-section-title">{{ settings.t('contract.signedFile') }}</h4>
               <p class="form-section-subtitle">{{ settings.t('contract.editUploadSignedFileHint') }}</p>
@@ -767,24 +886,28 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
           <div v-if="existingSignedFileName()" class="current-signed-file">
             <span>{{ existingSignedFileName() }}</span>
             <el-button text type="danger" @click="handleDeleteSignedFile">
-              <el-icon><Delete /></el-icon>
+              <el-icon>
+                <Delete/>
+              </el-icon>
               {{ settings.t('common.delete') }}
             </el-button>
           </div>
           <el-form-item :label="settings.t('contract.signedFile')">
             <el-upload
-              v-model:file-list="signedFileList"
-              drag
-              action="#"
-              accept=".pdf,application/pdf"
-              :auto-upload="false"
-              :before-upload="beforeSignedFileUpload"
-              :on-change="handleSignedFileChange"
-              :on-remove="handleSignedFileRemove"
-              :limit="1"
-              class="signed-file-upload"
+                v-model:file-list="signedFileList"
+                drag
+                action="#"
+                accept=".pdf,application/pdf"
+                :auto-upload="false"
+                :before-upload="beforeSignedFileUpload"
+                :on-change="handleSignedFileChange"
+                :on-remove="handleSignedFileRemove"
+                :limit="1"
+                class="signed-file-upload"
             >
-              <el-icon class="upload-icon"><Upload /></el-icon>
+              <el-icon class="upload-icon">
+                <Upload/>
+              </el-icon>
               <div class="el-upload__text">{{ settings.t('contract.uploadSignedFile') }}</div>
               <div class="el-upload__tip">{{ settings.t('contract.onlyPdfFile') }}</div>
             </el-upload>
@@ -801,7 +924,9 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
     <el-drawer v-model="detailVisible" :title="settings.t('contract.details')" size="560px" destroy-on-close>
       <div v-if="selectedContract" class="contract-detail">
         <div class="detail-header">
-          <el-icon class="detail-icon"><Document /></el-icon>
+          <el-icon class="detail-icon">
+            <Document/>
+          </el-icon>
           <div class="detail-title">
             <h3>{{ selectedContract.contractCode }}</h3>
             <p>{{ empName(selectedContract.employeeId) }}</p>
@@ -813,36 +938,78 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
 
         <h4 class="detail-section-title">{{ settings.t('contract.basicInfo') }}</h4>
         <el-descriptions :column="1" border>
-          <el-descriptions-item :label="settings.t('contract.contractType')">{{ typeLabel(selectedContract.contractType) }}</el-descriptions-item>
-          <el-descriptions-item :label="settings.t('contract.position')">{{ selectedContract.positionName || posName(selectedContract.positionId) }}</el-descriptions-item>
-          <el-descriptions-item :label="settings.t('contract.signedDate')">{{ displayValue(selectedContract.signedDate) }}</el-descriptions-item>
-          <el-descriptions-item :label="settings.t('contract.startDate')">{{ displayValue(selectedContract.startDate) }}</el-descriptions-item>
-          <el-descriptions-item :label="settings.t('contract.endDate')">{{ displayValue(selectedContract.endDate) }}</el-descriptions-item>
-          <el-descriptions-item :label="settings.t('contract.probationMonths')">{{ displayValue(selectedContract.probationMonths) }}</el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.contractType')">{{
+              typeLabel(selectedContract.contractType)
+            }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.position')">
+            {{ selectedContract.positionName || posName(selectedContract.positionId) }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.signedDate')">{{
+              displayValue(selectedContract.signedDate)
+            }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.startDate')">{{
+              displayValue(selectedContract.startDate)
+            }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.endDate')">{{
+              displayValue(selectedContract.endDate)
+            }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.probationMonths')">
+            {{ displayValue(selectedContract.probationMonths) }}
+          </el-descriptions-item>
         </el-descriptions>
 
         <h4 class="detail-section-title">{{ settings.t('contract.salaryInfo') }}</h4>
         <el-descriptions :column="1" border>
-          <el-descriptions-item :label="settings.t('contract.baseSalary')">{{ formatMoney(selectedContract.baseSalary) }}</el-descriptions-item>
-          <el-descriptions-item :label="settings.t('contract.insuranceSalary')">{{ formatMoney(selectedContract.insuranceSalary) }}</el-descriptions-item>
-          <el-descriptions-item :label="settings.t('contract.responsibilityAllowance')">{{ formatMoney(selectedContract.responsibilityAllowance) }}</el-descriptions-item>
-          <el-descriptions-item :label="settings.t('contract.mealAllowance')">{{ formatMoney(selectedContract.mealAllowance) }}</el-descriptions-item>
-          <el-descriptions-item :label="settings.t('contract.transportAllowance')">{{ formatMoney(selectedContract.transportAllowance) }}</el-descriptions-item>
-          <el-descriptions-item :label="settings.t('contract.phoneAllowance')">{{ formatMoney(selectedContract.phoneAllowance) }}</el-descriptions-item>
-          <el-descriptions-item :label="settings.t('contract.otherAllowance')">{{ formatMoney(selectedContract.otherAllowance) }}</el-descriptions-item>
-          <el-descriptions-item :label="settings.t('contract.totalAllowance')">{{ formatMoney(selectedContract.totalAllowance) }}</el-descriptions-item>
-          <el-descriptions-item :label="settings.t('contract.totalGrossSalary')">{{ formatMoney(selectedContract.totalGrossSalary) }}</el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.baseSalary')">{{
+              formatMoney(selectedContract.baseSalary)
+            }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.insuranceSalary')">
+            {{ formatMoney(selectedContract.insuranceSalary) }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.responsibilityAllowance')">
+            {{ formatMoney(selectedContract.responsibilityAllowance) }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.mealAllowance')">
+            {{ formatMoney(selectedContract.mealAllowance) }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.transportAllowance')">
+            {{ formatMoney(selectedContract.transportAllowance) }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.phoneAllowance')">
+            {{ formatMoney(selectedContract.phoneAllowance) }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.otherAllowance')">
+            {{ formatMoney(selectedContract.otherAllowance) }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.totalAllowance')">
+            {{ formatMoney(selectedContract.totalAllowance) }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.totalGrossSalary')">
+            {{ formatMoney(selectedContract.totalGrossSalary) }}
+          </el-descriptions-item>
         </el-descriptions>
 
         <h4 class="detail-section-title">{{ settings.t('contract.workTerms') }}</h4>
         <el-descriptions :column="1" border>
-          <el-descriptions-item :label="settings.t('contract.standardWorkDays')">{{ displayValue(selectedContract.standardWorkDays) }}</el-descriptions-item>
-          <el-descriptions-item :label="settings.t('contract.hoursPerDay')">{{ displayValue(selectedContract.hoursPerDay) }}</el-descriptions-item>
-          <el-descriptions-item :label="settings.t('contract.noticePeriodDays')">{{ displayValue(selectedContract.noticePeriodDays) }}</el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.standardWorkDays')">
+            {{ displayValue(selectedContract.standardWorkDays) }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.hoursPerDay')">
+            {{ displayValue(selectedContract.hoursPerDay) }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="settings.t('contract.noticePeriodDays')">
+            {{ displayValue(selectedContract.noticePeriodDays) }}
+          </el-descriptions-item>
           <el-descriptions-item v-if="selectedContract.terminatedDate" :label="settings.t('contract.terminatedDate')">
             {{ selectedContract.terminatedDate }}
           </el-descriptions-item>
-          <el-descriptions-item v-if="selectedContract.terminationReason" :label="settings.t('contract.terminationReason')">
+          <el-descriptions-item v-if="selectedContract.terminationReason"
+                                :label="settings.t('contract.terminationReason')">
             {{ selectedContract.terminationReason }}
           </el-descriptions-item>
           <el-descriptions-item v-if="selectedContract.note" :label="settings.t('contract.note')">
@@ -853,18 +1020,39 @@ const endDateDisabled = computed(() => form.contractType === 'INDEFINITE')
     </el-drawer>
 
     <!-- Terminate dialog -->
-    <el-dialog v-model="terminateVisible" :title="settings.t('contract.terminateTitle')" width="480px" destroy-on-close class="vx-dialog" align-center>
+    <el-dialog v-model="terminateVisible" :title="settings.t('contract.terminateTitle')" width="480px" destroy-on-close
+               class="vx-dialog" align-center>
       <el-form label-position="top">
         <el-form-item :label="settings.t('contract.terminatedDate')">
-          <el-date-picker v-model="terminateForm.terminatedDate" type="date" value-format="YYYY-MM-DD" style="width:100%" />
+          <el-date-picker v-model="terminateForm.terminatedDate" type="date" value-format="YYYY-MM-DD"
+                          style="width:100%"/>
         </el-form-item>
         <el-form-item :label="settings.t('contract.terminationReason')">
-          <el-input v-model="terminateForm.terminationReason" type="textarea" :rows="4" />
+          <el-input v-model="terminateForm.terminationReason" type="textarea" :rows="4"/>
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="terminateVisible = false">{{ settings.t('common.cancel') }}</el-button>
         <el-button type="danger" @click="submitTerminate">{{ settings.t('contract.terminate') }}</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="renewVisible" :title="settings.t('contract.renewTitle')" width="480px" destroy-on-close
+               class="vx-dialog" align-center>
+      <el-form label-position="top">
+        <el-form-item :label="settings.t('contract.newEndDate')">
+          <el-date-picker
+              v-model="renewForm.newEndDate"
+              type="date"
+              value-format="YYYY-MM-DD"
+              :disabled-date="renewDateDisabled"
+              style="width:100%"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="renewVisible = false">{{ settings.t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="submitRenew">{{ settings.t('contract.renew') }}</el-button>
       </template>
     </el-dialog>
   </div>
