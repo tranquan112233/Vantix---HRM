@@ -19,14 +19,19 @@ import poly.edu.vantix.repository.LeaveRequestRepository;
 import poly.edu.vantix.repository.UserRepository;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 @Service
 public class LeaveRequestService {
+
+    private static final BigDecimal DEFAULT_ANNUAL_LEAVE_DAYS = new BigDecimal("12.0");
+    private static final int MAX_ACTIVE_LEAVE_REQUESTS_PER_YEAR = 12;
 
     private final LeaveRequestRepository leaveRequestRepository;
     private final EmployeeRepository employeeRepository;
@@ -209,6 +214,7 @@ public class LeaveRequestService {
         if (workingLeaveDays.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("startDate", "Leave request must include at least one working day");
         }
+        validateMaxLeaveRequestsPerYear(leaveEmployee, leaveRequest.getId(), request);
         if (request.getType() == LeaveType.ANNUAL) {
             validateAnnualLeaveBalance(leaveEmployee, leaveRequest.getId(), request, workingLeaveDays);
         }
@@ -221,6 +227,37 @@ public class LeaveRequestService {
         leaveRequest.setReason(request.getReason().trim());
         leaveRequest.setEmergencyContact(cleanText(request.getEmergencyContact()));
         leaveRequest.setHandoverEmployee(resolveHandoverEmployee(request.getHandoverEmployeeId(), leaveEmployee));
+    }
+
+    private void validateMaxLeaveRequestsPerYear(
+            Employee employee,
+            Long excludeId,
+            LeaveRequestRequest request
+    ) {
+        int startYear = request.getStartDate().getYear();
+        int endYear = request.getEndDate().getYear();
+
+        for (int year = startYear; year <= endYear; year++) {
+            LocalDate yearStart = LocalDate.of(year, 1, 1);
+            LocalDate yearEnd = LocalDate.of(year, 12, 31);
+
+            long activeRequests = leaveRequestRepository
+                    .search(employee.getId(), null, null, null, yearStart, yearEnd)
+                    .stream()
+                    .filter(lr -> lr.getStatus() == LeaveRequestStatus.PENDING || lr.getStatus() == LeaveRequestStatus.APPROVED)
+                    .filter(lr -> excludeId == null || !excludeId.equals(lr.getId()))
+                    .count();
+
+            if (activeRequests >= MAX_ACTIVE_LEAVE_REQUESTS_PER_YEAR) {
+                throw new BusinessException(
+                        "startDate",
+                        "Employee can create at most "
+                                + MAX_ACTIVE_LEAVE_REQUESTS_PER_YEAR
+                                + " active leave request(s) in "
+                                + year
+                );
+            }
+        }
     }
 
     private Employee resolveLeaveEmployee(Long employeeId, Employee currentEmployee, boolean canCreateForOthers) {
@@ -241,8 +278,38 @@ public class LeaveRequestService {
             LeaveRequestRequest request,
             BigDecimal requestedDays
     ) {
-        LocalDate yearStart = LocalDate.of(request.getStartDate().getYear(), 1, 1);
-        LocalDate yearEnd = LocalDate.of(request.getStartDate().getYear(), 12, 31);
+        int startYear = request.getStartDate().getYear();
+        int endYear = request.getEndDate().getYear();
+
+        for (int year = startYear; year <= endYear; year++) {
+            LocalDate yearStart = LocalDate.of(year, 1, 1);
+            LocalDate yearEnd = LocalDate.of(year, 12, 31);
+            LocalDate requestStart = request.getStartDate().isBefore(yearStart) ? yearStart : request.getStartDate();
+            LocalDate requestEnd = request.getEndDate().isAfter(yearEnd) ? yearEnd : request.getEndDate();
+
+            if (requestStart.isAfter(requestEnd)) {
+                continue;
+            }
+
+            BigDecimal requestedDaysInYear = startYear == endYear
+                    ? requestedDays
+                    : businessCalendarService.countWorkingLeaveDays(
+                            employee.getId(),
+                            requestStart,
+                            requestEnd,
+                            request.getDayUnit() == null ? LeaveDayUnit.FULL : request.getDayUnit()
+                    );
+            validateAnnualLeaveBalanceInYear(employee, excludeId, yearStart, yearEnd, requestedDaysInYear);
+        }
+    }
+
+    private void validateAnnualLeaveBalanceInYear(
+            Employee employee,
+            Long excludeId,
+            LocalDate yearStart,
+            LocalDate yearEnd,
+            BigDecimal requestedDays
+    ) {
         BigDecimal usedOrPending = leaveRequestRepository
                 .search(employee.getId(), null, null, LeaveType.ANNUAL, yearStart, yearEnd)
                 .stream()
@@ -255,9 +322,70 @@ public class LeaveRequestService {
                         lr.getDayUnit() == null ? LeaveDayUnit.FULL : lr.getDayUnit()
                 ))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        if (usedOrPending.add(requestedDays).compareTo(new BigDecimal("12.0")) > 0) {
-            throw new BusinessException("type", "Annual leave balance is not enough");
+        BigDecimal entitlement = calculateAnnualLeaveEntitlement(employee, yearStart.getYear());
+        if (usedOrPending.add(requestedDays).compareTo(entitlement) > 0) {
+            throw new BusinessException(
+                    "type",
+                    "Annual leave balance is not enough. Maximum allowed in "
+                            + yearStart.getYear()
+                            + " is "
+                            + entitlement.stripTrailingZeros().toPlainString()
+                            + " day(s)"
+            );
         }
+    }
+
+    private BigDecimal calculateAnnualLeaveEntitlement(Employee employee, int year) {
+        int workedMonths = estimateWorkedMonthsInYear(employee, year);
+        int serviceYears = completeServiceYears(employee.getJoinDate(), LocalDate.of(year, 12, 31));
+        BigDecimal seniorityDays = BigDecimal.valueOf(serviceYears / 5L);
+        BigDecimal annualBase = DEFAULT_ANNUAL_LEAVE_DAYS.add(seniorityDays);
+        return annualBase
+                .multiply(BigDecimal.valueOf(workedMonths))
+                .divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
+    }
+
+    private int completeServiceYears(LocalDate joinDate, LocalDate asOfDate) {
+        if (joinDate == null || joinDate.isAfter(asOfDate)) {
+            return 0;
+        }
+
+        int years = asOfDate.getYear() - joinDate.getYear();
+        LocalDate anniversary = joinDate.plusYears(years);
+        if (anniversary.isAfter(asOfDate)) {
+            years--;
+        }
+        return Math.max(years, 0);
+    }
+
+    private int estimateWorkedMonthsInYear(Employee employee, int year) {
+        LocalDate yearStart = LocalDate.of(year, 1, 1);
+        LocalDate yearEnd = LocalDate.of(year, 12, 31);
+        LocalDate hireDate = employee.getJoinDate() == null ? yearStart : employee.getJoinDate();
+        LocalDate terminationDate = employee.getTerminationDate() == null ? yearEnd : employee.getTerminationDate();
+        LocalDate rangeStart = hireDate.isAfter(yearStart) ? hireDate : yearStart;
+        LocalDate rangeEnd = terminationDate.isBefore(yearEnd) ? terminationDate : yearEnd;
+
+        if (rangeStart.isAfter(rangeEnd)) {
+            return 0;
+        }
+
+        int months = 0;
+        for (int month = 1; month <= 12; month++) {
+            YearMonth yearMonth = YearMonth.of(year, month);
+            LocalDate monthStart = yearMonth.atDay(1);
+            LocalDate monthEnd = yearMonth.atEndOfMonth();
+            LocalDate actualStart = rangeStart.isAfter(monthStart) ? rangeStart : monthStart;
+            LocalDate actualEnd = rangeEnd.isBefore(monthEnd) ? rangeEnd : monthEnd;
+
+            if (!actualStart.isAfter(actualEnd)) {
+                int workedDays = actualEnd.getDayOfMonth() - actualStart.getDayOfMonth() + 1;
+                if (workedDays >= Math.ceil(yearMonth.lengthOfMonth() / 2.0)) {
+                    months++;
+                }
+            }
+        }
+        return months;
     }
 
     private Employee resolveHandoverEmployee(Long handoverEmployeeId, Employee leaveEmployee) {

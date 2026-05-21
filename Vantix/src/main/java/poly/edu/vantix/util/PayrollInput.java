@@ -27,6 +27,8 @@ public class PayrollInput {
     // Số ngày nghỉ có lương (phép năm, nghỉ lễ)
     private BigDecimal paidLeaveDays;
 
+    private BigDecimal unpaidLeaveDays;
+
     // Giờ tăng ca các loại
     private BigDecimal overtimeHoursWeekday;
     private BigDecimal overtimeHoursWeekend;

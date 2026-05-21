@@ -35,7 +35,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -207,7 +209,7 @@ public class PayrollService {
     }
 
     /**
-     * Tính lại công thức cho tất cả dòng lương, giữ nguyên dữ liệu HR đã chỉnh tay.
+     * Đồng bộ lại chấm công/nghỉ phép đã duyệt rồi tính lại công thức cho tất cả dòng lương.
      */
     @Transactional
     public PayrollPeriodResponse recalculateAll(Long periodId) {
@@ -216,6 +218,7 @@ public class PayrollService {
 
         List<Payroll> payrolls = payrollRepository.findByPeriod(period.getId(), null, null);
         for (Payroll payroll : payrolls) {
+            autoFillTimesheet(payroll, payroll.getEmployee(), period);
             recalculate(payroll);
             payrollRepository.save(payroll);
         }
@@ -348,23 +351,13 @@ public class PayrollService {
         LocalDate from = period.getStartDate();
         LocalDate to = period.getEndDate();
 
-        // Đếm ngày công thực tế từ attendance (ON_TIME, LATE, EARLY_LEAVE, LATE_AND_EARLY đều tính 1 ngày)
-        List<Attendance> attendances = attendanceRepository.search(from, to, employee.getId());
-        long workedDays = attendances.stream()
-                .filter(a -> a.getStatus() != AttendanceStatus.ABSENT
-                        && a.getStatus() != AttendanceStatus.PENDING
-                        && a.getStatus() != AttendanceStatus.MISSING_CHECKOUT
-                        && a.getCheckInAt() != null
-                        && a.getCheckOutAt() != null)
-                .count();
-        payroll.setActualWorkDays(new BigDecimal(workedDays));
-
-        // Đếm ngày nghỉ có phép/không phép trong kỳ
+        // Đếm ngày nghỉ đã duyệt trong kỳ. Ngày nghỉ không lương không được cộng vào lương ngày công.
         List<LeaveRequest> leaves = leaveRequestRepository
                 .search(employee.getId(), null, LeaveRequestStatus.APPROVED, null, from, to);
 
         BigDecimal paidLeave = BigDecimal.ZERO;
         BigDecimal unpaidLeave = BigDecimal.ZERO;
+        Map<LocalDate, BigDecimal> approvedLeaveByDate = new HashMap<>();
 
         for (LeaveRequest lr : leaves) {
             LocalDate start = lr.getStartDate().isBefore(from) ? from : lr.getStartDate();
@@ -386,8 +379,33 @@ public class PayrollService {
             } else {
                 paidLeave = paidLeave.add(leaveDays);
             }
+
+            BigDecimal leaveUnit = lr.getDayUnit() == LeaveDayUnit.HALF
+                    ? new BigDecimal("0.5")
+                    : BigDecimal.ONE;
+            LocalDate cursor = start;
+            while (!cursor.isAfter(end)) {
+                if (businessCalendarService.isWorkingDate(employee.getId(), cursor)) {
+                    approvedLeaveByDate.merge(cursor, leaveUnit, BigDecimal::add);
+                }
+                cursor = cursor.plusDays(1);
+            }
         }
 
+        // Đếm ngày công thực tế từ attendance, trừ phần ngày đã có đơn nghỉ để tránh trả trùng hoặc không trừ lương.
+        List<Attendance> attendances = attendanceRepository.search(from, to, employee.getId());
+        BigDecimal workedDays = attendances.stream()
+                .filter(a -> a.getStatus() != AttendanceStatus.ABSENT
+                        && a.getStatus() != AttendanceStatus.PENDING
+                        && a.getStatus() != AttendanceStatus.MISSING_CHECKOUT
+                        && a.getCheckInAt() != null
+                        && a.getCheckOutAt() != null)
+                .map(a -> BigDecimal.ONE.subtract(
+                        approvedLeaveByDate.getOrDefault(a.getWorkDate(), BigDecimal.ZERO).min(BigDecimal.ONE)
+                ).max(BigDecimal.ZERO))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        payroll.setActualWorkDays(workedDays);
         payroll.setPaidLeaveDays(paidLeave);
         payroll.setUnpaidLeaveDays(unpaidLeave);
     }
@@ -400,6 +418,7 @@ public class PayrollService {
                 .hoursPerDay(payroll.getContract() != null ? payroll.getContract().getHoursPerDay() : null)
                 .actualWorkDays(payroll.getActualWorkDays())
                 .paidLeaveDays(payroll.getPaidLeaveDays())
+                .unpaidLeaveDays(payroll.getUnpaidLeaveDays())
                 .overtimeHoursWeekday(payroll.getOvertimeHoursWeekday())
                 .overtimeHoursWeekend(payroll.getOvertimeHoursWeekend())
                 .overtimeHoursHoliday(payroll.getOvertimeHoursHoliday())

@@ -171,10 +171,13 @@ public final class VietnamPayrollCalculator {
         BigDecimal standardDays = new BigDecimal(Math.max(input.getStandardWorkDays(), 1));
         BigDecimal actualDays = nz(input.getActualWorkDays());
         BigDecimal paidLeaveDays = nz(input.getPaidLeaveDays());
+        BigDecimal unpaidLeaveDays = nz(input.getUnpaidLeaveDays());
 
         // Lương theo ngày công thực tế + ngày nghỉ có phép
+        BigDecimal payableDays = actualDays.add(paidLeaveDays)
+                .min(standardDays.subtract(unpaidLeaveDays).max(BigDecimal.ZERO));
         BigDecimal salaryByDays = base
-                .multiply(actualDays.add(paidLeaveDays))
+                .multiply(payableDays)
                 .divide(standardDays, 2, RoundingMode.HALF_UP);
 
         // Tiền tăng ca

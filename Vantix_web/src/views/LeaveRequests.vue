@@ -7,7 +7,11 @@ import { useSettingsStore } from '@/stores/settings'
 import {
   LEAVE_STATUSES,
   LEAVE_TYPES,
+  WORK_CONDITIONS,
+  calculateAnnualLeaveEntitlement,
   countLeaveWorkingDays,
+  completeYearsBetween,
+  estimateWorkedMonthsInYear,
   formatISODate,
   getHolidayMap,
   isDateInRange,
@@ -22,6 +26,8 @@ const PERMISSIONS = {
   viewAll: ['LEAVE_REQUEST_VIEW_ALL', 'LEAVE_REQUEST_MANAGE'],
   approve: ['LEAVE_REQUEST_APPROVE', 'LEAVE_REQUEST_MANAGE'],
 }
+
+const MAX_ACTIVE_LEAVE_REQUESTS_PER_YEAR = 12
 
 const auth = useAuthStore()
 const settings = useSettingsStore()
@@ -201,6 +207,37 @@ const myApprovedAnnualDays = computed(() => leaveRequests.value
   .filter(item => isOwnRequest(item) && item.status === 'APPROVED' && item.type === 'ANNUAL')
   .filter(requestIntersectsSelectedYear)
   .reduce((total, item) => total + requestDays(item), 0))
+const myPendingAnnualDays = computed(() => leaveRequests.value
+  .filter(item => isOwnRequest(item) && item.status === 'PENDING' && item.type === 'ANNUAL')
+  .filter(requestIntersectsSelectedYear)
+  .reduce((total, item) => total + requestDays(item), 0))
+const annualEntitlement = computed(() => employeeAnnualEntitlement(currentEmployee.value))
+const selectedAnnualEntitlement = computed(() => employeeAnnualEntitlement(selectedLeaveEmployee.value))
+const remainingAnnualDays = computed(() => (
+  Math.max(0, Math.round((annualEntitlement.value - myApprovedAnnualDays.value - myPendingAnnualDays.value) * 100) / 100)
+))
+const selectedRemainingAnnualDays = computed(() => {
+  const employeeId = selectedLeaveEmployee.value?.id
+  const usedOrPending = leaveRequests.value
+    .filter(item => String(item.employeeId || '') === String(employeeId || ''))
+    .filter(item => ['APPROVED', 'PENDING'].includes(item.status) && item.type === 'ANNUAL')
+    .filter(item => !editingId.value || String(item.id) !== String(editingId.value))
+    .filter(requestIntersectsSelectedYear)
+    .reduce((total, item) => total + requestDays(item), 0)
+
+  return Math.max(0, Math.round((selectedAnnualEntitlement.value - usedOrPending) * 100) / 100)
+})
+
+const selectedActiveRequestCount = computed(() => {
+  const employeeId = selectedLeaveEmployee.value?.id
+
+  return leaveRequests.value
+    .filter(item => String(item.employeeId || '') === String(employeeId || ''))
+    .filter(item => ['APPROVED', 'PENDING'].includes(item.status))
+    .filter(item => !editingId.value || String(item.id) !== String(editingId.value))
+    .filter(requestIntersectsSelectedYear)
+    .length
+})
 
 const formEstimatedDays = computed(() => countLeaveWorkingDays(form, leaveContext.value))
 
@@ -380,6 +417,16 @@ async function saveRequest() {
     return
   }
 
+  if (form.type === 'ANNUAL' && formEstimatedDays.value > selectedRemainingAnnualDays.value) {
+    ElMessage.error(`${settings.t('leave.remainingAnnual')}: ${selectedRemainingAnnualDays.value} ${settings.t('leave.days')}`)
+    return
+  }
+
+  if (selectedActiveRequestCount.value >= MAX_ACTIVE_LEAVE_REQUESTS_PER_YEAR) {
+    ElMessage.error(`Mỗi năm chỉ được tạo tối đa ${MAX_ACTIVE_LEAVE_REQUESTS_PER_YEAR} đơn nghỉ đang chờ duyệt hoặc đã duyệt`)
+    return
+  }
+
   const leaveEmployeePayload = employeePayload(leaveEmployee)
   const payload = requestPayload(leaveEmployeePayload.employeeId)
 
@@ -522,6 +569,18 @@ function employeeLabel(employee) {
   const code = employee.employeeCode ? ` (${employee.employeeCode})` : ''
   const department = employee.departmentName ? ` - ${employee.departmentName}` : ''
   return `${employee.fullName || settings.t('leave.currentEmployee')}${code}${department}`
+}
+
+function employeeAnnualEntitlement(employee = {}) {
+  const baseDays = WORK_CONDITIONS[0].baseDays
+  const serviceYears = completeYearsBetween(employee?.joinDate, `${selectedYear.value}-12-31`)
+  const workedMonths = estimateWorkedMonthsInYear(
+    selectedYear.value,
+    employee?.joinDate,
+    employee?.terminationDate
+  )
+
+  return calculateAnnualLeaveEntitlement({ baseDays, serviceYears, workedMonths }).entitlement
 }
 
 function isOwnRequest(request) {
@@ -688,8 +747,9 @@ function formatDateTime(value) {
           <el-icon><Calendar /></el-icon>
         </div>
         <div class="stat-info">
-          <h3>{{ myApprovedAnnualDays }}</h3>
-          <p>{{ settings.t('leave.myApprovedAnnualDays') }}</p>
+          <h3>{{ annualEntitlement }}</h3>
+          <p>{{ settings.t('leave.annualEntitlement') }}</p>
+          <small>{{ settings.t('leave.remainingAnnual') }}: {{ remainingAnnualDays }}</small>
         </div>
       </div>
     </div>
@@ -853,6 +913,9 @@ function formatDateTime(value) {
             <el-icon><Clock /></el-icon>
             <span>{{ settings.t('leave.estimatedDays') }}:</span>
             <strong>{{ formEstimatedDays }}</strong>
+            <span v-if="form.type === 'ANNUAL'" class="annual-limit">
+              {{ settings.t('leave.remainingAnnual') }}: {{ selectedRemainingAnnualDays }} / {{ selectedAnnualEntitlement }}
+            </span>
           </div>
         </section>
 
@@ -957,6 +1020,13 @@ function formatDateTime(value) {
   color: #4F46E5;
 }
 
+.stat-info small {
+  display: block;
+  margin-top: 3px;
+  color: var(--vx-text-secondary);
+  font-size: var(--vx-font-size-xs);
+}
+
 .request-table-card {
   display: flex;
   flex-direction: column;
@@ -1024,6 +1094,12 @@ function formatDateTime(value) {
   font-size: var(--vx-font-size-xl);
 }
 
+.annual-limit {
+  margin-left: auto;
+  color: var(--vx-text-secondary);
+  font-size: var(--vx-font-size-sm);
+}
+
 @media (max-width: 860px) {
   .request-toolbar,
   .request-filters,
@@ -1034,6 +1110,11 @@ function formatDateTime(value) {
 
   .form-two-cols {
     grid-template-columns: 1fr;
+  }
+
+  .annual-limit {
+    width: 100%;
+    margin-left: 0;
   }
 }
 </style>

@@ -1547,6 +1547,7 @@ public class DataSeeder implements CommandLineRunner {
                 .hoursPerDay(payroll.getContract() != null ? payroll.getContract().getHoursPerDay() : new BigDecimal("8.00"))
                 .actualWorkDays(payroll.getActualWorkDays())
                 .paidLeaveDays(payroll.getPaidLeaveDays())
+                .unpaidLeaveDays(payroll.getUnpaidLeaveDays())
                 .overtimeHoursWeekday(payroll.getOvertimeHoursWeekday())
                 .overtimeHoursWeekend(payroll.getOvertimeHoursWeekend())
                 .overtimeHoursHoliday(payroll.getOvertimeHoursHoliday())
