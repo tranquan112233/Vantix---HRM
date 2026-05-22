@@ -5,6 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
 import ExportActions from '@/components/ExportActions.vue'
+import { isCancelError, showApiError } from '@/utils/errors'
 
 const settings = useSettingsStore()
 const auth = useAuthStore()
@@ -68,18 +69,31 @@ const periodStatusOptions = [
   { value: 'PAID', labelKey: 'payroll.status.PAID', type: 'success' },
   { value: 'CANCELLED', labelKey: 'payroll.status.CANCELLED', type: 'danger' },
 ]
+const reportTotalFields = [
+  'actualWorkDays',
+  'paidLeaveDays',
+  'unpaidLeaveDays',
+  'baseSalary',
+  'insuranceSalary',
+  'workingDaysSalary',
+  'overtimePay',
+  'totalAllowance',
+  'bonus',
+  'commission',
+  'grossIncome',
+  'totalEmployeeInsurance',
+  'personalIncomeTax',
+  'otherDeductions',
+  'netIncome',
+  'employerInsurance',
+  'totalEmployerCost',
+]
 
 const selectedPeriod = computed(() => periods.value.find(p => p.id === selectedPeriodId.value))
+const payrollTotals = computed(() => sumRows(rows.value, reportTotalFields))
+const payrollWarnings = computed(() => rows.value.flatMap(row => rowPayrollWarnings(row)))
 
 const payrollSummary = computed(() => {
-  const totals = rows.value.reduce((acc, row) => {
-    acc.gross += Number(row.grossIncome || 0)
-    acc.net += Number(row.netIncome || 0)
-    acc.employeeInsurance += Number(row.totalEmployeeInsurance || 0)
-    acc.employerCost += Number(row.totalEmployerCost || 0)
-    return acc
-  }, { gross: 0, net: 0, employeeInsurance: 0, employerCost: 0 })
-
   return [
     {
       label: settings.t('payroll.employeeCount'),
@@ -89,25 +103,25 @@ const payrollSummary = computed(() => {
     },
     {
       label: settings.t('payroll.totalGross'),
-      value: formatMoney(totals.gross),
+      value: formatMoney(payrollTotals.value.grossIncome),
       icon: 'Wallet',
       tone: 'info',
     },
     {
       label: settings.t('payroll.totalInsurance'),
-      value: formatMoney(totals.employeeInsurance),
+      value: formatMoney(payrollTotals.value.totalEmployeeInsurance),
       icon: 'Umbrella',
       tone: 'warning',
     },
     {
       label: settings.t('payroll.totalNet'),
-      value: formatMoney(totals.net),
+      value: formatMoney(payrollTotals.value.netIncome),
       icon: 'Money',
       tone: 'success',
     },
     {
       label: settings.t('payroll.totalEmployerCost'),
-      value: formatMoney(totals.employerCost),
+      value: formatMoney(payrollTotals.value.totalEmployerCost),
       icon: 'OfficeBuilding',
       tone: 'danger',
     },
@@ -132,45 +146,6 @@ const payrollReportRows = computed(() => {
 
   if (!mappedRows.length) return []
 
-  const totals = rows.value.reduce((acc, row) => {
-    acc.actualWorkDays += Number(row.actualWorkDays || 0)
-    acc.paidLeaveDays += Number(row.paidLeaveDays || 0)
-    acc.unpaidLeaveDays += Number(row.unpaidLeaveDays || 0)
-    acc.baseSalary += Number(row.baseSalary || 0)
-    acc.insuranceSalary += Number(row.insuranceSalary || 0)
-    acc.workingDaysSalary += Number(row.workingDaysSalary || 0)
-    acc.overtimePay += Number(row.overtimePay || 0)
-    acc.totalAllowance += Number(row.totalAllowance || 0)
-    acc.bonus += Number(row.bonus || 0)
-    acc.commission += Number(row.commission || 0)
-    acc.grossIncome += Number(row.grossIncome || 0)
-    acc.totalEmployeeInsurance += Number(row.totalEmployeeInsurance || 0)
-    acc.personalIncomeTax += Number(row.personalIncomeTax || 0)
-    acc.otherDeductions += Number(row.otherDeductions || 0)
-    acc.netIncome += Number(row.netIncome || 0)
-    acc.employerInsurance += Number(row.employerInsurance || 0)
-    acc.totalEmployerCost += Number(row.totalEmployerCost || 0)
-    return acc
-  }, {
-    actualWorkDays: 0,
-    paidLeaveDays: 0,
-    unpaidLeaveDays: 0,
-    baseSalary: 0,
-    insuranceSalary: 0,
-    workingDaysSalary: 0,
-    overtimePay: 0,
-    totalAllowance: 0,
-    bonus: 0,
-    commission: 0,
-    grossIncome: 0,
-    totalEmployeeInsurance: 0,
-    personalIncomeTax: 0,
-    otherDeductions: 0,
-    netIncome: 0,
-    employerInsurance: 0,
-    totalEmployerCost: 0,
-  })
-
   return [
     ...mappedRows,
     {
@@ -180,7 +155,7 @@ const payrollReportRows = computed(() => {
       positionName: '',
       contractCode: '',
       statusLabel: '',
-      ...totals,
+      ...payrollTotals.value,
     },
   ]
 })
@@ -299,7 +274,7 @@ function openEditPeriod(p) {
 
 async function savePeriod() {
   const valid = await periodFormRef.value.validate().catch(() => false)
-  if (!valid) return
+  if (!valid || !validatePeriodDates()) return
   try {
     if (editingPeriodId.value) {
       await payrollApi.updatePeriod(editingPeriodId.value, periodForm)
@@ -312,7 +287,7 @@ async function savePeriod() {
     periodDialogVisible.value = false
     fetchPeriods()
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || settings.t('common.somethingWrong'))
+    showApiError(e, settings)
   }
 }
 
@@ -327,8 +302,8 @@ async function deletePeriod(p) {
     ElMessage.success(settings.t('common.deleted'))
     if (selectedPeriodId.value === p.id) selectedPeriodId.value = null
     fetchPeriods()
-  } catch {
-    // cancelled
+  } catch (e) {
+    if (!isCancelError(e)) showApiError(e, settings)
   }
 }
 
@@ -341,8 +316,8 @@ async function generateRows() {
     ElMessage.success(settings.t('common.updated'))
     fetchPeriods()
     fetchRows()
-  } catch {
-    // cancelled
+  } catch (e) {
+    if (!isCancelError(e)) showApiError(e, settings)
   }
 }
 
@@ -355,8 +330,8 @@ async function recalculate() {
     ElMessage.success(settings.t('common.updated'))
     fetchPeriods()
     fetchRows()
-  } catch {
-    // cancelled
+  } catch (e) {
+    if (!isCancelError(e)) showApiError(e, settings)
   }
 }
 
@@ -369,8 +344,8 @@ async function approve() {
     ElMessage.success(settings.t('common.updated'))
     fetchPeriods()
     fetchRows()
-  } catch {
-    // cancelled
+  } catch (e) {
+    if (!isCancelError(e)) showApiError(e, settings)
   }
 }
 
@@ -383,8 +358,8 @@ async function markPaid() {
     ElMessage.success(settings.t('common.updated'))
     fetchPeriods()
     fetchRows()
-  } catch {
-    // cancelled
+  } catch (e) {
+    if (!isCancelError(e)) showApiError(e, settings)
   }
 }
 
@@ -413,13 +388,14 @@ function openAdjust(row) {
 }
 
 async function submitAdjust() {
+  if (!validateAdjustForm()) return
   try {
     await payrollApi.adjust(adjustRow.value.id, adjustForm)
     ElMessage.success(settings.t('common.updated'))
     adjustVisible.value = false
     fetchRows()
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || settings.t('common.somethingWrong'))
+    showApiError(e, settings)
   }
 }
 
@@ -438,13 +414,15 @@ function periodStatusLabel(v) {
 }
 
 function formatMoney(v) {
-  if (v == null) return '-'
-  return new Intl.NumberFormat('vi-VN').format(Number(v))
+  if (v == null || v === '') return '-'
+  const value = Number(v)
+  return Number.isFinite(value) ? new Intl.NumberFormat('vi-VN').format(value) : '-'
 }
 
 function toNumber(v) {
   if (v == null || v === '') return 0
-  return Number(v)
+  const value = Number(v)
+  return Number.isFinite(value) ? value : 0
 }
 
 function displayValue(v) {
@@ -465,6 +443,67 @@ function canMarkPaid(p) {
 
 function canAdjust(p) {
   return p && p.status !== 'PAID' && p.status !== 'CANCELLED'
+}
+
+function sumRows(sourceRows, fields) {
+  return sourceRows.reduce((totals, row) => {
+    fields.forEach(field => {
+      totals[field] += toNumber(row[field])
+    })
+    return totals
+  }, Object.fromEntries(fields.map(field => [field, 0])))
+}
+
+function roundMoney(value) {
+  return Math.round(toNumber(value))
+}
+
+function moneyMismatch(actual, expected) {
+  return Math.abs(roundMoney(actual) - roundMoney(expected)) > 1
+}
+
+function expectedNetIncome(row) {
+  return toNumber(row.grossIncome)
+    - toNumber(row.totalEmployeeInsurance)
+    - toNumber(row.personalIncomeTax)
+    - toNumber(row.otherDeductions)
+}
+
+function expectedEmployerCost(row) {
+  return toNumber(row.grossIncome) + toNumber(row.employerInsurance)
+}
+
+function rowPayrollWarnings(row) {
+  const warnings = []
+  const name = row.employeeName || row.employeeCode || '-'
+
+  if (moneyMismatch(row.netIncome, expectedNetIncome(row))) {
+    warnings.push(settings.t('payroll.warningNetMismatch', { employee: name }))
+  }
+  if (moneyMismatch(row.totalEmployerCost, expectedEmployerCost(row))) {
+    warnings.push(settings.t('payroll.warningEmployerCostMismatch', { employee: name }))
+  }
+
+  return warnings
+}
+
+function validatePeriodDates() {
+  if (periodForm.startDate && periodForm.endDate && periodForm.startDate > periodForm.endDate) {
+    ElMessage.error(settings.t('payroll.invalidPeriodRange'))
+    return false
+  }
+  return true
+}
+
+function validateAdjustForm() {
+  const standardWorkDays = toNumber(selectedPeriod.value?.standardWorkDays)
+  const paidDays = toNumber(adjustForm.actualWorkDays) + toNumber(adjustForm.paidLeaveDays)
+
+  if (standardWorkDays > 0 && paidDays > standardWorkDays) {
+    ElMessage.error(settings.t('payroll.invalidPaidDays'))
+    return false
+  }
+  return true
 }
 </script>
 
@@ -605,6 +644,21 @@ function canAdjust(p) {
             </div>
           </div>
         </div>
+
+        <el-alert
+          v-if="payrollWarnings.length"
+          type="warning"
+          show-icon
+          :closable="false"
+          class="payroll-warning"
+        >
+          <template #title>
+            {{ settings.t('payroll.warningTitle', { count: payrollWarnings.length }) }}
+          </template>
+          <div class="payroll-warning-list">
+            <div v-for="warning in payrollWarnings.slice(0, 3)" :key="warning">{{ warning }}</div>
+          </div>
+        </el-alert>
 
         <div class="rows-filters">
           <el-input
@@ -754,7 +808,7 @@ function canAdjust(p) {
     >
       <div v-if="adjustRow" class="adjust-header">
         <strong>{{ adjustRow.employeeName }}</strong>
-        <span class="adjust-subtitle">{{ adjustRow.employeeCode }} · {{ adjustRow.departmentName }}</span>
+        <span class="adjust-subtitle">{{ adjustRow.employeeCode }} &middot; {{ adjustRow.departmentName }}</span>
       </div>
       <el-form :model="adjustForm" label-position="top">
         <section class="form-section">
@@ -867,7 +921,7 @@ function canAdjust(p) {
           <el-icon class="detail-icon"><Money /></el-icon>
           <div class="detail-title">
             <h3>{{ selectedRow.employeeName }}</h3>
-            <p>{{ selectedRow.employeeCode }} · {{ selectedRow.departmentName || '-' }}</p>
+            <p>{{ selectedRow.employeeCode }} &middot; {{ selectedRow.departmentName || '-' }}</p>
           </div>
         </div>
 
@@ -884,6 +938,17 @@ function canAdjust(p) {
         </el-descriptions>
 
         <h4 class="detail-section-title">{{ settings.t('payroll.results') }}</h4>
+        <el-alert
+          v-if="rowPayrollWarnings(selectedRow).length"
+          type="warning"
+          show-icon
+          :closable="false"
+        >
+          <template #title>
+            {{ settings.t('payroll.warningTitle', { count: rowPayrollWarnings(selectedRow).length }) }}
+          </template>
+          <div v-for="warning in rowPayrollWarnings(selectedRow)" :key="warning">{{ warning }}</div>
+        </el-alert>
         <el-descriptions :column="1" border>
           <el-descriptions-item :label="settings.t('payroll.workingDaysSalary')">{{ formatMoney(selectedRow.workingDaysSalary) }}</el-descriptions-item>
           <el-descriptions-item :label="settings.t('payroll.overtimePay')">{{ formatMoney(selectedRow.overtimePay) }}</el-descriptions-item>
@@ -1060,6 +1125,17 @@ function canAdjust(p) {
   display: grid;
   grid-template-columns: repeat(5, minmax(140px, 1fr));
   gap: 12px;
+}
+
+.payroll-warning {
+  align-items: flex-start;
+}
+
+.payroll-warning-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.45;
 }
 
 .summary-item {

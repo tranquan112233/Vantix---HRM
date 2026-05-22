@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { payrollSettingApi } from '@/api'
 import { useSettingsStore } from '@/stores/settings'
+import { isCancelError, showApiError } from '@/utils/errors'
 
 const settings = useSettingsStore()
 const loading = ref(false)
@@ -42,7 +43,7 @@ async function fetchSettings() {
     const res = await payrollSettingApi.get()
     Object.assign(form, normalize(res.data))
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || settings.t('common.loadFailed'))
+    showApiError(e, settings, 'common.loadFailed')
   } finally {
     loading.value = false
   }
@@ -55,7 +56,7 @@ async function saveSettings() {
     Object.assign(form, normalize(res.data))
     ElMessage.success(settings.t('settings.saved'))
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || settings.t('common.somethingWrong'))
+    showApiError(e, settings)
   } finally {
     saving.value = false
   }
@@ -71,8 +72,8 @@ async function resetSettings() {
     const res = await payrollSettingApi.reset()
     Object.assign(form, normalize(res.data))
     ElMessage.success(settings.t('settings.resetDone'))
-  } catch {
-    // cancelled
+  } catch (e) {
+    if (!isCancelError(e)) showApiError(e, settings)
   }
 }
 

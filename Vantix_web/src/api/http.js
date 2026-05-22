@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
+import { useSettingsStore } from '@/stores/settings'
 
 const http = axios.create({
   baseURL: '/api',
@@ -21,6 +22,7 @@ http.interceptors.response.use(
   (error) => {
     const status = error.response?.status
     const requestUrl = error.config?.url || ''
+    const settings = useSettingsStore()
     if (status === 401) {
       localStorage.removeItem('vx_token')
       localStorage.removeItem('vx_user')
@@ -28,12 +30,15 @@ http.interceptors.response.use(
       sessionStorage.removeItem('vx_user')
       if (!requestUrl.includes('/auth/login') && router.currentRoute.value.path !== '/login') {
         router.push('/login')
-        ElMessage.error('Your session has expired')
+        ElMessage.error(settings.t('common.sessionExpired'))
+        error.vxHandled = true
       }
     } else if (status === 403) {
-      ElMessage.error('You do not have permission to perform this action')
+      ElMessage.error(settings.t('common.forbidden'))
+      error.vxHandled = true
     } else if (status >= 500) {
-      ElMessage.error('System error. Please try again')
+      ElMessage.error(settings.t('common.systemError'))
+      error.vxHandled = true
     }
     return Promise.reject(error)
   }
