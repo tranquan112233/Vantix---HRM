@@ -19,6 +19,9 @@ export const useAuthStore = defineStore('auth', () => {
       username: data.username,
       email: data.email,
       role: data.role ?? data.roleName ?? '',
+      employeeId: data.employeeId ?? null,
+      departmentId: data.departmentId ?? null,
+      departmentName: data.departmentName ?? '',
       permissions: Array.isArray(data.permissions) ? data.permissions : [],
     }
   }

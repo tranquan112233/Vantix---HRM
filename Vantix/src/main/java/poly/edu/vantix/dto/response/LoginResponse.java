@@ -39,6 +39,12 @@ public class LoginResponse {
 
         private String role;
 
+        private Long employeeId;
+
+        private Long departmentId;
+
+        private String departmentName;
+
         private List<String> permissions;
     }
 }

@@ -19,6 +19,7 @@ public class WorkScheduleResponse {
     private Long employeeId;
     private String employeeCode;
     private String employeeName;
+    private Long departmentId;
     private String departmentName;
 
     private Long shiftId;
@@ -47,6 +48,9 @@ public class WorkScheduleResponse {
             builder.employeeId(s.getEmployee().getId())
                     .employeeCode(s.getEmployee().getEmployeeCode())
                     .employeeName(s.getEmployee().getFullName())
+                    .departmentId(s.getEmployee().getDepartment() != null
+                            ? s.getEmployee().getDepartment().getId()
+                            : null)
                     .departmentName(s.getEmployee().getDepartment() != null
                             ? s.getEmployee().getDepartment().getName()
                             : null);

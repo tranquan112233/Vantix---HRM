@@ -45,6 +45,8 @@ public interface PayrollRepository extends JpaRepository<Payroll, Long> {
 
     Optional<Payroll> findByPeriodIdAndEmployeeIdAndDeletedFalse(Long periodId, Long employeeId);
 
+    Optional<Payroll> findByPeriodIdAndEmployeeId(Long periodId, Long employeeId);
+
     long countByPeriodIdAndDeletedFalse(Long periodId);
 
     long countByContractIdAndDeletedFalse(Long contractId);

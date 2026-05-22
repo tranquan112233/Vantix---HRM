@@ -18,6 +18,7 @@ import poly.edu.vantix.entity.User;
 import poly.edu.vantix.entity.enums.UserStatus;
 import poly.edu.vantix.exception.BusinessException;
 import poly.edu.vantix.exception.UnauthorizedException;
+import poly.edu.vantix.repository.EmployeeRepository;
 import poly.edu.vantix.repository.PasswordResetOtpRepository;
 import poly.edu.vantix.repository.UserRepository;
 import poly.edu.vantix.security.JwtService;
@@ -35,6 +36,7 @@ public class AuthService {
     private static final int MAX_OTP_ATTEMPTS = 5;
 
     private final UserRepository userRepository;
+    private final EmployeeRepository employeeRepository;
     private final PasswordResetOtpRepository passwordResetOtpRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -46,12 +48,14 @@ public class AuthService {
 
     public AuthService(
             UserRepository userRepository,
+            EmployeeRepository employeeRepository,
             PasswordResetOtpRepository passwordResetOtpRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
             MailService mailService
     ) {
         this.userRepository = userRepository;
+        this.employeeRepository = employeeRepository;
         this.passwordResetOtpRepository = passwordResetOtpRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -191,6 +195,7 @@ public class AuthService {
     private LoginResponse.UserInfo buildUserInfo(User user) {
         Role role = user.getRole();
         boolean hasActiveRole = role != null && !Boolean.TRUE.equals(role.getDeleted());
+        var employee = employeeRepository.findActiveByUserId(user.getId()).orElse(null);
         List<String> permissions = !hasActiveRole || role.getPermissions() == null
                 ? List.of()
                 : role.getPermissions().stream()
@@ -204,6 +209,9 @@ public class AuthService {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .role(hasActiveRole ? role.getName() : null)
+                .employeeId(employee != null ? employee.getId() : null)
+                .departmentId(employee != null && employee.getDepartment() != null ? employee.getDepartment().getId() : null)
+                .departmentName(employee != null && employee.getDepartment() != null ? employee.getDepartment().getName() : null)
                 .permissions(permissions)
                 .build();
     }

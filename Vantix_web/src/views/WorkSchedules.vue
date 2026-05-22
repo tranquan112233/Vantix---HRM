@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   workScheduleApi,
@@ -57,6 +57,10 @@ const canViewAll = computed(() => auth.hasPermission('SCHEDULE_VIEW_ALL'))
 const canCreate = computed(() => auth.hasPermission('SCHEDULE_CREATE'))
 const canUpdate = computed(() => auth.hasPermission('SCHEDULE_UPDATE'))
 const canDelete = computed(() => auth.hasPermission('SCHEDULE_DELETE'))
+const isScheduleAdmin = computed(() => String(auth.user?.role || '').toLowerCase() === 'admin')
+const hasScheduleScope = computed(() => !isScheduleAdmin.value && (canViewAll.value || canCreate.value || canUpdate.value || canDelete.value))
+const hasScheduleManagePermission = computed(() => canCreate.value || canUpdate.value || canDelete.value)
+const currentScheduleDepartmentId = computed(() => auth.user?.departmentId ?? null)
 
 const canShiftView = computed(() => auth.hasPermission('SHIFT_VIEW'))
 const canShiftCreate = computed(() => auth.hasPermission('SHIFT_CREATE'))
@@ -68,6 +72,18 @@ const canLocCreate = computed(() => auth.hasPermission('WORK_LOCATION_CREATE'))
 const canLocUpdate = computed(() => auth.hasPermission('WORK_LOCATION_UPDATE'))
 const canLocDelete = computed(() => auth.hasPermission('WORK_LOCATION_DELETE'))
 
+const schedulableEmployees = computed(() => {
+  if (!hasScheduleScope.value) return employees.value
+  if (!currentScheduleDepartmentId.value) return []
+  return employees.value.filter(e => String(e.departmentId || '') === String(currentScheduleDepartmentId.value))
+})
+
+const schedulableDepartments = computed(() => {
+  if (!hasScheduleScope.value) return departments.value
+  if (!currentScheduleDepartmentId.value) return []
+  return departments.value.filter(d => String(d.id || '') === String(currentScheduleDepartmentId.value))
+})
+
 function toISODate(d) {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -76,9 +92,9 @@ function toISODate(d) {
 }
 
 function defaultRange() {
-  const start = new Date()
-  const end = new Date()
-  end.setDate(end.getDate() + 30)
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth(), 1)
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
   return [toISODate(start), toISODate(end)]
 }
 
@@ -106,13 +122,14 @@ const bulkDialog = reactive({
   visible: false,
   submitting: false,
   targetMode: 'EMPLOYEES',
+  lastTemplate: '',
   form: {
     employeeIds: [],
     departmentIds: [],
     shiftId: null,
     locationId: null,
-    fromDate: toISODate(new Date()),
-    toDate: toISODate(new Date(Date.now() + 6 * 86400000)),
+    fromDate: defaultRange()[0],
+    toDate: defaultRange()[1],
     daysOfWeek: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'],
     skipExisting: true,
     skipPublicHolidays: true,
@@ -137,30 +154,47 @@ const weekdayOptions = computed(() => [
   { value: 'SUNDAY', label: settings.t('weekday.SUNDAY') },
 ])
 
+function bulkNoteTemplate(dateValue) {
+  const date = dateValue ? new Date(dateValue) : new Date()
+  const month = Number.isNaN(date.getTime()) ? new Date().getMonth() + 1 : date.getMonth() + 1
+  return `Lịch làm việc tháng ${month}`
+}
+
+function syncBulkNoteTemplate() {
+  const nextTemplate = bulkNoteTemplate(bulkDialog.form.fromDate)
+  if (!bulkDialog.form.note || bulkDialog.form.note === bulkDialog.lastTemplate) {
+    bulkDialog.form.note = nextTemplate
+  }
+  bulkDialog.lastTemplate = nextTemplate
+}
+
 function openBulkCreate() {
   loadScheduleLookups()
+  const [fromDate, toDate] = defaultRange()
   bulkDialog.targetMode = 'EMPLOYEES'
   Object.assign(bulkDialog.form, {
     employeeIds: [],
     departmentIds: [],
     shiftId: null,
     locationId: null,
-    fromDate: toISODate(new Date()),
-    toDate: toISODate(new Date(Date.now() + 6 * 86400000)),
+    fromDate,
+    toDate,
     daysOfWeek: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'],
     skipExisting: true,
     skipPublicHolidays: true,
     note: '',
   })
+  bulkDialog.lastTemplate = ''
+  syncBulkNoteTemplate()
   bulkDialog.visible = true
 }
 
 function selectAllEmployees() {
-  bulkDialog.form.employeeIds = employees.value.map(e => e.id)
+  bulkDialog.form.employeeIds = schedulableEmployees.value.map(e => e.id)
 }
 
 function selectAllDepartments() {
-  bulkDialog.form.departmentIds = departments.value.map(d => d.id)
+  bulkDialog.form.departmentIds = schedulableDepartments.value.map(d => d.id)
 }
 
 async function submitBulk() {
@@ -330,10 +364,14 @@ function resetFilters() {
 
 // ---- Schedule CRUD ----
 function openScheduleCreate() {
+  if (!schedulableEmployees.value.length) {
+    ElMessage.error(settings.t('common.noPermission'))
+    return
+  }
   loadScheduleLookups()
   scheduleDialog.editingId = null
   Object.assign(scheduleDialog.form, {
-    employeeId: null,
+    employeeId: schedulableEmployees.value.length === 1 ? schedulableEmployees.value[0].id : null,
     shiftId: null,
     locationId: null,
     workDate: toISODate(new Date()),
@@ -343,6 +381,10 @@ function openScheduleCreate() {
 }
 
 function openScheduleEdit(row) {
+  if (!canManageScheduleRow(row)) {
+    ElMessage.error(settings.t('common.noPermission'))
+    return
+  }
   loadScheduleLookups()
   scheduleDialog.editingId = row.id
   Object.assign(scheduleDialog.form, {
@@ -354,6 +396,20 @@ function openScheduleEdit(row) {
   })
   scheduleDialog.visible = true
 }
+
+function canManageScheduleRow(row) {
+  if (!hasScheduleManagePermission.value) return false
+  if (isScheduleAdmin.value) return true
+  if (!currentScheduleDepartmentId.value) return false
+  return String(row.departmentId || '') === String(currentScheduleDepartmentId.value)
+}
+
+watch(
+  () => bulkDialog.form.fromDate,
+  () => {
+    syncBulkNoteTemplate()
+  }
+)
 
 async function saveSchedule() {
   const valid = await scheduleFormRef.value.validate().catch(() => false)
@@ -374,6 +430,10 @@ async function saveSchedule() {
 }
 
 async function deleteSchedule(row) {
+  if (!canManageScheduleRow(row)) {
+    ElMessage.error(settings.t('common.noPermission'))
+    return
+  }
   try {
     await ElMessageBox.confirm(
       `${settings.t('schedule.deleteConfirm')} (${row.employeeName} - ${row.workDate})?`,
@@ -609,10 +669,14 @@ function setViewMode(mode) {
 
 function openCalendarCreate(cell) {
   if (!canCreate.value) return
+  if (!schedulableEmployees.value.length) {
+    ElMessage.error(settings.t('common.noPermission'))
+    return
+  }
   loadScheduleLookups()
   scheduleDialog.editingId = null
   Object.assign(scheduleDialog.form, {
-    employeeId: null,
+    employeeId: schedulableEmployees.value.length === 1 ? schedulableEmployees.value[0].id : null,
     shiftId: null,
     locationId: null,
     workDate: cell.iso,
@@ -651,13 +715,13 @@ function cellChipType(item) {
             <el-select v-if="canViewAll" v-model="filters.employeeId" filterable clearable
               :placeholder="settings.t('attendance.allEmployees')" style="width:220px"
               @change="loadSchedules">
-              <el-option v-for="e in employees" :key="e.id"
+              <el-option v-for="e in schedulableEmployees" :key="e.id"
                 :label="`${e.fullName} (${e.employeeCode})`" :value="e.id" />
             </el-select>
             <el-select v-if="canViewAll" v-model="filters.departmentId" filterable clearable
               :placeholder="settings.t('employee.department')" style="width:200px"
               @change="loadSchedules">
-              <el-option v-for="d in departments" :key="d.id" :label="d.name" :value="d.id" />
+              <el-option v-for="d in schedulableDepartments" :key="d.id" :label="d.name" :value="d.id" />
             </el-select>
             <el-button @click="resetFilters">
               <el-icon><RefreshLeft /></el-icon> {{ settings.t('common.reset') }}
@@ -705,10 +769,10 @@ function cellChipType(item) {
             <el-table-column :label="settings.t('common.description')" min-width="160" prop="note" />
             <el-table-column :label="settings.t('common.actions')" width="120" fixed="right">
               <template #default="{ row }">
-                <el-button v-if="canUpdate" text type="primary" size="small" @click="openScheduleEdit(row)">
+                <el-button v-if="canUpdate && canManageScheduleRow(row)" text type="primary" size="small" @click="openScheduleEdit(row)">
                   <el-icon><Edit /></el-icon>
                 </el-button>
-                <el-button v-if="canDelete" text type="danger" size="small" @click="deleteSchedule(row)">
+                <el-button v-if="canDelete && canManageScheduleRow(row)" text type="danger" size="small" @click="deleteSchedule(row)">
                   <el-icon><Delete /></el-icon>
                 </el-button>
               </template>
@@ -761,7 +825,7 @@ function cellChipType(item) {
                 'is-other-month': !cell.inMonth,
                 'is-today': cell.isToday,
                 'is-weekend': cell.isWeekend,
-                'is-clickable': canCreate,
+                'is-clickable': canCreate && !!schedulableEmployees.length,
               }"
               @click="openCalendarCreate(cell)"
             >
@@ -775,7 +839,7 @@ function cellChipType(item) {
                   :key="item.id"
                   class="calendar-chip"
                   :class="`chip-${cellChipType(item)}`"
-                  @click.stop="canUpdate ? openScheduleEdit(item) : null"
+                  @click.stop="canUpdate && canManageScheduleRow(item) ? openScheduleEdit(item) : null"
                 >
                   <span class="chip-time">{{ formatTime(item.shiftStart) }}</span>
                   <span class="chip-name">{{ item.employeeName || item.shiftName }}</span>
@@ -892,7 +956,7 @@ function cellChipType(item) {
           <el-form-item prop="employeeId">
             <el-select v-model="scheduleDialog.form.employeeId" filterable style="width:100%"
               :placeholder="settings.t('department.selectEmployee')">
-              <el-option v-for="e in employees" :key="e.id"
+              <el-option v-for="e in schedulableEmployees" :key="e.id"
                 :label="`${e.fullName} (${e.employeeCode})`" :value="e.id" />
             </el-select>
           </el-form-item>
@@ -1002,7 +1066,7 @@ function cellChipType(item) {
               <el-select v-model="bulkDialog.form.employeeIds" multiple filterable collapse-tags
                 collapse-tags-tooltip :placeholder="settings.t('department.selectEmployee')"
                 style="flex:1">
-                <el-option v-for="e in employees" :key="e.id"
+                <el-option v-for="e in schedulableEmployees" :key="e.id"
                   :label="`${e.fullName} (${e.employeeCode})`" :value="e.id" />
               </el-select>
               <el-button size="small" @click="selectAllEmployees">
@@ -1016,7 +1080,7 @@ function cellChipType(item) {
               <el-select v-model="bulkDialog.form.departmentIds" multiple filterable collapse-tags
                 collapse-tags-tooltip :placeholder="settings.t('employee.selectDepartment')"
                 style="flex:1">
-                <el-option v-for="d in departments" :key="d.id" :label="d.name" :value="d.id" />
+                <el-option v-for="d in schedulableDepartments" :key="d.id" :label="d.name" :value="d.id" />
               </el-select>
               <el-button size="small" @click="selectAllDepartments">
                 {{ settings.t('role.selectAll') }}

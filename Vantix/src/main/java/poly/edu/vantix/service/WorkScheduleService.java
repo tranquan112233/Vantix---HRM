@@ -49,8 +49,17 @@ public class WorkScheduleService {
     }
 
     @Transactional(readOnly = true)
-    public List<WorkScheduleResponse> search(LocalDate from, LocalDate to, Long employeeId, Long departmentId) {
-        return scheduleRepository.search(from, to, employeeId, departmentId).stream()
+    public List<WorkScheduleResponse> search(Employee actor, LocalDate from, LocalDate to, Long employeeId, Long departmentId) {
+        Long scopedDepartmentId = resolveScopedDepartmentId(actor, departmentId);
+        Long scopedEmployeeId = employeeId;
+        if (employeeId != null) {
+            Employee employee = employeeRepository.findActiveById(employeeId)
+                    .orElseThrow(() -> new BusinessException("employeeId", "Employee does not exist"));
+            ensureSchedulableByActor(actor, employee);
+            scopedEmployeeId = employee.getId();
+        }
+
+        return scheduleRepository.search(from, to, scopedEmployeeId, scopedDepartmentId).stream()
                 .map(WorkScheduleResponse::fromEntity)
                 .toList();
     }
@@ -62,21 +71,22 @@ public class WorkScheduleService {
     }
 
     @Transactional
-    public WorkScheduleResponse create(WorkScheduleRequest request) {
+    public WorkScheduleResponse create(Employee actor, WorkScheduleRequest request) {
         if (scheduleRepository.existsByEmployeeIdAndWorkDateAndDeletedFalse(
                 request.getEmployeeId(), request.getWorkDate())) {
             throw new BusinessException("employeeId",
                     "Employee already has a schedule on this date");
         }
         WorkSchedule schedule = new WorkSchedule();
-        applyRequest(request, schedule);
+        applyRequest(actor, request, schedule);
         return WorkScheduleResponse.fromEntity(scheduleRepository.save(schedule));
     }
 
     @Transactional
-    public WorkScheduleResponse update(Long id, WorkScheduleRequest request) {
+    public WorkScheduleResponse update(Employee actor, Long id, WorkScheduleRequest request) {
         WorkSchedule schedule = scheduleRepository.findActiveById(id)
                 .orElseThrow(() -> new BusinessException("Schedule does not exist"));
+        ensureSchedulableByActor(actor, schedule.getEmployee());
 
         boolean changed = !schedule.getEmployee().getId().equals(request.getEmployeeId())
                 || !schedule.getWorkDate().equals(request.getWorkDate());
@@ -85,12 +95,12 @@ public class WorkScheduleService {
             throw new BusinessException("employeeId",
                     "Employee already has a schedule on this date");
         }
-        applyRequest(request, schedule);
+        applyRequest(actor, request, schedule);
         return WorkScheduleResponse.fromEntity(scheduleRepository.save(schedule));
     }
 
     @Transactional
-    public WorkScheduleBulkResponse bulkCreate(WorkScheduleBulkRequest request) {
+    public WorkScheduleBulkResponse bulkCreate(Employee actor, WorkScheduleBulkRequest request) {
         if (request.getFromDate().isAfter(request.getToDate())) {
             throw new BusinessException("toDate", "End date must be on or after start date");
         }
@@ -107,12 +117,17 @@ public class WorkScheduleService {
         Map<Long, Employee> employeeMap = new LinkedHashMap<>();
         if (request.getEmployeeIds() != null) {
             for (Long id : request.getEmployeeIds()) {
-                employeeRepository.findActiveById(id).ifPresent(e -> employeeMap.put(e.getId(), e));
+                employeeRepository.findActiveById(id).ifPresent(e -> {
+                    ensureSchedulableByActor(actor, e);
+                    employeeMap.put(e.getId(), e);
+                });
             }
         }
         if (request.getDepartmentIds() != null) {
             for (Long deptId : request.getDepartmentIds()) {
+                ensureDepartmentScope(actor, deptId);
                 for (Employee e : employeeRepository.findActiveByDepartmentId(deptId)) {
+                    ensureSchedulableByActor(actor, e);
                     employeeMap.putIfAbsent(e.getId(), e);
                 }
             }
@@ -174,17 +189,19 @@ public class WorkScheduleService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(Employee actor, Long id) {
         WorkSchedule schedule = scheduleRepository.findActiveById(id)
                 .orElseThrow(() -> new BusinessException("Schedule does not exist"));
+        ensureSchedulableByActor(actor, schedule.getEmployee());
         schedule.setDeleted(true);
         schedule.setDeletedAt(LocalDateTime.now());
         scheduleRepository.save(schedule);
     }
 
-    private void applyRequest(WorkScheduleRequest request, WorkSchedule schedule) {
+    private void applyRequest(Employee actor, WorkScheduleRequest request, WorkSchedule schedule) {
         Employee employee = employeeRepository.findActiveById(request.getEmployeeId())
                 .orElseThrow(() -> new BusinessException("employeeId", "Employee does not exist"));
+        ensureSchedulableByActor(actor, employee);
         Shift shift = shiftRepository.findActiveById(request.getShiftId())
                 .orElseThrow(() -> new BusinessException("shiftId", "Shift does not exist"));
 
@@ -199,5 +216,54 @@ public class WorkScheduleService {
         schedule.setLocation(location);
         schedule.setWorkDate(request.getWorkDate());
         schedule.setNote(request.getNote());
+    }
+
+    private void ensureDepartmentScope(Employee actor, Long departmentId) {
+        if (isAdmin(actor)) {
+            return;
+        }
+        Long actorDepartmentId = actor != null && actor.getDepartment() != null ? actor.getDepartment().getId() : null;
+        if (actorDepartmentId == null) {
+            throw new BusinessException("Current employee is not assigned to a department");
+        }
+        if (departmentId == null || !actorDepartmentId.equals(departmentId)) {
+            throw new BusinessException("departmentIds", "You can only manage schedules for employees in your department");
+        }
+    }
+
+    private void ensureSchedulableByActor(Employee actor, Employee target) {
+        if (isAdmin(actor)) {
+            return;
+        }
+        Long actorDepartmentId = actor != null && actor.getDepartment() != null ? actor.getDepartment().getId() : null;
+        if (actorDepartmentId == null) {
+            throw new BusinessException("Current employee is not assigned to a department");
+        }
+
+        Long targetDepartmentId = target != null && target.getDepartment() != null ? target.getDepartment().getId() : null;
+        if (!actorDepartmentId.equals(targetDepartmentId)) {
+            throw new BusinessException("employeeId", "You can only manage schedules for employees in your department");
+        }
+    }
+
+    private Long resolveScopedDepartmentId(Employee actor, Long requestedDepartmentId) {
+        if (isAdmin(actor)) {
+            return requestedDepartmentId;
+        }
+        Long actorDepartmentId = actor != null && actor.getDepartment() != null ? actor.getDepartment().getId() : null;
+        if (actorDepartmentId == null) {
+            throw new BusinessException("Current employee is not assigned to a department");
+        }
+        if (requestedDepartmentId != null && !actorDepartmentId.equals(requestedDepartmentId)) {
+            throw new BusinessException("departmentId", "You can only view schedules for employees in your department");
+        }
+        return actorDepartmentId;
+    }
+
+    private boolean isAdmin(Employee actor) {
+        return actor != null
+                && actor.getUser() != null
+                && actor.getUser().getRole() != null
+                && "Admin".equalsIgnoreCase(actor.getUser().getRole().getName());
     }
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { payrollApi, departmentApi } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useSettingsStore } from '@/stores/settings'
@@ -23,12 +23,27 @@ const filterYear = ref(null)
 const periodDialogVisible = ref(false)
 const editingPeriodId = ref(null)
 const periodFormRef = ref(null)
+function monthDateRange(year, month) {
+  const start = new Date(year, month - 1, 1)
+  const end = new Date(year, month, 0)
+  const toIso = (date) => {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+  return {
+    startDate: toIso(start),
+    endDate: toIso(end),
+  }
+}
+const currentMonthRange = monthDateRange(new Date().getFullYear(), new Date().getMonth() + 1)
 const periodDefaultForm = {
   year: new Date().getFullYear(),
   month: new Date().getMonth() + 1,
   standardWorkDays: 26,
-  startDate: '',
-  endDate: '',
+  startDate: currentMonthRange.startDate,
+  endDate: currentMonthRange.endDate,
   note: '',
 }
 const periodForm = reactive({ ...periodDefaultForm })
@@ -197,6 +212,16 @@ onMounted(() => {
   loadDepartments()
 })
 
+watch(
+  () => [periodForm.year, periodForm.month, editingPeriodId.value],
+  ([year, month, editingId]) => {
+    if (editingId || !year || !month) return
+    const range = monthDateRange(year, month)
+    periodForm.startDate = range.startDate
+    periodForm.endDate = range.endDate
+  }
+)
+
 async function loadDepartments() {
   if (!auth.hasPermission('DEPARTMENT_VIEW')) return
   try {
@@ -256,6 +281,9 @@ function selectPeriod(p) {
 function openCreatePeriod() {
   Object.assign(periodForm, periodDefaultForm)
   editingPeriodId.value = null
+  const range = monthDateRange(periodForm.year, periodForm.month)
+  periodForm.startDate = range.startDate
+  periodForm.endDate = range.endDate
   periodDialogVisible.value = true
 }
 
@@ -441,8 +469,20 @@ function canMarkPaid(p) {
   return p && p.status === 'APPROVED'
 }
 
-function canAdjust(p) {
-  return p && p.status !== 'PAID' && p.status !== 'CANCELLED'
+function canEditPeriod(p) {
+  return p && p.status !== 'APPROVED' && p.status !== 'PAID' && p.status !== 'CANCELLED'
+}
+
+function canRecalculate(p) {
+  return p
+    && p.status !== 'APPROVED'
+    && p.status !== 'PAID'
+    && p.status !== 'CANCELLED'
+    && rows.value.length > 0
+}
+
+function canDeletePeriod(p) {
+  return p && p.status !== 'PAID'
 }
 
 function sumRows(sourceRows, fields) {
@@ -550,7 +590,7 @@ function validateAdjustForm() {
           </div>
           <div class="period-item-actions">
             <el-button
-              v-if="auth.hasPermission('PAYROLL_UPDATE') || auth.hasPermission('PAYROLL_MANAGE')"
+              v-if="(auth.hasPermission('PAYROLL_UPDATE') || auth.hasPermission('PAYROLL_MANAGE')) && canEditPeriod(p)"
               text
               size="small"
               @click.stop="openEditPeriod(p)"
@@ -558,7 +598,7 @@ function validateAdjustForm() {
               <el-icon><Edit /></el-icon>
             </el-button>
             <el-button
-              v-if="auth.hasPermission('PAYROLL_DELETE') || auth.hasPermission('PAYROLL_MANAGE')"
+              v-if="(auth.hasPermission('PAYROLL_DELETE') || auth.hasPermission('PAYROLL_MANAGE')) && canDeletePeriod(p)"
               text
               type="danger"
               size="small"
@@ -606,7 +646,7 @@ function validateAdjustForm() {
               {{ settings.t('payroll.generate') }}
             </el-button>
             <el-button
-              v-if="(auth.hasPermission('PAYROLL_UPDATE') || auth.hasPermission('PAYROLL_MANAGE')) && canAdjust(selectedPeriod)"
+              v-if="(auth.hasPermission('PAYROLL_UPDATE') || auth.hasPermission('PAYROLL_MANAGE')) && canRecalculate(selectedPeriod)"
               @click="recalculate"
             >
               <el-icon><Refresh /></el-icon>
@@ -729,15 +769,6 @@ function validateAdjustForm() {
               <el-button text type="info" size="small" @click="openDetail(row)">
                 <el-icon><View /></el-icon>
               </el-button>
-              <el-button
-                v-if="(auth.hasPermission('PAYROLL_UPDATE') || auth.hasPermission('PAYROLL_MANAGE')) && canAdjust(selectedPeriod)"
-                text
-                type="primary"
-                size="small"
-                @click="openAdjust(row)"
-              >
-                <el-icon><Edit /></el-icon>
-              </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -757,14 +788,14 @@ function validateAdjustForm() {
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item :label="settings.t('payroll.year')" prop="year">
-              <el-select v-model="periodForm.year" style="width:100%">
+              <el-select v-model="periodForm.year" style="width:100%" :disabled="!!editingPeriodId">
                 <el-option v-for="y in yearOptions" :key="y" :label="y" :value="y" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item :label="settings.t('payroll.month')" prop="month">
-              <el-select v-model="periodForm.month" style="width:100%">
+              <el-select v-model="periodForm.month" style="width:100%" :disabled="!!editingPeriodId">
                 <el-option v-for="m in monthOptions" :key="m" :label="m" :value="m" />
               </el-select>
             </el-form-item>

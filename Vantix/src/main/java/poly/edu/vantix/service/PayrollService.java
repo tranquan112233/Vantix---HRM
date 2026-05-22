@@ -91,13 +91,13 @@ public class PayrollService {
 
     @Transactional
     public PayrollPeriodResponse createPeriod(PayrollPeriodRequest request) {
-        if (periodRepository.findByYearAndMonth(request.getYear(), request.getMonth()).isPresent()) {
+        YearMonth ym = YearMonth.of(request.getYear(), request.getMonth());
+        Optional<PayrollPeriod> existingPeriod = periodRepository.findByYearAndMonth(request.getYear(), request.getMonth());
+        if (existingPeriod.isPresent() && !Boolean.TRUE.equals(existingPeriod.get().getDeleted())) {
             throw new BusinessException("month", "Payroll period for this month already exists");
         }
 
-        YearMonth ym = YearMonth.of(request.getYear(), request.getMonth());
-
-        PayrollPeriod period = new PayrollPeriod();
+        PayrollPeriod period = existingPeriod.orElseGet(PayrollPeriod::new);
         period.setYear(request.getYear());
         period.setMonth(request.getMonth());
         period.setStartDate(request.getStartDate() != null ? request.getStartDate() : ym.atDay(1));
@@ -105,6 +105,12 @@ public class PayrollService {
         period.setStandardWorkDays(request.getStandardWorkDays() != null ? request.getStandardWorkDays() : 26);
         period.setNote(request.getNote());
         period.setStatus(PayrollStatus.DRAFT);
+        period.setApprovedBy(null);
+        period.setApprovedAt(null);
+        period.setLockedAt(null);
+        period.setDeleted(false);
+        period.setDeletedAt(null);
+        period.setDeletedBy(null);
 
         return PayrollPeriodResponse.fromEntity(periodRepository.save(period));
     }
@@ -128,6 +134,11 @@ public class PayrollService {
         if (period.getStatus() == PayrollStatus.PAID) {
             throw new BusinessException("Cannot delete a paid period");
         }
+        payrollRepository.findByPeriod(period.getId(), null, null)
+                .forEach(payroll -> {
+                    payroll.setDeleted(true);
+                    payroll.setDeletedAt(LocalDateTime.now());
+                });
         period.setDeleted(true);
         period.setDeletedAt(LocalDateTime.now());
         periodRepository.save(period);
@@ -186,14 +197,19 @@ public class PayrollService {
 
         for (Employee employee : activeEmployees) {
             Optional<Payroll> existing = payrollRepository
-                    .findByPeriodIdAndEmployeeIdAndDeletedFalse(period.getId(), employee.getId());
-            if (existing.isPresent()) {
+                    .findByPeriodIdAndEmployeeId(period.getId(), employee.getId());
+            if (existing.isPresent() && !Boolean.TRUE.equals(existing.get().getDeleted())) {
                 continue;
             }
 
-            Payroll payroll = new Payroll();
+            Payroll payroll = existing.orElseGet(Payroll::new);
             payroll.setPeriod(period);
             payroll.setEmployee(employee);
+            payroll.setDeleted(false);
+            payroll.setDeletedAt(null);
+            payroll.setDeletedBy(null);
+            payroll.setPaidAt(null);
+            payroll.setStatus(PayrollStatus.DRAFT);
             applyContractDefaults(payroll, employee, period);
             autoFillTimesheet(payroll, employee, period);
             recalculate(payroll);
@@ -229,29 +245,7 @@ public class PayrollService {
 
     @Transactional
     public PayrollResponse adjustAndRecalculate(Long payrollId, PayrollAdjustRequest request) {
-        Payroll payroll = findActivePayroll(payrollId);
-        ensurePeriodEditable(payroll.getPeriod());
-
-        if (request.getActualWorkDays() != null) payroll.setActualWorkDays(request.getActualWorkDays());
-        if (request.getPaidLeaveDays() != null) payroll.setPaidLeaveDays(request.getPaidLeaveDays());
-        if (request.getUnpaidLeaveDays() != null) payroll.setUnpaidLeaveDays(request.getUnpaidLeaveDays());
-        if (request.getOvertimeHoursWeekday() != null) payroll.setOvertimeHoursWeekday(request.getOvertimeHoursWeekday());
-        if (request.getOvertimeHoursWeekend() != null) payroll.setOvertimeHoursWeekend(request.getOvertimeHoursWeekend());
-        if (request.getOvertimeHoursHoliday() != null) payroll.setOvertimeHoursHoliday(request.getOvertimeHoursHoliday());
-        if (request.getOvertimeHoursNight() != null) payroll.setOvertimeHoursNight(request.getOvertimeHoursNight());
-        if (request.getDependents() != null) payroll.setDependents(request.getDependents());
-        if (request.getBonus() != null) payroll.setBonus(request.getBonus());
-        if (request.getCommission() != null) payroll.setCommission(request.getCommission());
-        if (request.getOtherDeductions() != null) payroll.setOtherDeductions(request.getOtherDeductions());
-        if (request.getResponsibilityAllowance() != null) payroll.setResponsibilityAllowance(request.getResponsibilityAllowance());
-        if (request.getMealAllowance() != null) payroll.setMealAllowance(request.getMealAllowance());
-        if (request.getTransportAllowance() != null) payroll.setTransportAllowance(request.getTransportAllowance());
-        if (request.getPhoneAllowance() != null) payroll.setPhoneAllowance(request.getPhoneAllowance());
-        if (request.getOtherAllowance() != null) payroll.setOtherAllowance(request.getOtherAllowance());
-        if (request.getNote() != null) payroll.setNote(request.getNote());
-
-        recalculate(payroll);
-        return PayrollResponse.fromEntity(payrollRepository.save(payroll));
+        throw new BusinessException("Manual payroll row adjustment is disabled. Use period recalculation instead");
     }
 
     @Transactional
@@ -316,8 +310,11 @@ public class PayrollService {
     }
 
     private void ensurePeriodEditable(PayrollPeriod period) {
-        if (period.getStatus() == PayrollStatus.PAID) {
-            throw new BusinessException("Cannot modify a paid period");
+        if (period.getStatus() == PayrollStatus.APPROVED || period.getStatus() == PayrollStatus.PAID) {
+            throw new BusinessException("Cannot modify an approved or paid period");
+        }
+        if (period.getStatus() == PayrollStatus.CANCELLED) {
+            throw new BusinessException("Cannot modify a cancelled period");
         }
     }
 
