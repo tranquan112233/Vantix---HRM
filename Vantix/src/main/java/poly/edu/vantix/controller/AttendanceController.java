@@ -12,8 +12,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import poly.edu.vantix.dto.request.AttendanceCheckRequest;
+import poly.edu.vantix.dto.request.AttendanceGenerateRequest;
+import poly.edu.vantix.dto.response.AttendanceGenerateResponse;
 import poly.edu.vantix.dto.response.AttendanceResponse;
+import poly.edu.vantix.entity.Employee;
+import poly.edu.vantix.exception.BusinessException;
 import poly.edu.vantix.exception.UnauthorizedException;
+import poly.edu.vantix.repository.EmployeeRepository;
 import poly.edu.vantix.security.JwtUserPrincipal;
 import poly.edu.vantix.service.AttendanceService;
 
@@ -25,9 +30,11 @@ import java.util.List;
 public class AttendanceController {
 
     private final AttendanceService service;
+    private final EmployeeRepository employeeRepository;
 
-    public AttendanceController(AttendanceService service) {
+    public AttendanceController(AttendanceService service, EmployeeRepository employeeRepository) {
         this.service = service;
+        this.employeeRepository = employeeRepository;
     }
 
     @GetMapping
@@ -72,11 +79,26 @@ public class AttendanceController {
         return ResponseEntity.ok(service.checkOut(currentUserId(authentication), request));
     }
 
+    @PostMapping("/generate-from-schedules")
+    @PreAuthorize("hasAuthority('ATTENDANCE_VIEW_ALL')")
+    public ResponseEntity<AttendanceGenerateResponse> generateFromSchedules(
+            Authentication authentication,
+            @Valid @RequestBody AttendanceGenerateRequest request
+    ) {
+        return ResponseEntity.ok(service.generateFromSchedules(currentEmployee(authentication), request));
+    }
+
     private Long currentUserId(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof JwtUserPrincipal principal)) {
             throw new UnauthorizedException("You are not signed in");
         }
         return principal.getId();
+    }
+
+    private Employee currentEmployee(Authentication authentication) {
+        Long userId = currentUserId(authentication);
+        return employeeRepository.findActiveByUserId(userId)
+                .orElseThrow(() -> new BusinessException("No employee profile linked to your account"));
     }
 
     // Reuse: service.search with employeeId is enough; small helper to read from JWT.

@@ -131,6 +131,7 @@ export const attendanceApi = {
   today: () => http.get('/attendance/me/today'),
   checkIn: (data) => http.post('/attendance/check-in', data),
   checkOut: (data) => http.post('/attendance/check-out', data),
+  generateFromSchedules: (data) => http.post('/attendance/generate-from-schedules', data),
 }
 
 export const makeupCheckoutApi = {

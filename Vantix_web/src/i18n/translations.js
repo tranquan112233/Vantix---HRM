@@ -329,6 +329,9 @@ export const translations = {
     'role.permissions': 'Permissions',
     'role.searchPermission': 'Search permissions...',
     'role.selectAll': 'Select all',
+    'role.sampleAttendance': 'Generate sample attendance',
+    'role.sampleAttendanceConfirm': 'Generate attendance records from all existing work schedules?',
+    'role.sampleAttendanceSummary': '{created} created, {skipped} skipped, {employees} employees, {schedules} schedules',
 
     'notification.all': 'All',
     'notification.unread': 'Unread',
@@ -1067,6 +1070,9 @@ export const translations = {
     'role.permissions': 'Quyền',
     'role.searchPermission': 'Tìm quyền...',
     'role.selectAll': 'Chọn tất cả',
+    'role.sampleAttendance': 'Sinh attendance mẫu',
+    'role.sampleAttendanceConfirm': 'Sinh attendance tự động từ toàn bộ lịch làm việc hiện có?',
+    'role.sampleAttendanceSummary': 'Đã tạo {created}, bỏ qua {skipped}, {employees} nhân viên, {schedules} lịch',
 
     'notification.all': 'Tất cả',
     'notification.unread': 'Chưa đọc',

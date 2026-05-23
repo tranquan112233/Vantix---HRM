@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
-import { roleApi } from '@/api'
+import { attendanceApi, roleApi } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { DEFAULT_PAGE_SIZE, applyPage, pageParams } from '@/utils/pagination'
 import { useAuthStore } from '@/stores/auth'
@@ -8,6 +8,7 @@ import { useSettingsStore } from '@/stores/settings'
 
 const settings = useSettingsStore()
 const loading = ref(false)
+const sampleLoading = ref(false)
 const roles = ref([])
 const allPermissions = ref([])
 const auth = useAuthStore()
@@ -174,6 +175,26 @@ async function handleDelete(row) {
     fetchData()
   } catch {}
 }
+
+async function handleGenerateAttendanceSamples() {
+  try {
+    await ElMessageBox.confirm(settings.t('role.sampleAttendanceConfirm'), settings.t('common.confirm'), { type: 'warning' })
+    sampleLoading.value = true
+    const { data } = await attendanceApi.generateFromSchedules({})
+    ElMessage.success(settings.t('role.sampleAttendanceSummary', {
+      created: data.created,
+      skipped: data.skipped,
+      employees: data.employeesProcessed,
+      schedules: data.schedulesProcessed,
+    }))
+  } catch (e) {
+    if (e !== 'cancel' && e !== 'close') {
+      ElMessage.error(e.response?.data?.message || settings.t('common.somethingWrong'))
+    }
+  } finally {
+    sampleLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -188,9 +209,18 @@ async function handleDelete(row) {
           <el-icon><RefreshLeft /></el-icon> {{ settings.t('common.reset') }}
         </el-button>
       </div>
-      <el-button v-if="auth.hasPermission('ROLE_CREATE')" type="primary" @click="openCreate">
-        <el-icon><Plus /></el-icon> {{ settings.t('role.add') }}
-      </el-button>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <el-button
+          v-if="auth.hasPermission('ATTENDANCE_VIEW_ALL')"
+          :loading="sampleLoading"
+          @click="handleGenerateAttendanceSamples"
+        >
+          <el-icon><Calendar /></el-icon> {{ settings.t('role.sampleAttendance') }}
+        </el-button>
+        <el-button v-if="auth.hasPermission('ROLE_CREATE')" type="primary" @click="openCreate">
+          <el-icon><Plus /></el-icon> {{ settings.t('role.add') }}
+        </el-button>
+      </div>
     </div>
 
     <el-table :data="roles" v-loading="loading" stripe style="width:100%" :empty-text="settings.t('common.noData')">

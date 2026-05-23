@@ -12,6 +12,7 @@ import poly.edu.vantix.entity.Employee;
 import poly.edu.vantix.entity.LeaveRequest;
 import poly.edu.vantix.entity.Payroll;
 import poly.edu.vantix.entity.PayrollPeriod;
+import poly.edu.vantix.entity.PublicHoliday;
 import poly.edu.vantix.entity.User;
 import poly.edu.vantix.entity.enums.AttendanceStatus;
 import poly.edu.vantix.entity.enums.EmploymentStatus;
@@ -26,7 +27,9 @@ import poly.edu.vantix.repository.EmployeeRepository;
 import poly.edu.vantix.repository.LeaveRequestRepository;
 import poly.edu.vantix.repository.PayrollPeriodRepository;
 import poly.edu.vantix.repository.PayrollRepository;
+import poly.edu.vantix.repository.PublicHolidayRepository;
 import poly.edu.vantix.repository.UserRepository;
+import poly.edu.vantix.repository.WorkScheduleRepository;
 import poly.edu.vantix.util.PayrollCalculation;
 import poly.edu.vantix.util.PayrollInput;
 import poly.edu.vantix.util.VietnamPayrollCalculator;
@@ -36,9 +39,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class PayrollService {
@@ -52,6 +57,8 @@ public class PayrollService {
     private final UserRepository userRepository;
     private final PayrollSettingService payrollSettingService;
     private final BusinessCalendarService businessCalendarService;
+    private final PublicHolidayRepository publicHolidayRepository;
+    private final WorkScheduleRepository workScheduleRepository;
 
     public PayrollService(
             PayrollPeriodRepository periodRepository,
@@ -62,7 +69,9 @@ public class PayrollService {
             LeaveRequestRepository leaveRequestRepository,
             UserRepository userRepository,
             PayrollSettingService payrollSettingService,
-            BusinessCalendarService businessCalendarService
+            BusinessCalendarService businessCalendarService,
+            PublicHolidayRepository publicHolidayRepository,
+            WorkScheduleRepository workScheduleRepository
     ) {
         this.periodRepository = periodRepository;
         this.payrollRepository = payrollRepository;
@@ -73,6 +82,8 @@ public class PayrollService {
         this.userRepository = userRepository;
         this.payrollSettingService = payrollSettingService;
         this.businessCalendarService = businessCalendarService;
+        this.publicHolidayRepository = publicHolidayRepository;
+        this.workScheduleRepository = workScheduleRepository;
     }
 
     // =============== PERIOD ===============
@@ -391,19 +402,33 @@ public class PayrollService {
 
         // Đếm ngày công thực tế từ attendance, trừ phần ngày đã có đơn nghỉ để tránh trả trùng hoặc không trừ lương.
         List<Attendance> attendances = attendanceRepository.search(from, to, employee.getId());
+        Set<LocalDate> payableAttendanceDates = new HashSet<>();
         BigDecimal workedDays = attendances.stream()
                 .filter(a -> a.getStatus() != AttendanceStatus.ABSENT
                         && a.getStatus() != AttendanceStatus.PENDING
                         && a.getStatus() != AttendanceStatus.MISSING_CHECKOUT
                         && a.getCheckInAt() != null
                         && a.getCheckOutAt() != null)
-                .map(a -> BigDecimal.ONE.subtract(
-                        approvedLeaveByDate.getOrDefault(a.getWorkDate(), BigDecimal.ZERO).min(BigDecimal.ONE)
+                .map(a -> {
+                    payableAttendanceDates.add(a.getWorkDate());
+                    return BigDecimal.ONE.subtract(
+                            approvedLeaveByDate.getOrDefault(a.getWorkDate(), BigDecimal.ZERO).min(BigDecimal.ONE)
+                    ).max(BigDecimal.ZERO);
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal paidPublicHolidayDays = publicHolidayRepository.findByHolidayDateBetweenAndDeletedFalse(from, to).stream()
+                .filter(holiday -> Boolean.TRUE.equals(holiday.getPaidDay()))
+                .map(PublicHoliday::getHolidayDate)
+                .filter(date -> workScheduleRepository.existsByEmployeeIdAndWorkDateAndDeletedFalse(employee.getId(), date))
+                .filter(date -> !payableAttendanceDates.contains(date))
+                .map(date -> BigDecimal.ONE.subtract(
+                        approvedLeaveByDate.getOrDefault(date, BigDecimal.ZERO).min(BigDecimal.ONE)
                 ).max(BigDecimal.ZERO))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         payroll.setActualWorkDays(workedDays);
-        payroll.setPaidLeaveDays(paidLeave);
+        payroll.setPaidLeaveDays(paidLeave.add(paidPublicHolidayDays));
         payroll.setUnpaidLeaveDays(unpaidLeave);
     }
 
