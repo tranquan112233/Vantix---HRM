@@ -34,6 +34,11 @@ public class BusinessCalendarService {
         if (isPublicHoliday(date)) {
             return false;
         }
+        return isScheduledWorkingDate(employeeId, date);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isScheduledWorkingDate(Long employeeId, LocalDate date) {
         if (employeeId != null && workScheduleRepository.existsByEmployeeIdAndWorkDateAndDeletedFalse(employeeId, date)) {
             return true;
         }

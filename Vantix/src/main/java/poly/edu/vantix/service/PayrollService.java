@@ -29,7 +29,6 @@ import poly.edu.vantix.repository.PayrollPeriodRepository;
 import poly.edu.vantix.repository.PayrollRepository;
 import poly.edu.vantix.repository.PublicHolidayRepository;
 import poly.edu.vantix.repository.UserRepository;
-import poly.edu.vantix.repository.WorkScheduleRepository;
 import poly.edu.vantix.util.PayrollCalculation;
 import poly.edu.vantix.util.PayrollInput;
 import poly.edu.vantix.util.VietnamPayrollCalculator;
@@ -58,7 +57,6 @@ public class PayrollService {
     private final PayrollSettingService payrollSettingService;
     private final BusinessCalendarService businessCalendarService;
     private final PublicHolidayRepository publicHolidayRepository;
-    private final WorkScheduleRepository workScheduleRepository;
 
     public PayrollService(
             PayrollPeriodRepository periodRepository,
@@ -70,8 +68,7 @@ public class PayrollService {
             UserRepository userRepository,
             PayrollSettingService payrollSettingService,
             BusinessCalendarService businessCalendarService,
-            PublicHolidayRepository publicHolidayRepository,
-            WorkScheduleRepository workScheduleRepository
+            PublicHolidayRepository publicHolidayRepository
     ) {
         this.periodRepository = periodRepository;
         this.payrollRepository = payrollRepository;
@@ -83,7 +80,6 @@ public class PayrollService {
         this.payrollSettingService = payrollSettingService;
         this.businessCalendarService = businessCalendarService;
         this.publicHolidayRepository = publicHolidayRepository;
-        this.workScheduleRepository = workScheduleRepository;
     }
 
     // =============== PERIOD ===============
@@ -420,7 +416,7 @@ public class PayrollService {
         BigDecimal paidPublicHolidayDays = publicHolidayRepository.findByHolidayDateBetweenAndDeletedFalse(from, to).stream()
                 .filter(holiday -> Boolean.TRUE.equals(holiday.getPaidDay()))
                 .map(PublicHoliday::getHolidayDate)
-                .filter(date -> workScheduleRepository.existsByEmployeeIdAndWorkDateAndDeletedFalse(employee.getId(), date))
+                .filter(date -> businessCalendarService.isScheduledWorkingDate(employee.getId(), date))
                 .filter(date -> !payableAttendanceDates.contains(date))
                 .map(date -> BigDecimal.ONE.subtract(
                         approvedLeaveByDate.getOrDefault(date, BigDecimal.ZERO).min(BigDecimal.ONE)
