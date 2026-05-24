@@ -213,18 +213,34 @@ function handleSizeChange(s) {
 }
 
 function openCreate() {
+  // 1. Reset dữ liệu form về mặc định (tránh bị dính dữ liệu của hợp đồng cũ vừa sửa)
   Object.assign(form, defaultForm)
+
+  // 2. Set editingId = null để bt là thêm mới
   editingId.value = null
+
+  // 3. Xóa trắng danh sách file upload và tên file cũ
   signedFileList.value = []
   currentSignedFileName.value = ''
+
+  // 4. Đổi tiêu đề Dialog thành "Thêm mới hợp đồng"
   dialogTitleKey.value = 'contract.add'
+
+  // 5. Bật (hiển thị) Dialog lên màn hình
   dialogVisible.value = true
 }
 
 function openEdit(row) {
+  // 1. Gán ID để bt là sửa hay thêm
   editingId.value = row.id
+
+  // 2. Reset danh sách file upload về trống
   signedFileList.value = []
+
+  // 3. Lấy tên file hợp đồng cũ để hiển thị (dùng || để bắt các field name khác nhau)
   currentSignedFileName.value = row.signedFileName || row.signedDocumentName || row.contractFileName || ''
+
+  // 4. Đổ toàn bộ dữ liệu từ hàng (row) được click đè vào biến 'form' để hiển thị lên UI
   Object.assign(form, {
     contractCode: row.contractCode,
     employeeId: row.employeeId,
@@ -235,6 +251,8 @@ function openEdit(row) {
     startDate: row.startDate,
     endDate: row.endDate,
     probationMonths: row.probationMonths,
+
+    // Ép kiểu về số để thư viện <el-input-number> không bị lỗi
     baseSalary: toNumber(row.baseSalary),
     insuranceSalary: toNumber(row.insuranceSalary),
     responsibilityAllowance: toNumber(row.responsibilityAllowance),
@@ -242,12 +260,18 @@ function openEdit(row) {
     transportAllowance: toNumber(row.transportAllowance),
     phoneAllowance: toNumber(row.phoneAllowance),
     otherAllowance: toNumber(row.otherAllowance),
+
+    // Set giá trị mặc định nếu DB trả về null
     standardWorkDays: row.standardWorkDays || 26,
     hoursPerDay: toNumber(row.hoursPerDay) || 8,
     noticePeriodDays: row.noticePeriodDays || 30,
     note: row.note || '',
   })
+
+  // 5. Đổi tiêu đề của Dialog thành "Cập nhật hợp đồng"
   dialogTitleKey.value = 'contract.edit'
+
+  // 6. Bật (hiển thị) Dialog lên màn hình
   dialogVisible.value = true
 }
 
@@ -256,25 +280,52 @@ function openDetail(row) {
 }
 
 async function handleSave() {
+  // 1. KIỂM TRA DỮ LIỆU (VALIDATE)
+  // Kích hoạt tính năng kiểm tra lỗi nhập dữ liệu của El-Form
   const valid = await formRef.value.validate().catch(() => false)
+
+  // Nếu dữ liệu sai/thiếu, dừng luôn hàm này lại, không gửi gì xuống Backend hết
   if (!valid) return
+
   try {
+    // 2. PHÂN LUỒNG: SỬA HAY THÊM MỚI?
     if (editingId.value) {
+
+      // BƯỚC 2.1: Gọi API lưu các thông tin dạng chữ (text) trước
       const {data} = await contractApi.update(editingId.value, form)
+
+      // BƯỚC 2.2: Xử lý file đính kèm
+      // Lấy cái file người dùng vừa chọn ở ô Upload
       const file = selectedSignedFile()
+
+      // Nếu có chọn file mới thì gọi API đẩy file lên
       if (file) {
         const uploadResponse = await contractApi.uploadSignedFile(editingId.value, file)
+        // Cập nhật lại tên file hiển thị trên màn hình thành tên mới
         currentSignedFileName.value = uploadResponse.data?.signedFileName || `${form.contractCode}.pdf`
       } else {
+        // Nếu không chọn file mới, giữ nguyên tên file đang có
         currentSignedFileName.value = data?.signedFileName || currentSignedFileName.value
       }
+
+      // Báo Popup xanh lá: Cập nhật thành công!
       ElMessage.success(settings.t('common.updated'))
+
     } else {
+      // Nếu editingId.value là null -> Chứng tỏ người dùng đang bấm THÊM MỚI
+
+      // Gọi API tạo mới nguyên 1 cục data
       await contractApi.create(form)
+
+      // Báo Popup xanh lá: Tạo mới thành công!
       ElMessage.success(settings.t('common.created'))
     }
+
+    // 3. HOÀN TẤT
+    // Đóng hộp thoại (Dialog) lại
     dialogVisible.value = false
     fetchData()
+
   } catch (e) {
     ElMessage.error(e.response?.data?.message || settings.t('common.somethingWrong'))
   }

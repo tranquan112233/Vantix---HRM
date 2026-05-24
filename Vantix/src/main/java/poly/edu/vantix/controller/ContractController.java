@@ -71,6 +71,7 @@ public class ContractController {
     }
 
     @PostMapping
+    // Kiểm tra quyền của người dùng
     @PreAuthorize("hasAuthority('CONTRACT_CREATE')")
     public ResponseEntity<ContractResponse> create(@Valid @RequestBody ContractRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(contractService.create(request));

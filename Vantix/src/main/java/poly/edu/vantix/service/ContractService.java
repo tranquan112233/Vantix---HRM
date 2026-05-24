@@ -121,17 +121,26 @@ public class ContractService {
 
     @Transactional
     public ContractResponse create(ContractRequest request) {
+        // Kiểm tra và chuyển các HD đã hết hạn sang EXPIRED
         expireElapsedActiveContracts();
+
+        // Kiểm tra xem có trùng Mã HD không (ContractCode á)
         if (contractRepository.existsByContractCodeAndDeletedFalse(request.getContractCode())) {
             throw new BusinessException("contractCode", "Contract code already exists");
         }
 
+        // Kiểm tra lại tính hợp lệ của dữ liệu 1 lần nữa
         validateBusinessRules(request);
 
         Contract contract = new Contract();
+
+        // map dữ liệu từ DTO sang obj Contract
         mapRequestToEntity(request, contract);
+
+        // Ép cứng trạng thái khi tạo mới là DRAFT
         contract.setStatus(ContractStatus.DRAFT);
 
+        // Lưu xuống Database và map ngược Entity ra Response để trả về FE
         contract = contractRepository.save(contract);
         return ContractResponse.fromEntity(contract);
     }
@@ -359,12 +368,14 @@ public class ContractService {
     @Transactional
     public int expireElapsedActiveContracts() {
         LocalDate today = LocalDate.now();
+        // 1. Lấy danh sách các hợp đồng đang ACTIVE nhưng đã quá thời hạn (endDate < today)
         List<Contract> contracts = contractRepository.findElapsedActiveContracts(today);
-        if (contracts.isEmpty()) {
-            return 0;
-        }
+        // 2. Trả về 0 ngay nếu không có dữ liệu, tránh tốn tài nguyên chạy vòng lặp
+        if (contracts.isEmpty()) return 0;
 
+        // 3. Tự động chuyển trạng thái các HĐ quá hạn sang EXPIRED
         contracts.forEach(contract -> contract.setStatus(ContractStatus.EXPIRED));
+        // 4. Lưu toàn bộ danh sách vừa cập nhật xuống Database
         contractRepository.saveAll(contracts);
         return contracts.size();
     }
@@ -562,5 +573,6 @@ public class ContractService {
             String fileName,
             String contentType,
             Long fileSize
-    ) {}
+    ) {
+    }
 }
