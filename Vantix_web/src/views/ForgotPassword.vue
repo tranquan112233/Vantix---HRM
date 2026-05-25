@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { authApi } from '@/api'
 import { useSettingsStore } from '@/stores/settings'
+import { showApiError } from '@/utils/errors'
 
 const router = useRouter()
 const settings = useSettingsStore()
@@ -12,11 +13,14 @@ const loading = ref(false)
 const devOtp = ref('')
 
 const form = reactive({
-  usernameOrEmail: '',
+  email: '',
 })
 
 const rules = {
-  usernameOrEmail: [{ required: true, message: 'Required', trigger: 'blur' }],
+  email: [
+    { required: true, message: settings.t('common.required'), trigger: 'blur' },
+    { type: 'email', message: settings.t('common.emailInvalid'), trigger: ['blur', 'change'] },
+  ],
 }
 
 async function submit() {
@@ -24,7 +28,7 @@ async function submit() {
   if (!valid) return
   loading.value = true
   try {
-    const { data } = await authApi.forgotPassword({ ...form })
+    const { data } = await authApi.forgotPassword({ email: form.email.trim() })
     if (!data.requestId) {
       ElMessage.success(settings.t('auth.otpSent'))
       return
@@ -33,11 +37,14 @@ async function submit() {
     if (data.devOtp) {
       devOtp.value = data.devOtp
       sessionStorage.setItem('vx_reset_dev_otp', data.devOtp)
+    } else {
+      devOtp.value = ''
+      sessionStorage.removeItem('vx_reset_dev_otp')
     }
     ElMessage.success(settings.t('auth.otpSent'))
     router.push('/verify-otp')
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || settings.t('common.somethingWrong'))
+    showApiError(e, settings, e.response?.status === 404 ? 'auth.emailNotFound' : 'common.somethingWrong')
   } finally {
     loading.value = false
   }
@@ -52,8 +59,8 @@ async function submit() {
     </div>
 
     <el-form ref="formRef" :model="form" :rules="rules" size="large" @keyup.enter="submit">
-      <el-form-item prop="usernameOrEmail">
-        <el-input v-model="form.usernameOrEmail" :placeholder="settings.t('auth.usernameOrEmail')" :prefix-icon="Message" />
+      <el-form-item prop="email">
+        <el-input v-model.trim="form.email" type="email" autocomplete="email" :placeholder="settings.t('user.email')" :prefix-icon="Message" />
       </el-form-item>
       <el-button type="primary" class="auth-submit" :loading="loading" @click="submit">
         {{ settings.t('auth.sendOtp') }}

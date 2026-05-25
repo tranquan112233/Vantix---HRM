@@ -98,24 +98,12 @@ public class AuthService {
 
     @Transactional
     public ForgotPasswordResponse forgotPassword(ForgotPasswordRequest request) {
-        String usernameOrEmail = request.getUsernameOrEmail().trim();
-        User user = userRepository.findFirstByUsernameOrEmail(usernameOrEmail, usernameOrEmail)
-                .orElse(null);
-
-        if (user == null) {
-            return ForgotPasswordResponse.builder()
-                    .success(true)
-                    .message("If the account exists, an OTP has been sent")
-                    .expiresInMinutes(OTP_EXPIRES_IN_MINUTES)
-                    .build();
-        }
+        String email = request.getEmail().trim();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException("email", "Email does not exist"));
 
         if (user.getStatus() != UserStatus.ACTIVE) {
-            return ForgotPasswordResponse.builder()
-                    .success(true)
-                    .message("If the account exists, an OTP has been sent")
-                    .expiresInMinutes(OTP_EXPIRES_IN_MINUTES)
-                    .build();
+            throw new BusinessException("email", "Account is locked");
         }
 
         String otp = "%06d".formatted(secureRandom.nextInt(1_000_000));

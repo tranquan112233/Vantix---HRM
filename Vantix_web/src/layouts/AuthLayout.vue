@@ -52,9 +52,7 @@ const settings = useSettingsStore()
   justify-content: center;
   padding: 64px;
   color: #fff;
-  background:
-    linear-gradient(135deg, rgba(30, 27, 75, 0.94), rgba(79, 70, 229, 0.88)),
-    url('/src/assets/hero.png') center/cover;
+  background: linear-gradient(135deg, #1e1b4b 0%, #3730a3 46%, #4f46e5 100%);
 }
 
 .auth-brand {

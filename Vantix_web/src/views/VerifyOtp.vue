@@ -8,7 +8,6 @@ import { useSettingsStore } from '@/stores/settings'
 const router = useRouter()
 const settings = useSettingsStore()
 const loading = ref(false)
-const devOtp = ref('')
 
 const form = reactive({
   requestId: '',
@@ -17,7 +16,7 @@ const form = reactive({
 
 onMounted(() => {
   form.requestId = sessionStorage.getItem('vx_reset_request_id') || ''
-  devOtp.value = sessionStorage.getItem('vx_reset_dev_otp') || ''
+  sessionStorage.removeItem('vx_reset_dev_otp')
   if (!form.requestId) router.replace('/forgot-password')
 })
 
@@ -47,10 +46,6 @@ async function submit() {
       <p>{{ settings.t('auth.verifyOtpSubtitle') }}</p>
     </div>
 
-    <el-alert v-if="devOtp" class="otp-demo" type="info" :closable="false">
-      {{ settings.t('auth.demoOtp') }}: <strong>{{ devOtp }}</strong>
-    </el-alert>
-
     <el-input v-model="form.otp" class="otp-input" maxlength="6" :placeholder="settings.t('auth.otp')" :prefix-icon="Key" size="large" @keyup.enter="submit" />
     <el-button type="primary" class="auth-submit" :loading="loading" @click="submit">
       {{ settings.t('auth.verifyOtp') }}
@@ -65,7 +60,6 @@ async function submit() {
 .auth-card-header { margin-bottom: 24px; }
 .auth-card-header h2 { font-size: var(--vx-font-size-4xl); color: var(--vx-text); margin-bottom: 8px; }
 .auth-card-header p { color: var(--vx-text-secondary); line-height: 1.5; }
-.otp-demo { margin-bottom: 16px; }
 .otp-input { margin-bottom: 18px; }
 .auth-submit { width: 100%; height: 44px; border-radius: 8px; font-weight: 700; }
 .auth-link { display: inline-flex; margin-top: 18px; color: var(--vx-primary); text-decoration: none; font-weight: 700; }
