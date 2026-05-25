@@ -199,6 +199,7 @@ async function downloadSignedFile() {
   }
 }
 
+// FE nút Duyệt HD ở trang chi tiết -> contractApi.activate -> BE ContractController.activate.
 async function handleActivate() {
   try {
     await ElMessageBox.confirm(settings.t('contract.activateConfirm'), settings.t('common.confirm'), { type: 'warning' })
@@ -213,6 +214,7 @@ function openRenew() {
   renewVisible.value = true
 }
 
+// FE trang chi tiết gửi yêu cầu gia hạn -> contractApi.renew -> BE ContractController.renew.
 async function submitRenew() {
   try {
     await ElMessageBox.confirm(settings.t('contract.renewConfirm'), settings.t('common.confirm'), { type: 'warning' })

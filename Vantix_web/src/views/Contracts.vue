@@ -279,6 +279,7 @@ function openDetail(row) {
   router.push(`/contracts/${row.id}`)
 }
 
+// FE lưu HĐ: tạo/cập nhật trước, nếu có file ký thì gọi tiếp contractApi.uploadSignedFile.
 async function handleSave() {
   // 1. KIỂM TRA DỮ LIỆU (VALIDATE)
   // Kích hoạt tính năng kiểm tra lỗi nhập dữ liệu của El-Form
@@ -360,9 +361,12 @@ async function handleLiquidate(row) {
 
 async function handleActivate(row) {
   try {
+    // Hỏi xác nhận có Duyệt không
     await ElMessageBox.confirm(settings.t('contract.activateConfirm'),
         settings.t('common.confirm'), {type: 'warning'})
+    // Gọi BE để nó Duyệt
     await contractApi.activate(row.id)
+    // Thông báo thành công
     ElMessage.success(settings.t('common.updated'))
     fetchData()
   } catch {
@@ -372,27 +376,36 @@ async function handleActivate(row) {
 
 function canRenew(row) {
   return Boolean(
-      row?.endDate &&
-      (row?.status === 'ACTIVE' || row?.status === 'EXPIRED')
+      // Phải có ngày kết thúc và (Status là ACTIVE hoặc EXPIRED)
+      row?.endDate && (row?.status === 'ACTIVE' || row?.status === 'EXPIRED')
   )
 }
 
+// FE mở popup gia hạn và nạp ngày hết hạn hiện tại để người dùng chọn ngày mới.
 function openRenew(row) {
   selectedContract.value = row
+  // Ngày gia hạn tới hiển thị lên là ngày kết thúc hoặc để trống (chứ không crash giao diện)
   renewForm.newEndDate = row?.endDate || ''
+  // Mở giao diện gia hạn
   renewVisible.value = true
 }
 
+// FE gửi ngày hết hạn mới -> contractApi.renew -> BE ContractController.renew.
 async function submitRenew() {
   try {
+    // Hiển thị hộp thoaại xác nhận
     await ElMessageBox.confirm(
         settings.t('contract.renewConfirm'),
         settings.t('common.confirm'),
         {type: 'warning'}
     )
+
+    // Gọi API để đẩy dữ liệu xuống BE
     await contractApi.renew(selectedContract.value.id, {
       newEndDate: renewForm.newEndDate,
     })
+
+    // Thông báo thành công
     ElMessage.success(settings.t('common.updated'))
     renewVisible.value = false
     fetchData()
@@ -401,9 +414,10 @@ async function submitRenew() {
     ElMessage.error(e.response?.data?.message || settings.t('common.somethingWrong'))
   }
 }
-
+// Chấm dứt HD
 function openTerminate(row) {
   selectedContract.value = row
+  // Tạo đối tượng thời gian - chuyển thành dạng chuỗi - cắt lấy 10 ký tự đầu tiên
   terminateForm.terminatedDate = new Date().toISOString().slice(0, 10)
   terminateForm.terminationReason = ''
   terminateVisible.value = true
@@ -446,6 +460,7 @@ function hasSignedFile(row) {
   )
 }
 
+// FE kiểm tra điều kiện trước khi gọi contractApi.activate.
 function canActivate(row) {
   return row?.status === 'DRAFT' && hasSignedFile(row)
 }
@@ -481,6 +496,7 @@ function displayValue(v) {
   return v || '-'
 }
 
+// Lấy File đầu tiên , gửi xuống BÉ
 function selectedSignedFile() {
   return signedFileList.value.map(item => item.raw).filter(Boolean)[0] || null
 }

@@ -172,14 +172,19 @@ export const workLocationApi = {
 export const contractApi = {
   list: (params) => http.get('/contracts', { params }),
   get: (id) => http.get(`/contracts/${id}`),
+  // FE form tạo HĐ -> BE ContractController.create -> ContractService.create
   create: (data) => http.post('/contracts', data),
+  // FE form sửa HĐ nháp -> BE ContractController.update -> ContractService.update
   update: (id, data) => http.put(`/contracts/${id}`, data),
   delete: (id) => http.delete(`/contracts/${id}`),
   expiring: (params) => http.get('/contracts/expiring', { params }),
+  // FE nút Duyệt HD -> BE ContractController.activate -> ContractService.activate
   activate: (id) => http.patch(`/contracts/${id}/activate`),
+  // FE nút Gia hạn HD -> BE ContractController.renew -> ContractService.renew
   renew: (id, data) => http.patch(`/contracts/${id}/renew`, data),
   terminate: (id, data) => http.patch(`/contracts/${id}/terminate`, data),
   liquidate: (id) => http.patch(`/contracts/${id}/liquidate`),
+  // FE upload file ký -> BE ContractController.uploadSignedFile -> ContractService.uploadSignedFile
   uploadSignedFile: (id, file) => {
     const formData = new FormData()
     formData.append('file', file)

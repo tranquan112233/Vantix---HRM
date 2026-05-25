@@ -73,21 +73,22 @@ public class ContractController {
     @PostMapping
     // Kiểm tra quyền của người dùng
     @PreAuthorize("hasAuthority('CONTRACT_CREATE')")
+    // Nhận dữ liệu tạo HĐ từ FE -> chuyển sang ContractService.create
     public ResponseEntity<ContractResponse> create(@Valid @RequestBody ContractRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(contractService.create(request));
     }
 
     @PutMapping("/{id}")
+    // Kiểm tra quyền người dùng
     @PreAuthorize("hasAuthority('CONTRACT_UPDATE')")
-    public ResponseEntity<ContractResponse> update(
-            @PathVariable Long id,
-            @Valid @RequestBody ContractRequest request
-    ) {
+    // Nhận dữ liệu sửa HĐ từ FE -> chuyển sang ContractService.update
+    public ResponseEntity<ContractResponse> update(@PathVariable Long id, @Valid @RequestBody ContractRequest request) {
         return ResponseEntity.ok(contractService.update(id, request));
     }
 
     @PostMapping(value = "/{id}/signed-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('CONTRACT_UPDATE')")
+    // Nhận file PDF đã ký từ FE -> chuyển sang ContractService.uploadSignedFile
     public ResponseEntity<ContractResponse> uploadSignedFile(
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file
@@ -118,17 +119,18 @@ public class ContractController {
     }
 
     @PatchMapping("/{id}/activate")
+    // Kiểm tra tài khoản có quyền thực hiện chức năng không
     @PreAuthorize("hasAuthority('CONTRACT_UPDATE')")
+    // Endpoint "Duyệt HD": FE gọi vào đây để đổi HĐ từ DRAFT sang ACTIVE
     public ResponseEntity<ContractResponse> activate(@PathVariable Long id) {
         return ResponseEntity.ok(contractService.activate(id));
     }
 
     @PatchMapping("/{id}/renew")
+    // Kiểm tra tài khoản có quyền không
     @PreAuthorize("hasAuthority('CONTRACT_UPDATE')")
-    public ResponseEntity<ContractResponse> renew(
-            @PathVariable Long id,
-            @Valid @RequestBody ContractRenewRequest request
-    ) {
+    // Endpoint "Gia hạn HD": FE gửi newEndDate để BE xử lý gia hạn hợp đồng
+    public ResponseEntity<ContractResponse> renew( @PathVariable Long id, @Valid @RequestBody ContractRenewRequest request ) {
         return ResponseEntity.ok(contractService.renew(id, request.getNewEndDate()));
     }
 

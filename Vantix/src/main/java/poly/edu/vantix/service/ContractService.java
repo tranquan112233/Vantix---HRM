@@ -120,6 +120,7 @@ public class ContractService {
     }
 
     @Transactional
+    // Tạo HĐ mới từ dữ liệu FE gửi lên, luôn lưu trạng thái ban đầu là DRAFT.
     public ContractResponse create(ContractRequest request) {
         // Kiểm tra và chuyển các HD đã hết hạn sang EXPIRED
         expireElapsedActiveContracts();
@@ -146,75 +147,110 @@ public class ContractService {
     }
 
     @Transactional
+    // Cập nhật thông tin HĐ nháp; nếu HĐ đang ACTIVE thì đồng bộ để không bị 1 nhân viên có 2 HĐ active.
     public ContractResponse update(Long id, ContractRequest request) {
+        // Dọn dẹp các HD đã quá hạn trước khi sửa (1)
         expireElapsedActiveContracts();
+
+        // Kiểm tra có tồn tại HD với ID này k (2)
         Contract contract = findActiveById(id);
+
+        // Nếu HD đã được đưa vào bảng Lương (Payroll) thì chặn không được sửa (3)
         ensureNoPayrollRows(contract);
 
+        // Kiểm tra có trùng ContractCode không , còn HD nào ngoài nó đang có ContractCode này k (4)
         contractRepository.findByContractCode(request.getContractCode())
                 .filter(c -> !c.getId().equals(id) && !c.getDeleted())
                 .ifPresent(c -> {
                     throw new BusinessException("contractCode", "Contract code already exists");
                 });
 
+        // Kiểm tra tính hợp lệ của dữ liệu trong HD mới (5)
         validateBusinessRules(request);
+
+        // Chép dữ liệu từ Request vào obj contract (6)
         mapRequestToEntity(request, contract);
 
+        // Kiểm tra Vô Hiệu Hóa các HD khác của nhân viên đó tránh 1ng/2HD
         if (contract.getStatus() == ContractStatus.ACTIVE) {
             supersedePreviousActiveContracts(contract.getEmployee().getId(), contract.getId(), contract.getStartDate());
         }
 
+        // Lưu xuống DB và trả về kết quả
         contract = contractRepository.save(contract);
         return ContractResponse.fromEntity(contract);
     }
 
     @Transactional
+    // Bước BE của "Duyệt HD": kiểm tra HĐ nháp + có file ký rồi chuyển trạng thái sang ACTIVE.
     public ContractResponse activate(Long id) {
+        // Kiểm tra và chuyển các HD quá hạn sang EXPIRED
         expireElapsedActiveContracts();
+
+        // Tim xem có HD với ID này không
         Contract contract = findActiveById(id);
-        if (contract.getStatus() == ContractStatus.TERMINATED
-                || contract.getStatus() == ContractStatus.LIQUIDATED) {
+
+        // Nếu đang ở trạng thái 'Chấm dứt' & 'Thanh lý' thì chặn và báo lỗi
+        if (contract.getStatus() == ContractStatus.TERMINATED || contract.getStatus() == ContractStatus.LIQUIDATED) {
             throw new BusinessException("Cannot activate a terminated/liquidated contract");
         }
+
+        // Những trạng thái còn lại khác với DRAFT sẽ bị chặn lại
         if (contract.getStatus() != ContractStatus.DRAFT) {
             throw new BusinessException("Only draft contracts can be activated");
         }
+
+        // Kiểm tra có file HD ký không
         if (!hasSignedFile(contract)) {
             throw new BusinessException("file", "Signed contract file is required before activation");
         }
+
+        // getEndDate() phải khác null & getEndDate() không nằm trong quá khứ với today
         if (contract.getEndDate() != null && contract.getEndDate().isBefore(LocalDate.now())) {
             throw new BusinessException("endDate", "Cannot activate a contract that has already expired");
         }
 
+        // Chuyển trạng thái của HD sang ACTIVE
         contract.setStatus(ContractStatus.ACTIVE);
-        supersedePreviousActiveContracts(contract.getEmployee().getId(), contract.getId(), contract.getStartDate());
 
+        // Xử lý HD cũ tránh tồn tại cùng lúc 2 HD
+        supersedePreviousActiveContracts(contract.getEmployee().getId(), contract.getId(), contract.getStartDate());
         return ContractResponse.fromEntity(contractRepository.save(contract));
     }
 
     @Transactional
+    // Bước BE của "Gia hạn HD": kiểm tra điều kiện, cập nhật endDate mới và đưa HĐ về DRAFT để duyệt lại.
     public ContractResponse renew(Long id, LocalDate newEndDate) {
+        // Kiểm tra và chuyển các HD quá hạn sang EXPIRED
         expireElapsedActiveContracts();
+
+        // Tim xem có HD với ID này không
         Contract contract = findActiveById(id);
 
-        if (contract.getStatus() != ContractStatus.ACTIVE
-                && contract.getStatus() != ContractStatus.EXPIRED) {
+        // HD phải có trạng thái có trạng thái là ACTIVE hoặc EXPIRED
+        if (contract.getStatus() != ContractStatus.ACTIVE && contract.getStatus() != ContractStatus.EXPIRED) {
             throw new BusinessException("Only active or expired contracts can be renewed");
         }
+
+        // Hợp đồng vô thời hạn không thể gia hạn thêm
         if (contract.getEndDate() == null) {
             throw new BusinessException("endDate", "Only contracts with an end date can be renewed");
         }
 
         LocalDate today = LocalDate.now();
+        // Ngày gia hạn bắt buộc phải lớn hơn ngày kết thúc
         if (!newEndDate.isAfter(contract.getEndDate())) {
             throw new BusinessException("newEndDate", "New end date must be after current end date");
         }
+
+        // Ngày gia hạn bắt buộc phải lớn hơn ngày hiện tại
         if (!newEndDate.isAfter(today)) {
             throw new BusinessException("newEndDate", "New end date must be after today");
         }
 
         contract.setEndDate(newEndDate);
         contract.setStatus(ContractStatus.DRAFT);
+        // Xóa ngày và lý do chấm dứt
         contract.setTerminatedDate(null);
         contract.setTerminationReason(null);
 
@@ -268,38 +304,49 @@ public class ContractService {
     }
 
     @Transactional
+    // Nhận file PDF đã ký từ FE, lưu file vật lý rồi cập nhật metadata file vào hợp đồng.
     public ContractResponse uploadSignedFile(Long id, MultipartFile file) {
-        expireElapsedActiveContracts();
-        Contract contract = findActiveById(id);
-        ensureNoPayrollRows(contract);
 
+        // 1. KIỂM TRA HỢP ĐỒNG
+        expireElapsedActiveContracts();
+        Contract contract = findActiveById(id); // Tìm hợp đồng
+        ensureNoPayrollRows(contract);          // Chặn: Đã dính tới bảng lương thì cấm sửa file!
+
+        // 2. KIỂM TRA FILE
         if (file == null || file.isEmpty()) {
-            throw new BusinessException("file", "Signed contract file is required");
+            throw new BusinessException("file", "Signed contract file is required"); // Phải chọn file
         }
 
         String contentType = file.getContentType();
         String uploadedFileName = sanitizeFileName(file.getOriginalFilename());
         boolean isPdf = (contentType != null && MediaTypes.APPLICATION_PDF.equalsIgnoreCase(contentType))
                 || uploadedFileName.toLowerCase(Locale.ROOT).endsWith(".pdf");
+
         if (!isPdf) {
-            throw new BusinessException("file", "Signed contract file must be a PDF");
+            throw new BusinessException("file", "Signed contract file must be a PDF"); // Phải là PDF
         }
 
-        String previousStoredFileName = contract.getAttachmentPath();
+        // 3. LƯU FILE XUỐNG Ổ CỨNG
+        String previousStoredFileName = contract.getAttachmentPath(); // Nhớ lại đường dẫn file cũ
         String originalFileName = contractFileName(contract.getContractCode());
-        String storedFileName = storeFile(file);
-        contract.setAttachmentPath(storedFileName);
+        String storedFileName = storeFile(file); // Lưu file mới -> nhận lại đường dẫn mới
+
+        // 4. LƯU THÔNG TIN VÀO DATABASE
+        contract.setAttachmentPath(storedFileName); // Chỉ lưu ĐƯỜNG DẪN vào DB
         contract.setAttachmentOriginalFileName(originalFileName);
         contract.setAttachmentContentType(contentType == null || contentType.isBlank()
                 ? MediaTypes.APPLICATION_PDF
                 : contentType);
         contract.setAttachmentFileSize(file.getSize());
 
-        Contract saved = contractRepository.save(contract);
+        // 5. CHỐT LƯU & DỌN DẸP
+        Contract saved = contractRepository.save(contract); // Cập nhật DB
+
         if (previousStoredFileName != null && !previousStoredFileName.isBlank()) {
-            deleteStoredFile(previousStoredFileName);
+            deleteStoredFile(previousStoredFileName); // Xóa file cũ đi cho nhẹ ổ cứng
         }
-        return ContractResponse.fromEntity(saved);
+
+        return ContractResponse.fromEntity(saved); // Trả kết quả thành công
     }
 
     @Transactional
@@ -354,6 +401,7 @@ public class ContractService {
 
     // ==================== helpers ====================
 
+    // Tìm HD có tồn tại không
     private Contract findActiveById(Long id) {
         return contractRepository.findActiveById(id)
                 .orElseThrow(() -> new BusinessException("Contract not found with id: " + id));
@@ -474,24 +522,36 @@ public class ContractService {
     }
 
     private void supersedePreviousActiveContracts(Long employeeId, Long currentContractId, LocalDate newStartDate) {
+        // 1. Tìm tất cả các hợp đồng hiện đang ACTIVE của nhân viên này
         List<Contract> existing = contractRepository.findActiveContractsByEmployee(employeeId);
+
         for (Contract c : existing) {
+            // 2. Bỏ qua chính cái hợp đồng bạn đang sửa (nếu có) để không bị tự đóng chính nó
             if (currentContractId != null && c.getId().equals(currentContractId)) {
                 continue;
             }
+
+            // 3. Chuyển trạng thái sang EXPIRED (Hết hạn)
             c.setStatus(ContractStatus.EXPIRED);
+
+            // 4. "Cắt" ngày kết thúc:
+            // Nếu hợp đồng cũ đó chưa có ngày kết thúc hoặc ngày kết thúc vẫn còn xa
+            // so với ngày bắt đầu của HĐ mới, thì ta ép nó kết thúc đúng 1 ngày
+            // trước ngày bắt đầu của HĐ mới (newStartDate - 1 ngày).
             if (c.getEndDate() == null || c.getEndDate().isAfter(newStartDate)) {
                 c.setEndDate(newStartDate.minusDays(1));
             }
+
+            // 5. Lưu lại thay đổi xuống DB
             contractRepository.save(c);
         }
     }
-
     private BigDecimal nz(BigDecimal v) {
         return v == null ? BigDecimal.ZERO : v;
     }
 
     private boolean hasSignedFile(Contract contract) {
+        // getAttachmentPath() khác null và getAttachmentPath() không rỗng
         return contract.getAttachmentPath() != null && !contract.getAttachmentPath().isBlank();
     }
 
