@@ -9,6 +9,7 @@ import poly.edu.vantix.entity.enums.PayrollStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -37,6 +38,7 @@ public class PayrollResponse {
     private BigDecimal actualWorkDays;
     private BigDecimal paidLeaveDays;
     private BigDecimal unpaidLeaveDays;
+    private List<PayrollUnpaidLeaveDetailResponse> unpaidLeaveDetails;
 
     private BigDecimal overtimeHoursWeekday;
     private BigDecimal overtimeHoursWeekend;
@@ -81,6 +83,10 @@ public class PayrollResponse {
     private LocalDateTime updatedAt;
 
     public static PayrollResponse fromEntity(Payroll p) {
+        return fromEntity(p, List.of());
+    }
+
+    public static PayrollResponse fromEntity(Payroll p, List<PayrollUnpaidLeaveDetailResponse> unpaidLeaveDetails) {
         return PayrollResponse.builder()
                 .id(p.getId())
                 .periodId(p.getPeriod() != null ? p.getPeriod().getId() : null)
@@ -101,6 +107,7 @@ public class PayrollResponse {
                 .actualWorkDays(p.getActualWorkDays())
                 .paidLeaveDays(p.getPaidLeaveDays())
                 .unpaidLeaveDays(p.getUnpaidLeaveDays())
+                .unpaidLeaveDetails(unpaidLeaveDetails)
                 .overtimeHoursWeekday(p.getOvertimeHoursWeekday())
                 .overtimeHoursWeekend(p.getOvertimeHoursWeekend())
                 .overtimeHoursHoliday(p.getOvertimeHoursHoliday())
