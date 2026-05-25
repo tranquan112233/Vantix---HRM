@@ -50,6 +50,7 @@ public class PayrollController {
      }
 
     @PutMapping("/periods/{id}")
+    // Kiểm tra tài khoản có quyền thực hiện chức năng không
     @PreAuthorize("hasAnyAuthority('PAYROLL_UPDATE','PAYROLL_MANAGE')")
     public ResponseEntity<PayrollPeriodResponse> updatePeriod(
             @PathVariable Long id,
@@ -59,6 +60,7 @@ public class PayrollController {
     }
 
     @DeleteMapping("/periods/{id}")
+    // Kiểm tra tài khoản có quyền thực hiện chức năng không
     @PreAuthorize("hasAnyAuthority('PAYROLL_DELETE','PAYROLL_MANAGE')")
     public ResponseEntity<Void> deletePeriod(@PathVariable Long id) {
         payrollService.deletePeriod(id);
@@ -66,6 +68,7 @@ public class PayrollController {
     }
 
     @PostMapping("/periods/{id}/generate")
+    // Kiểm tra tài khoản có quyền thực hiện chức năng không
     @PreAuthorize("hasAnyAuthority('PAYROLL_CREATE','PAYROLL_MANAGE')")
     public ResponseEntity<PayrollPeriodResponse> generate(@PathVariable Long id) {
         return ResponseEntity.ok(payrollService.generate(id));
@@ -122,6 +125,7 @@ public class PayrollController {
     }
 
     @PutMapping("/{id}")
+
     @PreAuthorize("hasAnyAuthority('PAYROLL_UPDATE','PAYROLL_MANAGE')")
     public ResponseEntity<PayrollResponse> adjust(
             @PathVariable Long id,

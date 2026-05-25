@@ -304,7 +304,10 @@ function openCreatePeriod() {
 }
 
 function openEditPeriod(p) {
+  // Truyền id vào để xác định là sửa
   editingPeriodId.value = p.id
+
+  // Nạp dữ liệu từ dòng vào form
   Object.assign(periodForm, {
     year: p.year,
     month: p.month,
@@ -343,11 +346,13 @@ async function savePeriod() {
 
 async function deletePeriod(p) {
   try {
+    // Hỏi xác nhận xóa
     await ElMessageBox.confirm(
       settings.t('payroll.deletePeriodConfirm'),
       settings.t('common.confirm'),
       { type: 'warning' },
     )
+    // Gọi API gửi dữ liệu xuống BE xử lý
     await payrollApi.deletePeriod(p.id)
     ElMessage.success(settings.t('common.deleted'))
     if (selectedPeriodId.value === p.id) selectedPeriodId.value = null
@@ -357,11 +362,14 @@ async function deletePeriod(p) {
   }
 }
 
+// Tạo dòng lương
 async function generateRows() {
   if (!selectedPeriodId.value) return
   try {
+    // Xác nhận tạo
     await ElMessageBox.confirm(settings.t('payroll.generateConfirm'),
       settings.t('common.confirm'), { type: 'warning' })
+    // Gọi API xử lý
     await payrollApi.generate(selectedPeriodId.value)
     ElMessage.success(settings.t('common.updated'))
     fetchPeriods()
@@ -528,7 +536,7 @@ function canMarkPaid(p) {
   return p && p.status === 'APPROVED'
 }
 
-function canEditPeriod(p) {
+function  canEditPeriod(p) {
   return p && p.status !== 'APPROVED' && p.status !== 'PAID' && p.status !== 'CANCELLED'
 }
 
@@ -540,6 +548,7 @@ function canRecalculate(p) {
     && rows.value.length > 0
 }
 
+// Khong cho xóa nếu kỳ lương đã thanh toán
 function canDeletePeriod(p) {
   return p && p.status !== 'PAID'
 }

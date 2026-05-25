@@ -142,12 +142,20 @@ public class PayrollService {
 
     @Transactional
     public PayrollPeriodResponse updatePeriod(Long id, PayrollPeriodRequest request) {
+        // Tìm kỳ lương theo ID
         PayrollPeriod period = findActivePeriod(id);
+
+        // Kiểm tra chặn chỉnh sửa với kỳ lương ở trạng thái APPROVED, PAID, hoặc CANCELLED
         ensurePeriodEditable(period);
 
+        // Cập nhật dữ liệu ngày công chuẩn
         period.setStandardWorkDays(request.getStandardWorkDays() != null ? request.getStandardWorkDays() : period.getStandardWorkDays());
+
+        // Kiểm tra có cập nhật startDate hay endDate không
         if (request.getStartDate() != null) period.setStartDate(request.getStartDate());
         if (request.getEndDate() != null) period.setEndDate(request.getEndDate());
+
+        // Cập nhật ghi chú
         period.setNote(request.getNote());
 
         return PayrollPeriodResponse.fromEntity(periodRepository.save(period));
@@ -155,15 +163,22 @@ public class PayrollService {
 
     @Transactional
     public void deletePeriod(Long id) {
+        // Tìm kiếm và kiểm tra kỳ lương có tồn tại trong hệ thống hay không
         PayrollPeriod period = findActivePeriod(id);
+
+        // Kiểm tra điều kiện nghiệp vụ: Không được phép xóa nếu kỳ lương đã ở trạng thái Đã thanh toán (PAID)
         if (period.getStatus() == PayrollStatus.PAID) {
             throw new BusinessException("Cannot delete a paid period");
         }
+
+        // Lấy tất cả các dòng lương (Payroll) thuộc kỳ này và thực hiện xóa mềm (đánh dấu deleted = true)
         payrollRepository.findByPeriod(period.getId(), null, null)
                 .forEach(payroll -> {
                     payroll.setDeleted(true);
                     payroll.setDeletedAt(LocalDateTime.now());
                 });
+
+        // Đánh dấu kỳ lương hiện tại là đã xóa và ghi lại thời gian xóa
         period.setDeleted(true);
         period.setDeletedAt(LocalDateTime.now());
         periodRepository.save(period);
@@ -207,12 +222,21 @@ public class PayrollService {
      */
     @Transactional
     public PayrollPeriodResponse generate(Long periodId) {
+        // 1. Tìm kiếm kỳ lương theo ID, ném lỗi nếu không tồn tại
         PayrollPeriod period = findActivePeriod(periodId);
+
+        // 2. Kiểm tra kỳ lương có thể chỉnh sửa được không (phải chưa APPROVED hoặc PAID)
         ensurePeriodEditable(period);
 
+        // 3. Xác định ngày bắt đầu và kết thúc của kỳ lương
         LocalDate periodStart = period.getStartDate();
         LocalDate periodEnd = period.getEndDate();
 
+        // 4. Lọc lấy danh sách nhân viên thỏa mãn điều kiện:
+        // - Không bị xóa (deleted = false)
+        // - Trạng thái là Đang làm việc (ACTIVE) hoặc Thử việc (PROBATION)
+        // - Ngày vào làm trước hoặc đúng ngày cuối kỳ
+        // - Ngày nghỉ việc (nếu có) phải sau hoặc đúng ngày đầu kỳ
         List<Employee> activeEmployees = employeeRepository.findAll().stream()
                 .filter(e -> !Boolean.TRUE.equals(e.getDeleted()))
                 .filter(e -> e.getStatus() == EmploymentStatus.ACTIVE
@@ -221,20 +245,28 @@ public class PayrollService {
                 .filter(e -> e.getTerminationDate() == null || !e.getTerminationDate().isBefore(periodStart))
                 .toList();
 
+        // 5. Duyệt qua từng nhân viên để tạo/cập nhật dòng lương
         for (Employee employee : activeEmployees) {
+            // Kiểm tra xem nhân viên này đã có dữ liệu lương trong kỳ này chưa
             Optional<Payroll> existing = payrollRepository
                     .findByPeriodIdAndEmployeeId(period.getId(), employee.getId());
+
+            // Tìm hợp đồng hiệu lực của nhân viên trong kỳ đó
             Contract contract = findEffectiveContract(employee, period).orElse(null);
+
+            // Nếu không có hợp đồng hiệu lực: xóa mềm dòng lương cũ (nếu có) và bỏ qua nhân viên này
             if (contract == null) {
                 existing.filter(payroll -> !Boolean.TRUE.equals(payroll.getDeleted()))
                         .ifPresent(this::softDeletePayroll);
                 continue;
             }
 
+            // Nếu đã tồn tại dữ liệu lương hợp lệ: bỏ qua không ghi đè
             if (existing.isPresent() && !Boolean.TRUE.equals(existing.get().getDeleted())) {
                 continue;
             }
 
+            // 6. Tạo mới (hoặc tái sử dụng đối tượng cũ) và thiết lập thông tin cơ bản
             Payroll payroll = existing.orElseGet(Payroll::new);
             payroll.setPeriod(period);
             payroll.setEmployee(employee);
@@ -243,9 +275,16 @@ public class PayrollService {
             payroll.setDeletedBy(null);
             payroll.setPaidAt(null);
             payroll.setStatus(PayrollStatus.DRAFT);
+
+            // 7. Áp dụng thông tin từ hợp đồng (lương cơ bản, phụ cấp...)
             applyContractDefaults(payroll, contract, period);
+
+            // 8. Tự động điền dữ liệu chấm công (ngày công, phép...) từ hệ thống Attendance/Leave
             autoFillTimesheet(payroll, employee, period);
+
+            // 9. Thực hiện tính toán các con số tài chính (lương, bảo hiểm, thuế...)
             recalculate(payroll);
+
             payrollRepository.save(payroll);
         }
 
@@ -374,21 +413,40 @@ public class PayrollService {
                 .findFirst();
     }
 
+    // thiết lập các giá trị mặc định cho dòng lương
     private void applyContractDefaults(Payroll payroll, Contract contract, PayrollPeriod period) {
+        // 1. Gán đối tượng hợp đồng vào bảng lương để truy xuất thông tin sau này
         payroll.setContract(contract);
+
+        // 2. Thiết lập ngày công chuẩn cho bảng lương (mặc định theo kỳ lương)
         payroll.setStandardWorkDays(period.getStandardWorkDays());
 
+        // 3. Gán lương cơ bản (sử dụng hàm phụ trợ nz() để chuyển null thành 0)
         payroll.setBaseSalary(nz(contract.getBaseSalary()));
+
+        // 4. Thiết lập lương đóng bảo hiểm:
+        // Ưu tiên lương đóng bảo hiểm từ hợp đồng, nếu không có thì lấy lương cơ bản
         payroll.setInsuranceSalary(
-                contract.getInsuranceSalary() != null
+                (contract.getInsuranceSalary() != null && contract.getInsuranceSalary().compareTo(BigDecimal.ZERO) > 0)
                         ? contract.getInsuranceSalary()
                         : nz(contract.getBaseSalary())
         );
-        payroll.setResponsibilityAllowance(nz(contract.getResponsibilityAllowance()));
-        payroll.setMealAllowance(nz(contract.getMealAllowance()));
-        payroll.setTransportAllowance(nz(contract.getTransportAllowance()));
-        payroll.setPhoneAllowance(nz(contract.getPhoneAllowance()));
-        payroll.setOtherAllowance(nz(contract.getOtherAllowance()));
+//        payroll.setInsuranceSalary(
+//                (contract.getInsuranceSalary() != null)
+//                        ? contract.getInsuranceSalary()
+//                        : nz(contract.getBaseSalary())
+//        );
+
+        // 5. Gán các khoản phụ cấp từ hợp đồng vào bảng lương
+        payroll.setResponsibilityAllowance(nz(contract.getResponsibilityAllowance()));      // Phụ cấp trách nhiệm
+        payroll.setMealAllowance(nz(contract.getMealAllowance()));                          // Phụ cấp ăn uống
+        payroll.setTransportAllowance(nz(contract.getTransportAllowance()));                // Phụ cấp đi lại
+        payroll.setPhoneAllowance(nz(contract.getPhoneAllowance()));                        // Phụ cấp điện thoại
+        payroll.setOtherAllowance(nz(contract.getOtherAllowance()));                        // Các phụ cấp khác
+
+        // 6. Cấu hình ngày công chuẩn riêng biệt (Override):
+        // Nếu hợp đồng có quy định số ngày công chuẩn riêng và hợp lệ (> 0),
+        // sẽ ghi đè giá trị ngày công chuẩn của kỳ lương bằng giá trị này
         if (contract.getStandardWorkDays() != null && contract.getStandardWorkDays() > 0) {
             payroll.setStandardWorkDays(contract.getStandardWorkDays());
         }
