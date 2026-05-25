@@ -156,6 +156,8 @@ const payrollReportFilename = computed(() => {
 const payrollReportRows = computed(() => {
   const mappedRows = rows.value.map(row => ({
     ...row,
+    unpaidLeaveDeductionPercent: unpaidLeaveDeductionPercent(row),
+    unpaidLeaveDeductionAmount: unpaidLeaveDeductionAmount(row),
     statusLabel: periodStatusLabel(row.status),
   }))
 
@@ -184,6 +186,8 @@ const payrollReportColumns = computed(() => [
   { prop: 'actualWorkDays', label: settings.t('payroll.actualWorkDays') },
   { prop: 'paidLeaveDays', label: settings.t('payroll.paidLeaveDays') },
   { prop: 'unpaidLeaveDays', label: settings.t('payroll.unpaidLeaveDays') },
+  { prop: 'unpaidLeaveDeductionPercent', label: settings.t('payroll.unpaidLeaveDeductionPercent'), format: row => formatPercent(row.unpaidLeaveDeductionPercent) },
+  { prop: 'unpaidLeaveDeductionAmount', label: settings.t('payroll.unpaidLeaveDeductionAmount'), format: row => formatMoney(row.unpaidLeaveDeductionAmount) },
   { prop: 'baseSalary', label: settings.t('payroll.baseSalary'), format: row => formatMoney(row.baseSalary) },
   { prop: 'insuranceSalary', label: settings.t('payroll.insuranceSalary'), format: row => formatMoney(row.insuranceSalary) },
   { prop: 'workingDaysSalary', label: settings.t('payroll.workingDaysSalary'), format: row => formatMoney(row.workingDaysSalary) },
@@ -444,7 +448,16 @@ function periodStatusLabel(v) {
 function formatMoney(v) {
   if (v == null || v === '') return '-'
   const value = Number(v)
-  return Number.isFinite(value) ? new Intl.NumberFormat('vi-VN').format(value) : '-'
+  return Number.isFinite(value)
+    ? new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(value)
+    : '-'
+}
+
+function formatPercent(v) {
+  if (v == null || v === '') return '-'
+  const value = Number(v)
+  if (!Number.isFinite(value)) return '-'
+  return `${new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value)}%`
 }
 
 function toNumber(v) {
@@ -455,6 +468,34 @@ function toNumber(v) {
 
 function displayValue(v) {
   return v || '-'
+}
+
+function unpaidLeaveDeductionPercent(row) {
+  const standardWorkDays = toNumber(row?.standardWorkDays || selectedPeriod.value?.standardWorkDays)
+  if (standardWorkDays <= 0) return 0
+  return (toNumber(row?.unpaidLeaveDays) / standardWorkDays) * 100
+}
+
+function unpaidLeaveDeductionAmount(row) {
+  const details = Array.isArray(row?.unpaidLeaveDetails) ? row.unpaidLeaveDetails : []
+  if (details.length) return unpaidLeaveDetailTotal(row)
+  const standardWorkDays = toNumber(row?.standardWorkDays || selectedPeriod.value?.standardWorkDays)
+  if (standardWorkDays <= 0) return 0
+  return (toNumber(row?.baseSalary) / standardWorkDays) * toNumber(row?.unpaidLeaveDays)
+}
+
+function unpaidLeaveDetailTotal(row) {
+  const details = Array.isArray(row?.unpaidLeaveDetails) ? row.unpaidLeaveDetails : []
+  return details.reduce((sum, detail) => sum + toNumber(detail.deductionAmount), 0)
+}
+
+function leaveTypeLabel(type) {
+  return type ? settings.t(`leave.type.${type}`) : '-'
+}
+
+function leaveDayUnitLabel(dayUnit) {
+  if (dayUnit === 'HALF') return settings.t('leave.halfDay')
+  return settings.t('leave.fullDay')
 }
 
 function canGenerate(p) {
@@ -737,6 +778,12 @@ function validateAdjustForm() {
           <el-table-column :label="settings.t('payroll.actualWorkDays')" width="110" align="right">
             <template #default="{ row }">{{ row.actualWorkDays ?? '-' }}</template>
           </el-table-column>
+          <el-table-column :label="settings.t('payroll.unpaidLeaveDeductionPercent')" width="120" align="right">
+            <template #default="{ row }">{{ formatPercent(unpaidLeaveDeductionPercent(row)) }}</template>
+          </el-table-column>
+          <el-table-column :label="settings.t('payroll.unpaidLeaveDeductionAmount')" width="140" align="right">
+            <template #default="{ row }">{{ formatMoney(unpaidLeaveDeductionAmount(row)) }}</template>
+          </el-table-column>
           <el-table-column :label="settings.t('payroll.contract')" width="135">
             <template #default="{ row }">{{ row.contractCode || '-' }}</template>
           </el-table-column>
@@ -964,9 +1011,39 @@ function validateAdjustForm() {
           <el-descriptions-item :label="settings.t('contract.position')">{{ displayValue(selectedRow.positionName) }}</el-descriptions-item>
           <el-descriptions-item :label="settings.t('payroll.actualWorkDays')">{{ selectedRow.actualWorkDays }}</el-descriptions-item>
           <el-descriptions-item :label="settings.t('payroll.paidLeaveDays')">{{ selectedRow.paidLeaveDays }}</el-descriptions-item>
-          <el-descriptions-item :label="settings.t('payroll.unpaidLeaveDays')">{{ selectedRow.unpaidLeaveDays }}</el-descriptions-item>
           <el-descriptions-item :label="settings.t('payroll.dependents')">{{ selectedRow.dependents }}</el-descriptions-item>
         </el-descriptions>
+
+        <h4 class="detail-section-title">{{ settings.t('payroll.unpaidLeaveDeductionDetails') }}</h4>
+        <el-table
+          :data="selectedRow.unpaidLeaveDetails || []"
+          border
+          size="small"
+          :empty-text="settings.t('payroll.noUnpaidLeaveDeductions')"
+        >
+          <el-table-column prop="leaveRequestId" :label="settings.t('payroll.leaveRequest')" width="90" />
+          <el-table-column :label="settings.t('leave.type')" min-width="145">
+            <template #default="{ row }">{{ leaveTypeLabel(row.type) }}</template>
+          </el-table-column>
+          <el-table-column :label="settings.t('leave.period')" min-width="170">
+            <template #default="{ row }">{{ row.startDate }} - {{ row.endDate }}</template>
+          </el-table-column>
+          <el-table-column :label="settings.t('leave.dayUnit')" width="105">
+            <template #default="{ row }">{{ leaveDayUnitLabel(row.dayUnit) }}</template>
+          </el-table-column>
+          <el-table-column prop="deductionDays" :label="settings.t('payroll.deductionDays')" width="95" align="right" />
+          <el-table-column :label="settings.t('payroll.unpaidLeaveDeductionPercent')" width="105" align="right">
+            <template #default="{ row }">{{ formatPercent(row.deductionPercent) }}</template>
+          </el-table-column>
+          <el-table-column :label="settings.t('payroll.unpaidLeaveDeductionAmount')" width="125" align="right">
+            <template #default="{ row }">{{ formatMoney(row.deductionAmount) }}</template>
+          </el-table-column>
+          <el-table-column prop="reason" :label="settings.t('leave.reason')" min-width="160" />
+        </el-table>
+        <div v-if="selectedRow.unpaidLeaveDetails?.length" class="detail-total-row">
+          <span>{{ settings.t('payroll.totalUnpaidLeaveDeduction') }}</span>
+          <strong>{{ formatMoney(unpaidLeaveDetailTotal(selectedRow)) }}</strong>
+        </div>
 
         <h4 class="detail-section-title">{{ settings.t('payroll.results') }}</h4>
         <el-alert
@@ -1303,6 +1380,18 @@ function validateAdjustForm() {
   font-size: var(--vx-font-size-md);
   font-weight: 700;
   margin-top: 4px;
+}
+
+.detail-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  color: var(--vx-text);
+}
+
+.detail-total-row span {
+  color: var(--vx-text-secondary);
 }
 
 .form-section {

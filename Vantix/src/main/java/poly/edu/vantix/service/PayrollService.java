@@ -6,6 +6,7 @@ import poly.edu.vantix.dto.request.PayrollAdjustRequest;
 import poly.edu.vantix.dto.request.PayrollPeriodRequest;
 import poly.edu.vantix.dto.response.PayrollPeriodResponse;
 import poly.edu.vantix.dto.response.PayrollResponse;
+import poly.edu.vantix.dto.response.PayrollUnpaidLeaveDetailResponse;
 import poly.edu.vantix.entity.Attendance;
 import poly.edu.vantix.entity.Contract;
 import poly.edu.vantix.entity.Employee;
@@ -34,6 +35,7 @@ import poly.edu.vantix.util.PayrollInput;
 import poly.edu.vantix.util.VietnamPayrollCalculator;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -156,13 +158,13 @@ public class PayrollService {
     @Transactional(readOnly = true)
     public List<PayrollResponse> listPayrolls(Long periodId, String keyword, Long departmentId) {
         return payrollRepository.findByPeriod(periodId, keyword, departmentId).stream()
-                .map(PayrollResponse::fromEntity)
+                .map(this::toPayrollResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public PayrollResponse getPayroll(Long id) {
-        return PayrollResponse.fromEntity(findActivePayroll(id));
+        return toPayrollResponse(findActivePayroll(id));
     }
 
     @Transactional(readOnly = true)
@@ -170,7 +172,7 @@ public class PayrollService {
         Employee employee = employeeRepository.findActiveByUserId(userId)
                 .orElseThrow(() -> new BusinessException("No employee profile linked to your account"));
         return payrollRepository.findByEmployee(employee.getId()).stream()
-                .map(PayrollResponse::fromEntity)
+                .map(this::toPayrollResponse)
                 .toList();
     }
 
@@ -179,7 +181,7 @@ public class PayrollService {
         employeeRepository.findActiveById(employeeId)
                 .orElseThrow(() -> new BusinessException("employeeId", "Employee does not exist"));
         return payrollRepository.findByEmployee(employeeId).stream()
-                .map(PayrollResponse::fromEntity)
+                .map(this::toPayrollResponse)
                 .toList();
     }
 
@@ -476,5 +478,58 @@ public class PayrollService {
 
     private BigDecimal nz(BigDecimal v) {
         return v == null ? BigDecimal.ZERO : v;
+    }
+
+    private PayrollResponse toPayrollResponse(Payroll payroll) {
+        return PayrollResponse.fromEntity(payroll, unpaidLeaveDetails(payroll));
+    }
+
+    private List<PayrollUnpaidLeaveDetailResponse> unpaidLeaveDetails(Payroll payroll) {
+        if (payroll.getEmployee() == null || payroll.getPeriod() == null) {
+            return List.of();
+        }
+
+        PayrollPeriod period = payroll.getPeriod();
+        LocalDate from = period.getStartDate();
+        LocalDate to = period.getEndDate();
+        BigDecimal standardDays = BigDecimal.valueOf(Math.max(
+                payroll.getStandardWorkDays() != null ? payroll.getStandardWorkDays() : 26,
+                1
+        ));
+        BigDecimal dailyRate = nz(payroll.getBaseSalary()).divide(standardDays, 6, RoundingMode.HALF_UP);
+
+        return leaveRequestRepository
+                .search(payroll.getEmployee().getId(), null, LeaveRequestStatus.APPROVED, null, from, to)
+                .stream()
+                .filter(leave -> leave.getType() == LeaveType.UNPAID || leave.getType() == LeaveType.SICK_OR_MATERNITY)
+                .map(leave -> {
+                    LocalDate start = leave.getStartDate().isBefore(from) ? from : leave.getStartDate();
+                    LocalDate end = leave.getEndDate().isAfter(to) ? to : leave.getEndDate();
+                    BigDecimal days = businessCalendarService.countWorkingLeaveDays(
+                            payroll.getEmployee().getId(),
+                            start,
+                            end,
+                            leave.getDayUnit() == null ? LeaveDayUnit.FULL : leave.getDayUnit()
+                    );
+                    BigDecimal percent = days
+                            .multiply(BigDecimal.valueOf(100))
+                            .divide(standardDays, 2, RoundingMode.HALF_UP);
+                    BigDecimal amount = dailyRate
+                            .multiply(days)
+                            .setScale(0, RoundingMode.HALF_UP);
+
+                    return PayrollUnpaidLeaveDetailResponse.builder()
+                            .leaveRequestId(leave.getId())
+                            .type(leave.getType())
+                            .startDate(start)
+                            .endDate(end)
+                            .dayUnit(leave.getDayUnit())
+                            .deductionDays(days)
+                            .deductionPercent(percent)
+                            .deductionAmount(amount)
+                            .reason(leave.getReason())
+                            .build();
+                })
+                .toList();
     }
 }
