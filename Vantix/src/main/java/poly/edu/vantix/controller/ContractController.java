@@ -127,41 +127,46 @@ public class ContractController {
     }
 
     @PatchMapping("/{id}/renew")
-    // Kiểm tra tài khoản có quyền không
+    // Kiểm tra tài khoản có quyền thực hiện chức năng không
     @PreAuthorize("hasAuthority('CONTRACT_UPDATE')")
     // Endpoint "Gia hạn HD": FE gửi newEndDate để BE xử lý gia hạn hợp đồng
-    public ResponseEntity<ContractResponse> renew( @PathVariable Long id, @Valid @RequestBody ContractRenewRequest request ) {
+    public ResponseEntity<ContractResponse> renew(@PathVariable Long id, @Valid @RequestBody ContractRenewRequest request) {
         return ResponseEntity.ok(contractService.renew(id, request.getNewEndDate()));
     }
 
     @PatchMapping("/{id}/terminate")
+    // Kiểm tra tài khoản có quyền thực hiện chức năng không
     @PreAuthorize("hasAuthority('CONTRACT_UPDATE')")
-    public ResponseEntity<ContractResponse> terminate(
-            @PathVariable Long id,
-            @RequestBody(required = false) Map<String, Object> body
-    ) {
+    public ResponseEntity<ContractResponse> terminate(@PathVariable Long id, @RequestBody(required = false) Map<String, Object> body) {
         LocalDate terminatedDate = null;
         String reason = null;
+        // Kiểm tra xem phía FE có gửi dữ liệu lên không
         if (body != null) {
+            // Bóc tách ngày chấm dứt
             Object d = body.get("terminatedDate");
             if (d != null) {
+                // Chuyển đổi String từ FE (YYYY-MM-DD) sang LocalDate để xử lý logic
                 terminatedDate = LocalDate.parse(d.toString());
             }
+            // Bóc tách lý do chấm dứt
             Object r = body.get("reason");
             if (r != null) {
                 reason = r.toString();
             }
         }
+        // Gọi tầng Service để thực thi nghiệp vụ chấm dứt hợp đồng trong Database
         return ResponseEntity.ok(contractService.terminate(id, terminatedDate, reason));
     }
 
     @PatchMapping("/{id}/liquidate")
+    // Kiểm tra tài khoản có quyền thực hiện chức năng không
     @PreAuthorize("hasAuthority('CONTRACT_UPDATE')")
     public ResponseEntity<ContractResponse> liquidate(@PathVariable Long id) {
         return ResponseEntity.ok(contractService.liquidate(id));
     }
 
     @DeleteMapping("/{id}")
+    // Kiểm tra tài khoản có quyền thực hiện chức năng không
     @PreAuthorize("hasAuthority('CONTRACT_DELETE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         contractService.delete(id);

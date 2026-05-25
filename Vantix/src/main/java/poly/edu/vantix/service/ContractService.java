@@ -259,24 +259,37 @@ public class ContractService {
 
     @Transactional
     public ContractResponse terminate(Long id, LocalDate terminatedDate, String reason) {
+        // 1. Quét và cập nhật trạng thái các hợp đồng đã hết hạn trước khi xử lý
         expireElapsedActiveContracts();
+
+        // 2. Tìm hợp đồng hợp lệ theo ID (phải đang ở trạng thái ACTIVE)
         Contract contract = findActiveById(id);
+
+        // 3. Kiểm tra nếu hợp đồng đã bị chấm dứt hoặc thanh lý thì chặn lại
         if (contract.getStatus() == ContractStatus.TERMINATED
                 || contract.getStatus() == ContractStatus.LIQUIDATED) {
             throw new BusinessException("Contract is already terminated");
         }
 
+        // 4. Xác định ngày chấm dứt: lấy ngày người dùng nhập hoặc mặc định là ngày hôm nay
         LocalDate effective = terminatedDate == null ? LocalDate.now() : terminatedDate;
+
+        // 5. Kiểm tra logic ngày: Ngày chấm dứt không được phép trước ngày bắt đầu hợp đồng
         if (effective.isBefore(contract.getStartDate())) {
             throw new BusinessException("terminatedDate", "Termination date must be after start date");
         }
 
+        // 6. Cập nhật thông tin cho hợp đồng
         boolean wasActive = contract.getStatus() == ContractStatus.ACTIVE;
         contract.setStatus(ContractStatus.TERMINATED);
         contract.setTerminatedDate(effective);
         contract.setTerminationReason(reason);
 
+        // 7. Lưu thay đổi của hợp đồng vào Database
         Contract saved = contractRepository.save(contract);
+
+        // 8. Nếu hợp đồng đang ACTIVE và ngày chấm dứt là hiện tại hoặc quá khứ,
+        //    thì cập nhật luôn trạng thái của nhân viên đó thành TERMINATED
         if (wasActive && !effective.isAfter(LocalDate.now())) {
             Employee employee = saved.getEmployee();
             employee.setStatus(EmploymentStatus.TERMINATED);
@@ -284,21 +297,30 @@ public class ContractService {
             employeeRepository.save(employee);
         }
 
+        // 9. Trả về kết quả sau khi đã xử lý xong
         return ContractResponse.fromEntity(saved);
     }
 
     @Transactional
     public ContractResponse liquidate(Long id) {
+        // 1. Quét và cập nhật trạng thái các hợp đồng đã hết hạn trước khi xử lý
         expireElapsedActiveContracts();
+
+        // 2. Tìm kiếm hợp đồng; ném ra ngoại lệ nếu không tồn tại
         Contract contract = findActiveById(id);
+
+        // 3. Nếu đã thanh lý rồi thì không cần xử lý thêm, trả về kết quả ngay
         if (contract.getStatus() == ContractStatus.LIQUIDATED) {
             return ContractResponse.fromEntity(contract);
         }
+
+        // 4. Chỉ cho phép thanh lý các hợp đồng đã thực sự kết thúc (EXPIRED) hoặc đã dừng (TERMINATED)
         if (contract.getStatus() != ContractStatus.EXPIRED
                 && contract.getStatus() != ContractStatus.TERMINATED) {
             throw new BusinessException("Only expired or terminated contracts can be liquidated");
         }
 
+        // 5. Cập nhật trạng thái sang LIQUIDATED và lưu vào cơ sở dữ liệu
         contract.setStatus(ContractStatus.LIQUIDATED);
         return ContractResponse.fromEntity(contractRepository.save(contract));
     }
@@ -387,13 +409,22 @@ public class ContractService {
 
     @Transactional
     public void delete(Long id) {
+        // 1. Kiểm tra và cập nhật các hợp đồng đã quá hạn
         expireElapsedActiveContracts();
+
+        // 2. Tìm hợp đồng theo ID, đảm bảo tồn tại
         Contract contract = findActiveById(id);
+
+        // 3. Kiểm tra xem hợp đồng đã có dữ liệu bảng lương chưa (tránh xóa nhầm)
         ensureNoPayrollRows(contract);
+
+        // 4. Kiểm tra trạng thái: chỉ được xóa khi là DRAFT hoặc LIQUIDATED
         if (contract.getStatus() != ContractStatus.DRAFT
                 && contract.getStatus() != ContractStatus.LIQUIDATED) {
             throw new BusinessException("Only draft or liquidated contracts can be deleted");
         }
+
+        // 5. Đánh dấu đã xóa (Soft Delete) và lưu lại
         contract.setDeleted(true);
         contract.setDeletedAt(LocalDateTime.now());
         contractRepository.save(contract);

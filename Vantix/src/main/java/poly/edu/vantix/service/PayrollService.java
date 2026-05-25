@@ -100,23 +100,39 @@ public class PayrollService {
 
     @Transactional
     public PayrollPeriodResponse createPeriod(PayrollPeriodRequest request) {
+        // 1. Tạo đối tượng YearMonth để phục vụ tính toán lịch
         YearMonth ym = YearMonth.of(request.getYear(), request.getMonth());
+
+        // 2. Kiểm tra xem tháng đó đã tồn tại trong DB chưa
         Optional<PayrollPeriod> existingPeriod = periodRepository.findByYearAndMonth(request.getYear(), request.getMonth());
+
+        // 3. Nếu đã tồn tại và chưa bị xóa (deleted = false) thì báo lỗi
         if (existingPeriod.isPresent() && !Boolean.TRUE.equals(existingPeriod.get().getDeleted())) {
             throw new BusinessException("month", "Payroll period for this month already exists");
         }
 
+        // 4. Nếu đã tồn tại (nhưng bị xóa trước đó) thì tái sử dụng, chưa có thì tạo mới (new)
         PayrollPeriod period = existingPeriod.orElseGet(PayrollPeriod::new);
+
+        // 5. Gán dữ liệu từ request vào entity
         period.setYear(request.getYear());
         period.setMonth(request.getMonth());
+
+        // 6. Set ngày bắt đầu/kết thúc: Nếu request không gửi lên, dùng mặc định là đầu/cuối tháng
         period.setStartDate(request.getStartDate() != null ? request.getStartDate() : ym.atDay(1));
         period.setEndDate(request.getEndDate() != null ? request.getEndDate() : ym.atEndOfMonth());
+
+        // 7. Thiết lập ngày công tiêu chuẩn (mặc định 26 nếu không nhập)
         period.setStandardWorkDays(request.getStandardWorkDays() != null ? request.getStandardWorkDays() : 26);
+
+        // 8. Thiết lập các trạng thái khởi tạo
         period.setNote(request.getNote());
-        period.setStatus(PayrollStatus.DRAFT);
-        period.setApprovedBy(null);
+        period.setStatus(PayrollStatus.DRAFT);  // Trạng thái luôn là DRAFT khi tạo mới
+        period.setApprovedBy(null);             // Reset thông tin duyệt
         period.setApprovedAt(null);
         period.setLockedAt(null);
+
+        // 9. Đảm bảo bản ghi này đang ở trạng thái hoạt động
         period.setDeleted(false);
         period.setDeletedAt(null);
         period.setDeletedBy(null);

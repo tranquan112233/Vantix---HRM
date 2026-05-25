@@ -334,9 +334,14 @@ async function handleSave() {
 
 async function handleDelete(row) {
   try {
+    // 1. Xác nhận xóa
     await ElMessageBox.confirm(`${settings.t('contract.deleteConfirm')} "${row.contractCode}"?`,
         settings.t('common.confirm'), {type: 'warning'})
+
+    // 2. Gọi API xóa
     await contractApi.delete(row.id)
+
+    // 3. Thông báo và tải lại bảng
     ElMessage.success(settings.t('common.deleted'))
     fetchData()
   } catch {
@@ -346,11 +351,13 @@ async function handleDelete(row) {
 
 async function handleLiquidate(row) {
   try {
+    // Yêu cầu xác nhận trước khi thực thi để tránh thao tác nhầm
     await ElMessageBox.confirm(
         settings.t('contract.liquidateConfirm'),
         settings.t('common.confirm'),
         {type: 'warning'}
     )
+    // Gọi API xử lý logic thanh lý tại backend
     await contractApi.liquidate(row.id)
     ElMessage.success(settings.t('common.updated'))
     fetchData()
@@ -423,6 +430,7 @@ function openTerminate(row) {
   terminateVisible.value = true
 }
 
+// Xác nhân chấm dứt HD
 async function submitTerminate() {
   try {
     await contractApi.terminate(selectedContract.value.id, {

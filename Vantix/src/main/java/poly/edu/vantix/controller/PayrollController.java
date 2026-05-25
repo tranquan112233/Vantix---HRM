@@ -43,6 +43,7 @@ public class PayrollController {
     }
 
     @PostMapping("/periods")
+    // Kiểm tra tài khoản có quyền thực hiện chức năng không
     @PreAuthorize("hasAnyAuthority('PAYROLL_CREATE','PAYROLL_MANAGE')")
     public ResponseEntity<PayrollPeriodResponse> createPeriod(@Valid @RequestBody PayrollPeriodRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(payrollService.createPeriod(request));

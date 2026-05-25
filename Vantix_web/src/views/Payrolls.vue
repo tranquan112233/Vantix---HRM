@@ -23,20 +23,27 @@ const filterYear = ref(null)
 const periodDialogVisible = ref(false)
 const editingPeriodId = ref(null)
 const periodFormRef = ref(null)
+
 function monthDateRange(year, month) {
+  // Tạo ngày đầu tháng: lấy năm, tháng đó (trừ 1 vì JS đếm tháng từ 0-11)
   const start = new Date(year, month - 1, 1)
+
+  // Tạo ngày cuối tháng: lấy năm, tháng đó, ngày là 0 (JS tự lùi về ngày cuối của tháng trước đó)
   const end = new Date(year, month, 0)
+
+  // Định nghĩa hàm hỗ trợ chuyển đối tượng Date thành chuỗi 'YYYY-MM-DD'
   const toIso = (date) => {
-    const y = date.getFullYear()
-    const m = String(date.getMonth() + 1).padStart(2, '0')
-    const d = String(date.getDate()).padStart(2, '0')
-    return `${y}-${m}-${d}`
+    const y = date.getFullYear() // lấy năm
+    const m = String(date.getMonth() + 1).padStart(2, '0') // // Lấy tháng (cộng 1), thêm số 0 phía trước nếu chỉ có 1 chữ số
+    const d = String(date.getDate()).padStart(2, '0') // Lấy ngày, thêm số 0 phía trước nếu cần
+    return `${y}-${m}-${d}` // Trả về định dạng chuỗi ISO
   }
   return {
     startDate: toIso(start),
     endDate: toIso(end),
   }
 }
+
 const currentMonthRange = monthDateRange(new Date().getFullYear(), new Date().getMonth() + 1)
 const periodDefaultForm = {
   year: new Date().getFullYear(),
@@ -283,8 +290,13 @@ function selectPeriod(p) {
 }
 
 function openCreatePeriod() {
+  // Gán lại giá trị mặc định
   Object.assign(periodForm, periodDefaultForm)
+
+  // Đánh dấu là trạng thái tạo mới (chức không phải Update)
   editingPeriodId.value = null
+
+  // Tính toán dải ngày (đầu tháng đến cuối tháng) cho tháng hiện tại
   const range = monthDateRange(periodForm.year, periodForm.month)
   periodForm.startDate = range.startDate
   periodForm.endDate = range.endDate
@@ -305,13 +317,19 @@ function openEditPeriod(p) {
 }
 
 async function savePeriod() {
+  // 1. Kiểm tra tính hợp lệ của form (validate các trường bắt buộc)
   const valid = await periodFormRef.value.validate().catch(() => false)
+
+  // 2. Kiểm tra logic ngày tháng (startDate <= endDate) thông qua hàm phụ trợ
   if (!valid || !validatePeriodDates()) return
+
   try {
+    // Phân nhánh Update hay Create
     if (editingPeriodId.value) {
       await payrollApi.updatePeriod(editingPeriodId.value, periodForm)
       ElMessage.success(settings.t('common.updated'))
     } else {
+      // Gọi API gữi dữ liệu trong Form xuống BE
       const res = await payrollApi.createPeriod(periodForm)
       ElMessage.success(settings.t('common.created'))
       if (res.data?.id) selectedPeriodId.value = res.data.id
@@ -569,6 +587,7 @@ function rowPayrollWarnings(row) {
 }
 
 function validatePeriodDates() {
+  // Kiểm tra startDate và endDate có dữ liệu không - kiểm tra startDate không được lớn hơn endDate
   if (periodForm.startDate && periodForm.endDate && periodForm.startDate > periodForm.endDate) {
     ElMessage.error(settings.t('payroll.invalidPeriodRange'))
     return false
