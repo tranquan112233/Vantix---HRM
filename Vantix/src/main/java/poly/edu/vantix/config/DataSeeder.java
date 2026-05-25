@@ -130,6 +130,9 @@ public class DataSeeder implements CommandLineRunner {
     @Value("${app.upload.task-dir:uploads/tasks}")
     private String taskUploadDir;
 
+    @Value("${app.upload.contract-dir:uploads/contracts}")
+    private String contractUploadDir;
+
     public DataSeeder(
             PermissionRepository permissionRepository,
             RoleRepository roleRepository,
@@ -1298,10 +1301,7 @@ public class DataSeeder implements CommandLineRunner {
     private void seedContracts() {
         List<Employee> employees = employeeRepository.findAll().stream()
                 .filter(e -> !Boolean.TRUE.equals(e.getDeleted()))
-                .filter(e -> e.getStatus() == EmploymentStatus.ACTIVE
-                        || e.getStatus() == EmploymentStatus.PROBATION)
                 .sorted(Comparator.comparing(Employee::getEmployeeCode))
-                .limit(45)
                 .toList();
 
         LocalDate today = LocalDate.now();
@@ -1309,19 +1309,18 @@ public class DataSeeder implements CommandLineRunner {
         for (int i = 0; i < employees.size(); i++) {
             Employee employee = employees.get(i);
             String code = "HD-%s-001".formatted(employee.getEmployeeCode().replace("EMP-", ""));
-            if (contractRepository.existsByContractCodeAndDeletedFalse(code)) {
-                continue;
-            }
-
-            Contract contract = new Contract();
+            Contract contract = contractRepository.findByContractCode(code).orElseGet(Contract::new);
             contract.setContractCode(code);
             contract.setEmployee(employee);
             contract.setPosition(employee.getPosition());
 
-            boolean probation = employee.getStatus() == EmploymentStatus.PROBATION || i % 11 == 0;
-            boolean indefinite = i % 5 == 0;
-            boolean draft = i % 13 == 0;
-            boolean expiringSoon = i % 9 == 0;
+            boolean probation = employee.getStatus() == EmploymentStatus.PROBATION;
+            boolean inactive = employee.getStatus() == EmploymentStatus.TERMINATED
+                    || employee.getStatus() == EmploymentStatus.RESIGNED;
+            boolean unpaidLeave = employee.getStatus() == EmploymentStatus.UNPAID_LEAVE;
+            boolean indefinite = !probation && !inactive && i % 5 == 0;
+            boolean draft = !inactive && !probation && !unpaidLeave && i % 17 == 0;
+            boolean expiringSoon = !inactive && !probation && i % 9 == 0;
 
             if (probation) {
                 contract.setContractType(ContractType.PROBATION);
@@ -1335,11 +1334,16 @@ public class DataSeeder implements CommandLineRunner {
                 contract.setNoticePeriodDays(30);
             }
 
-            LocalDate startDate = employee.getJoinDate() != null
-                    ? employee.getJoinDate()
-                    : today.minusMonths(12 + i % 18L);
-            if (startDate.isAfter(today.minusDays(10))) {
-                startDate = today.minusMonths(2).minusDays(i % 20L);
+            LocalDate startDate;
+            if (probation) {
+                startDate = today.minusDays(20 + i % 20L);
+            } else {
+                startDate = employee.getJoinDate() != null
+                        ? employee.getJoinDate()
+                        : today.minusMonths(12 + i % 18L);
+                if (startDate.isAfter(today.minusDays(10))) {
+                    startDate = today.minusMonths(2).minusDays(i % 20L);
+                }
             }
 
             contract.setSignedDate(startDate.minusDays(5));
@@ -1354,7 +1358,21 @@ public class DataSeeder implements CommandLineRunner {
                 contract.setEndDate(startDate.plusMonths(24));
             }
 
-            contract.setStatus(draft ? ContractStatus.DRAFT : ContractStatus.ACTIVE);
+            if (inactive) {
+                LocalDate terminatedDate = employee.getTerminationDate() != null
+                        ? employee.getTerminationDate()
+                        : today.minusDays(15 + i % 45L);
+                contract.setStatus(i % 2 == 0 ? ContractStatus.TERMINATED : ContractStatus.LIQUIDATED);
+                contract.setEndDate(terminatedDate);
+                contract.setTerminatedDate(terminatedDate);
+                contract.setTerminationReason(employee.getStatus() == EmploymentStatus.RESIGNED
+                        ? "Nhân viên xin nghỉ việc và đã bàn giao công việc."
+                        : "Chấm dứt hợp đồng theo quyết định của công ty.");
+            } else {
+                contract.setStatus(draft ? ContractStatus.DRAFT : ContractStatus.ACTIVE);
+                contract.setTerminatedDate(null);
+                contract.setTerminationReason(null);
+            }
             contract.setBaseSalary(sampleBaseSalary(i, probation));
             contract.setInsuranceSalary(contract.getBaseSalary().min(new BigDecimal("46800000")));
             contract.setResponsibilityAllowance(new BigDecimal((i % 4) * 500000L));
@@ -1364,7 +1382,8 @@ public class DataSeeder implements CommandLineRunner {
             contract.setOtherAllowance(new BigDecimal((i % 5) * 200000L));
             contract.setStandardWorkDays(26);
             contract.setHoursPerDay(new BigDecimal("8.00"));
-            contract.setNote("Hợp đồng mẫu phục vụ demo quản lý hợp đồng và tính lương.");
+            contract.setNote("Hợp đồng mẫu có đầy đủ thông tin nhân sự, lương, phụ cấp và điều khoản làm việc.");
+            seedContractSignedFile(contract, i);
 
             contractRepository.save(contract);
 
@@ -1376,11 +1395,7 @@ public class DataSeeder implements CommandLineRunner {
 
     private void seedHistoricalContract(Employee employee, int index, LocalDate activeStartDate) {
         String code = "HD-%s-000".formatted(employee.getEmployeeCode().replace("EMP-", ""));
-        if (contractRepository.existsByContractCodeAndDeletedFalse(code)) {
-            return;
-        }
-
-        Contract oldContract = new Contract();
+        Contract oldContract = contractRepository.findByContractCode(code).orElseGet(Contract::new);
         oldContract.setContractCode(code);
         oldContract.setEmployee(employee);
         oldContract.setPosition(employee.getPosition());
@@ -1394,6 +1409,8 @@ public class DataSeeder implements CommandLineRunner {
         oldContract.setMealAllowance(new BigDecimal("730000"));
         oldContract.setTransportAllowance(new BigDecimal("300000"));
         oldContract.setPhoneAllowance(new BigDecimal("200000"));
+        oldContract.setResponsibilityAllowance(new BigDecimal((index % 3) * 300000L));
+        oldContract.setOtherAllowance(new BigDecimal((index % 2) * 150000L));
         oldContract.setStandardWorkDays(26);
         oldContract.setHoursPerDay(new BigDecimal("8.00"));
         oldContract.setNoticePeriodDays(30);
@@ -1402,7 +1419,37 @@ public class DataSeeder implements CommandLineRunner {
             oldContract.setTerminationReason("Chuyển sang hợp đồng mới.");
         }
         oldContract.setNote("Hợp đồng lịch sử mẫu.");
+        seedContractSignedFile(oldContract, index + 100);
         contractRepository.save(oldContract);
+    }
+
+    private void seedContractSignedFile(Contract contract, int index) {
+        if (contract.getAttachmentPath() != null && !contract.getAttachmentPath().isBlank()) {
+            return;
+        }
+
+        String storedFileName = "seed-contract-%s.pdf".formatted(contract.getContractCode().toLowerCase());
+        Path target = uploadRoot(contractUploadDir).resolve(storedFileName);
+        writeSeedFile(target, seedPdfBytes(contract, index));
+
+        contract.setAttachmentPath(storedFileName);
+        contract.setAttachmentOriginalFileName(contract.getContractCode() + "-signed.pdf");
+        contract.setAttachmentContentType("application/pdf");
+        contract.setAttachmentFileSize(fileSize(target));
+    }
+
+    private byte[] seedPdfBytes(Contract contract, int index) {
+        String text = "Vantix signed contract sample " + contract.getContractCode() + " #" + index;
+        return ("%PDF-1.4\n"
+                + "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n"
+                + "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n"
+                + "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >> endobj\n"
+                + "4 0 obj << /Length " + (44 + text.length()) + " >> stream\n"
+                + "BT /F1 12 Tf 72 720 Td (" + text + ") Tj ET\n"
+                + "endstream endobj\n"
+                + "xref\n0 5\n0000000000 65535 f \n"
+                + "trailer << /Root 1 0 R /Size 5 >>\n"
+                + "startxref\n0\n%%EOF").getBytes(StandardCharsets.UTF_8);
     }
 
     private BigDecimal sampleBaseSalary(int index, boolean probation) {
@@ -1484,16 +1531,19 @@ public class DataSeeder implements CommandLineRunner {
                     .stream()
                     .findFirst()
                     .orElse(null);
+            if (contract == null) {
+                continue;
+            }
 
             Payroll payroll = new Payroll();
             payroll.setPeriod(period);
             payroll.setEmployee(employee);
             payroll.setContract(contract);
-            payroll.setStandardWorkDays(contract != null && contract.getStandardWorkDays() != null
+            payroll.setStandardWorkDays(contract.getStandardWorkDays() != null
                     ? contract.getStandardWorkDays()
                     : period.getStandardWorkDays());
-            payroll.setBaseSalary(contract != null ? nz(contract.getBaseSalary()) : sampleBaseSalary(i, false));
-            payroll.setInsuranceSalary(contract != null && contract.getInsuranceSalary() != null
+            payroll.setBaseSalary(nz(contract.getBaseSalary()));
+            payroll.setInsuranceSalary(contract.getInsuranceSalary() != null
                     ? contract.getInsuranceSalary()
                     : payroll.getBaseSalary());
             payroll.setActualWorkDays(sampleActualWorkDays(employee, period, yearMonth, i));
@@ -1504,11 +1554,11 @@ public class DataSeeder implements CommandLineRunner {
             payroll.setOvertimeHoursHoliday(BigDecimal.ZERO);
             payroll.setOvertimeHoursNight(new BigDecimal(i % 9 == 0 ? "3.00" : "0.00"));
             payroll.setDependents(i % 4);
-            payroll.setResponsibilityAllowance(contract != null ? nz(contract.getResponsibilityAllowance()) : BigDecimal.ZERO);
-            payroll.setMealAllowance(contract != null ? nz(contract.getMealAllowance()) : new BigDecimal("730000"));
-            payroll.setTransportAllowance(contract != null ? nz(contract.getTransportAllowance()) : new BigDecimal("300000"));
-            payroll.setPhoneAllowance(contract != null ? nz(contract.getPhoneAllowance()) : new BigDecimal("200000"));
-            payroll.setOtherAllowance(contract != null ? nz(contract.getOtherAllowance()) : BigDecimal.ZERO);
+            payroll.setResponsibilityAllowance(nz(contract.getResponsibilityAllowance()));
+            payroll.setMealAllowance(nz(contract.getMealAllowance()));
+            payroll.setTransportAllowance(nz(contract.getTransportAllowance()));
+            payroll.setPhoneAllowance(nz(contract.getPhoneAllowance()));
+            payroll.setOtherAllowance(nz(contract.getOtherAllowance()));
             payroll.setBonus(new BigDecimal(i % 8 == 0 ? "1500000" : "0"));
             payroll.setCommission(new BigDecimal(i % 10 == 0 ? "2500000" : "0"));
             payroll.setOtherDeductions(new BigDecimal(i % 12 == 0 ? "300000" : "0"));

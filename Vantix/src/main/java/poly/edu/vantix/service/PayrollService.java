@@ -186,7 +186,8 @@ public class PayrollService {
     }
 
     /**
-     * Tạo dòng lương cho TẤT CẢ nhân viên đang làm việc trong kỳ. Không ghi đè nếu đã tồn tại.
+     * Tạo dòng lương cho nhân viên đang làm việc và có hợp đồng hiệu lực trong kỳ.
+     * Không ghi đè nếu đã tồn tại.
      */
     @Transactional
     public PayrollPeriodResponse generate(Long periodId) {
@@ -207,6 +208,13 @@ public class PayrollService {
         for (Employee employee : activeEmployees) {
             Optional<Payroll> existing = payrollRepository
                     .findByPeriodIdAndEmployeeId(period.getId(), employee.getId());
+            Contract contract = findEffectiveContract(employee, period).orElse(null);
+            if (contract == null) {
+                existing.filter(payroll -> !Boolean.TRUE.equals(payroll.getDeleted()))
+                        .ifPresent(this::softDeletePayroll);
+                continue;
+            }
+
             if (existing.isPresent() && !Boolean.TRUE.equals(existing.get().getDeleted())) {
                 continue;
             }
@@ -219,7 +227,7 @@ public class PayrollService {
             payroll.setDeletedBy(null);
             payroll.setPaidAt(null);
             payroll.setStatus(PayrollStatus.DRAFT);
-            applyContractDefaults(payroll, employee, period);
+            applyContractDefaults(payroll, contract, period);
             autoFillTimesheet(payroll, employee, period);
             recalculate(payroll);
             payrollRepository.save(payroll);
@@ -243,12 +251,24 @@ public class PayrollService {
 
         List<Payroll> payrolls = payrollRepository.findByPeriod(period.getId(), null, null);
         for (Payroll payroll : payrolls) {
+            Contract contract = findEffectiveContract(payroll.getEmployee(), period).orElse(null);
+            if (contract == null) {
+                softDeletePayroll(payroll);
+                payrollRepository.save(payroll);
+                continue;
+            }
+
+            applyContractDefaults(payroll, contract, period);
             autoFillTimesheet(payroll, payroll.getEmployee(), period);
             recalculate(payroll);
             payrollRepository.save(payroll);
         }
 
-        period.setStatus(PayrollStatus.CALCULATED);
+        List<Payroll> activeRows = payrollRepository.findByPeriod(period.getId(), null, null);
+        period.setStatus(!activeRows.isEmpty()
+                && activeRows.stream().allMatch(p -> p.getStatus() == PayrollStatus.CALCULATED)
+                ? PayrollStatus.CALCULATED
+                : PayrollStatus.DRAFT);
         return PayrollPeriodResponse.fromEntity(periodRepository.save(period));
     }
 
@@ -327,29 +347,34 @@ public class PayrollService {
         }
     }
 
-    private void applyContractDefaults(Payroll payroll, Employee employee, PayrollPeriod period) {
-        List<Contract> effective = contractRepository
-                .findEffectiveContracts(employee.getId(), period.getEndDate());
-        Contract contract = effective.isEmpty() ? null : effective.get(0);
+    private void softDeletePayroll(Payroll payroll) {
+        payroll.setDeleted(true);
+        payroll.setDeletedAt(LocalDateTime.now());
+    }
 
+    private Optional<Contract> findEffectiveContract(Employee employee, PayrollPeriod period) {
+        return contractRepository.findEffectiveContracts(employee.getId(), period.getEndDate())
+                .stream()
+                .findFirst();
+    }
+
+    private void applyContractDefaults(Payroll payroll, Contract contract, PayrollPeriod period) {
         payroll.setContract(contract);
         payroll.setStandardWorkDays(period.getStandardWorkDays());
 
-        if (contract != null) {
-            payroll.setBaseSalary(nz(contract.getBaseSalary()));
-            payroll.setInsuranceSalary(
-                    contract.getInsuranceSalary() != null
-                            ? contract.getInsuranceSalary()
-                            : nz(contract.getBaseSalary())
-            );
-            payroll.setResponsibilityAllowance(nz(contract.getResponsibilityAllowance()));
-            payroll.setMealAllowance(nz(contract.getMealAllowance()));
-            payroll.setTransportAllowance(nz(contract.getTransportAllowance()));
-            payroll.setPhoneAllowance(nz(contract.getPhoneAllowance()));
-            payroll.setOtherAllowance(nz(contract.getOtherAllowance()));
-            if (contract.getStandardWorkDays() != null && contract.getStandardWorkDays() > 0) {
-                payroll.setStandardWorkDays(contract.getStandardWorkDays());
-            }
+        payroll.setBaseSalary(nz(contract.getBaseSalary()));
+        payroll.setInsuranceSalary(
+                contract.getInsuranceSalary() != null
+                        ? contract.getInsuranceSalary()
+                        : nz(contract.getBaseSalary())
+        );
+        payroll.setResponsibilityAllowance(nz(contract.getResponsibilityAllowance()));
+        payroll.setMealAllowance(nz(contract.getMealAllowance()));
+        payroll.setTransportAllowance(nz(contract.getTransportAllowance()));
+        payroll.setPhoneAllowance(nz(contract.getPhoneAllowance()));
+        payroll.setOtherAllowance(nz(contract.getOtherAllowance()));
+        if (contract.getStandardWorkDays() != null && contract.getStandardWorkDays() > 0) {
+            payroll.setStandardWorkDays(contract.getStandardWorkDays());
         }
     }
 
